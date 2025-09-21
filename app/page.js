@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ethers } from "ethers";
-import { contractAddress, abi } from "../utils/contract.js";
+import { contractAddress, abi } from "../utils/contract";
 
 export default function Home() {
   const [walletConnected, setWalletConnected] = useState(false);

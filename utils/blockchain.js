@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { contractAddress, abi } from "./contract";
+import { contractAddress, abi } from "contract";
 
 export async function connectWallet() {
   if (!window.ethereum) return alert("MetaMask yok!");
