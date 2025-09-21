@@ -30,8 +30,18 @@ export default function Page() {
       <p>Remaining Plays: {plays}</p>
       <p>{result}</p>
       <div>
-        <button onClick={() => setChoice(0)}>Select Image 1</button>
-        <button onClick={() => setChoice(1)}>Select Image 2</button>
+        <img
+          src="https://via.placeholder.com/150/FF0000/FFFFFF?text=Image+1"
+          alt="Option 1"
+          style={{ width: 150, height: 150, cursor: "pointer", margin: 10 }}
+          onClick={() => setChoice(0)}
+        />
+        <img
+          src="https://via.placeholder.com/150/0000FF/FFFFFF?text=Image+2"
+          alt="Option 2"
+          style={{ width: 150, height: 150, cursor: "pointer", margin: 10 }}
+          onClick={() => setChoice(1)}
+        />
       </div>
       <br />
       <button onClick={playGame}>Play Game</button>
