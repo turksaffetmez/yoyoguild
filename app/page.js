@@ -15,18 +15,51 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [transactionInfo, setTransactionInfo] = useState("");
+  const [provider, setProvider] = useState(null);
 
   useEffect(() => {
     // Sayfa yüklendiğinde otomatik olarak cüzdan bağlı mı kontrol et
     checkWalletConnection();
+    
+    // Ethereum hesap değişikliklerini dinle
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+    }
+
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
   }, []);
+
+  function handleAccountsChanged(accounts) {
+    if (accounts.length === 0) {
+      // Kullanıcı cüzdanı bağlantısını kesti
+      disconnectWallet();
+      setStatusMessage("Cüzdan bağlantısı kesildi.");
+    } else if (accounts[0] !== userAddress) {
+      // Farklı bir hesaba geçiş yapıldı
+      setUserAddress(accounts[0]);
+      setStatusMessage("Hesap değiştirildi.");
+      setTimeout(() => setStatusMessage(""), 3000);
+    }
+  }
+
+  function handleChainChanged(chainId) {
+    // Zincir değiştiğinde sayfayı yenile
+    window.location.reload();
+  }
 
   async function checkWalletConnection() {
     if (!window.ethereum) return;
     
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await provider.listAccounts();
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+      const accounts = await newProvider.send("eth_accounts", []);
       
       if (accounts.length > 0) {
         // Otomatik olarak bağlan
@@ -46,9 +79,10 @@ export default function Home() {
     try {
       setStatusMessage("Cüzdan bağlanıyor...");
       
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      const signer = await provider.getSigner();
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+      await newProvider.send("eth_requestAccounts", []);
+      const signer = await newProvider.getSigner();
       const contractInstance = new ethers.Contract(contractAddress, abi, signer);
       
       setContract(contractInstance);
@@ -65,8 +99,17 @@ export default function Home() {
       setTimeout(() => setStatusMessage(""), 3000);
     } catch (err) {
       console.error("Cüzdan bağlanamadı:", err);
-      setStatusMessage("Cüzdan bağlanamadı. Konsolu kontrol et.");
+      setStatusMessage("Cüzdan bağlanamadı. Lütfen tekrar deneyin.");
     }
+  }
+
+  async function disconnectWallet() {
+    setWalletConnected(false);
+    setUserAddress("");
+    setContract(null);
+    setPoints(0);
+    setProvider(null);
+    setTransactionInfo("");
   }
 
   async function getPointsFromBlockchain(contractInstance, address) {
@@ -92,8 +135,12 @@ export default function Home() {
     try {
       setStatusMessage("İşlem blockchain'e kaydediliyor...");
       
+      // Signer'ı güncelle
+      const signer = await provider.getSigner();
+      const updatedContract = contract.connect(signer);
+      
       // Kontrat ile etkileşim
-      const tx = await contract.addPoints(await contract.signer.getAddress(), amount);
+      const tx = await updatedContract.addPoints(await signer.getAddress(), amount);
       
       // İşlem hash'ini göster
       setTransactionInfo(`İşlem gönderildi: ${tx.hash}`);
@@ -104,13 +151,20 @@ export default function Home() {
       setStatusMessage(`İşlem onaylandı! ${amount} puan eklendi.`);
       setTransactionInfo(prev => prev + `\nİşlem onaylandı. Blok: ${receipt.blockNumber}`);
       
+      // Puanları güncelle
+      await getPointsFromBlockchain(updatedContract, await signer.getAddress());
+      
       // 3 saniye sonra durum mesajını temizle
       setTimeout(() => setStatusMessage(""), 3000);
       
       return true;
     } catch (err) {
       console.error("Hata:", err);
-      setStatusMessage("İşlem başarısız: " + err.message);
+      if (err.message.includes("user rejected")) {
+        setStatusMessage("İşlem kullanıcı tarafından reddedildi.");
+      } else {
+        setStatusMessage("İşlem başarısız: " + err.message);
+      }
       return false;
     }
   }
@@ -135,21 +189,18 @@ export default function Home() {
       setStatusMessage("😢 Maalesef kaybettiniz. +10 puan");
     }
 
-    // Frontend puanı güncelle
-    setPoints(points + earnedPoints);
-
     // Blockchain'e kaydet
     const success = await addPointsToBlockchain(earnedPoints);
 
     if (success) {
+      // Frontend puanı güncelle
+      setPoints(points + earnedPoints);
+      
       // Yeni resimler
       setImages([
         `https://placekitten.com/200/200?image=${Math.floor(Math.random() * 16)}`,
         `https://placekitten.com/200/200?image=${Math.floor(Math.random() * 16)}`,
       ]);
-    } else {
-      // İşlem başarısız olursa puanları geri al
-      setPoints(points - earnedPoints);
     }
 
     setIsLoading(false);
@@ -185,6 +236,12 @@ export default function Home() {
                     <span className="font-semibold">Toplam Puan:</span> <span className="text-indigo-600 font-bold text-xl">{points}</span>
                   </p>
                 </div>
+                <button
+                  onClick={disconnectWallet}
+                  className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-full text-sm transition-colors duration-300"
+                >
+                  Cüzdanı Bağlantısını Kes
+                </button>
               </div>
             )}
           </div>
@@ -195,7 +252,7 @@ export default function Home() {
                 {images.map((img, i) => (
                   <div 
                     key={i}
-                    className={`relative cursor-pointer transition-all duration-300 rounded-xl overflow-hidden shadow-lg ${isLoading ? "opacity-60" : "hover:scale-105 hover:shadow-xl"}`}
+                    className={`relative cursor-pointer transition-all duration-300 rounded-xl overflow-hidden shadow-lg ${isLoading ? "opacity-60 cursor-not-allowed" : "hover:scale-105 hover:shadow-xl"}`}
                     onClick={() => !isLoading && selectImage(i)}
                   >
                     <img
@@ -206,6 +263,11 @@ export default function Home() {
                     <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white py-2 text-center font-semibold">
                       Seçenek {i + 1}
                     </div>
+                    {isLoading && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -214,9 +276,9 @@ export default function Home() {
 
           {statusMessage && (
             <div className={`p-4 rounded-lg text-center mb-4 ${
-              statusMessage.includes("Tebrikler") ? "bg-green-100 text-green-800" : 
-              statusMessage.includes("Maalesef") ? "bg-red-100 text-red-800" : 
-              statusMessage.includes("bağlandı") ? "bg-blue-100 text-blue-800" : 
+              statusMessage.includes("Tebrikler") || statusMessage.includes("başarıyla") ? "bg-green-100 text-green-800" : 
+              statusMessage.includes("Maalesef") || statusMessage.includes("reddedildi") ? "bg-red-100 text-red-800" : 
+              statusMessage.includes("bağlanıyor") || statusMessage.includes("kaydediliyor") ? "bg-blue-100 text-blue-800" : 
               "bg-yellow-100 text-yellow-800"
             }`}>
               {statusMessage}
