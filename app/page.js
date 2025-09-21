@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { contractAddress, abi } from "../utils/contract";
 
@@ -13,90 +13,228 @@ export default function Home() {
     "https://placekitten.com/200/200?image=2",
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [transactionInfo, setTransactionInfo] = useState("");
+
+  useEffect(() => {
+    // Sayfa yüklendiğinde otomatik olarak cüzdan bağlı mı kontrol et
+    checkWalletConnection();
+  }, []);
+
+  async function checkWalletConnection() {
+    if (!window.ethereum) return;
+    
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.listAccounts();
+      
+      if (accounts.length > 0) {
+        // Otomatik olarak bağlan
+        await connectWallet();
+      }
+    } catch (err) {
+      console.error("Otomatik bağlantı hatası:", err);
+    }
+  }
 
   async function connectWallet() {
-    if (!window.ethereum) return alert("MetaMask yok!");
+    if (!window.ethereum) {
+      setStatusMessage("Lütfen MetaMask yükleyin!");
+      return;
+    }
+    
     try {
+      setStatusMessage("Cüzdan bağlanıyor...");
+      
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
       const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+      
       setContract(contractInstance);
       const address = await signer.getAddress();
       setUserAddress(address);
       setWalletConnected(true);
-      console.log("Cüzdan bağlandı:", address);
+      
+      // Mevcut puanları al
+      await getPointsFromBlockchain(contractInstance, address);
+      
+      setStatusMessage("Cüzdan başarıyla bağlandı!");
+      
+      // 3 saniye sonra durum mesajını temizle
+      setTimeout(() => setStatusMessage(""), 3000);
     } catch (err) {
       console.error("Cüzdan bağlanamadı:", err);
-      alert("Cüzdan bağlanamadı. Konsolu kontrol et.");
+      setStatusMessage("Cüzdan bağlanamadı. Konsolu kontrol et.");
+    }
+  }
+
+  async function getPointsFromBlockchain(contractInstance, address) {
+    if (!contractInstance) return;
+    
+    try {
+      // Kontratta getPoints fonksiyonu olduğunu varsayıyoruz
+      const userPoints = await contractInstance.getPoints(address);
+      setPoints(parseInt(userPoints.toString()));
+    } catch (err) {
+      console.error("Puanlar alınamadı:", err);
+      // Puanları alamazsak sıfırdan devam et
+      setPoints(0);
     }
   }
 
   async function addPointsToBlockchain(amount) {
-    if (!contract) return alert("Önce cüzdanı bağlayın!");
+    if (!contract) {
+      setStatusMessage("Önce cüzdanı bağlayın!");
+      return false;
+    }
+    
     try {
+      setStatusMessage("İşlem blockchain'e kaydediliyor...");
+      
+      // Kontrat ile etkileşim
       const tx = await contract.addPoints(await contract.signer.getAddress(), amount);
-      await tx.wait();
-      console.log("Puan kaydedildi:", amount);
+      
+      // İşlem hash'ini göster
+      setTransactionInfo(`İşlem gönderildi: ${tx.hash}`);
+      
+      // İşlemin onaylanmasını bekle
+      const receipt = await tx.wait();
+      
+      setStatusMessage(`İşlem onaylandı! ${amount} puan eklendi.`);
+      setTransactionInfo(prev => prev + `\nİşlem onaylandı. Blok: ${receipt.blockNumber}`);
+      
+      // 3 saniye sonra durum mesajını temizle
+      setTimeout(() => setStatusMessage(""), 3000);
+      
+      return true;
     } catch (err) {
       console.error("Hata:", err);
+      setStatusMessage("İşlem başarısız: " + err.message);
+      return false;
     }
   }
 
   async function selectImage(index) {
-    if (!walletConnected) return alert("Önce cüzdanı bağlayın!");
+    if (isLoading) return;
+    if (!walletConnected) {
+      setStatusMessage("Önce cüzdanı bağlayın!");
+      return;
+    }
+    
     setIsLoading(true);
 
     // Rastgele kazanan belirle
     const winner = Math.floor(Math.random() * 2);
     const earnedPoints = winner === index ? 100 : 10;
 
-    alert(winner === index ? "🎉 Kazandınız! +100 puan" : "😢 Kaybettiniz! +10 puan");
+    // Kazanma mesajı göster
+    if (winner === index) {
+      setStatusMessage("🎉 Tebrikler! Kazandınız! +100 puan");
+    } else {
+      setStatusMessage("😢 Maalesef kaybettiniz. +10 puan");
+    }
 
     // Frontend puanı güncelle
     setPoints(points + earnedPoints);
 
-    // Blockchain’e kaydet
-    await addPointsToBlockchain(earnedPoints);
+    // Blockchain'e kaydet
+    const success = await addPointsToBlockchain(earnedPoints);
 
-    // Yeni resimler
-    setImages([
-      `https://placekitten.com/200/200?image=${Math.floor(Math.random() * 16)}`,
-      `https://placekitten.com/200/200?image=${Math.floor(Math.random() * 16)}`,
-    ]);
+    if (success) {
+      // Yeni resimler
+      setImages([
+        `https://placekitten.com/200/200?image=${Math.floor(Math.random() * 16)}`,
+        `https://placekitten.com/200/200?image=${Math.floor(Math.random() * 16)}`,
+      ]);
+    } else {
+      // İşlem başarısız olursa puanları geri al
+      setPoints(points - earnedPoints);
+    }
 
     setIsLoading(false);
+    
+    // 3 saniye sonra durum mesajını temizle
+    setTimeout(() => setStatusMessage(""), 3000);
   }
 
   return (
-    <main className="flex flex-col items-center p-10">
-      <h1 className="text-3xl font-bold mb-6">🎮 YoYo Guild Game</h1>
-
-      {!walletConnected ? (
-        <button
-          onClick={connectWallet}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
-        >
-          Connect Wallet
-        </button>
-      ) : (
-        <>
-          <p className="mb-4">Cüzdan: {userAddress}</p>
-          <p className="mb-4">Toplam Puan: {points}</p>
-
-          <div className="flex gap-4">
-            {images.map((img, i) => (
-              <img
-                key={i}
-                src={img}
-                alt={`Seçenek ${i + 1}`}
-                className={`w-48 h-48 cursor-pointer border-4 border-gray-300 hover:border-blue-500 ${isLoading ? "opacity-50" : ""}`}
-                onClick={() => !isLoading && selectImage(i)}
-              />
-            ))}
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-500 flex flex-col items-center p-6">
+      <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden">
+        <header className="bg-gradient-to-r from-indigo-600 to-green-500 text-white py-8 px-6 text-center">
+          <h1 className="text-4xl font-bold mb-2">🎮 YoYo Guild Game</h1>
+          <p className="text-lg opacity-90">Kazanmak için bir resim seçin ve puan toplayın!</p>
+        </header>
+        
+        <div className="p-6">
+          <div className="text-center mb-8">
+            {!walletConnected ? (
+              <button
+                onClick={connectWallet}
+                className="bg-gradient-to-r from-indigo-600 to-green-500 hover:from-indigo-700 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
+              >
+                Cüzdanı Bağla
+              </button>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-gray-100 p-4 rounded-lg">
+                  <p className="text-gray-700">
+                    <span className="font-semibold">Cüzdan:</span> {userAddress.substring(0, 6)}...{userAddress.substring(userAddress.length - 4)}
+                  </p>
+                  <p className="text-gray-700 mt-2">
+                    <span className="font-semibold">Toplam Puan:</span> <span className="text-indigo-600 font-bold text-xl">{points}</span>
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-        </>
-      )}
-    </main>
+
+          {walletConnected && (
+            <div className="game-section">
+              <div className="flex flex-col md:flex-row justify-center gap-6 mb-8">
+                {images.map((img, i) => (
+                  <div 
+                    key={i}
+                    className={`relative cursor-pointer transition-all duration-300 rounded-xl overflow-hidden shadow-lg ${isLoading ? "opacity-60" : "hover:scale-105 hover:shadow-xl"}`}
+                    onClick={() => !isLoading && selectImage(i)}
+                  >
+                    <img
+                      src={img}
+                      alt={`Seçenek ${i + 1}`}
+                      className="w-64 h-64 object-cover"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white py-2 text-center font-semibold">
+                      Seçenek {i + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {statusMessage && (
+            <div className={`p-4 rounded-lg text-center mb-4 ${
+              statusMessage.includes("Tebrikler") ? "bg-green-100 text-green-800" : 
+              statusMessage.includes("Maalesef") ? "bg-red-100 text-red-800" : 
+              statusMessage.includes("bağlandı") ? "bg-blue-100 text-blue-800" : 
+              "bg-yellow-100 text-yellow-800"
+            }`}>
+              {statusMessage}
+            </div>
+          )}
+
+          {transactionInfo && (
+            <div className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-40">
+              <p className="text-gray-700 font-semibold mb-2">İşlem Bilgisi:</p>
+              <pre className="text-sm text-gray-600 whitespace-pre-wrap">{transactionInfo}</pre>
+            </div>
+          )}
+        </div>
+        
+        <footer className="bg-gray-800 text-white py-4 text-center">
+          <p>YoYo Guild Game - Blokzincir ile oyun deneyimi</p>
+        </footer>
+      </div>
+    </div>
   );
 }
