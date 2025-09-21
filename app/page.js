@@ -9,13 +9,31 @@ export default function Home() {
   const [contract, setContract] = useState(null);
   const [points, setPoints] = useState(0);
   const [images, setImages] = useState([
-    "https://placekitten.com/200/200?image=1",
-    "https://placekitten.com/200/200?image=2",
+    "https://placekitten.com/300/300?image=1",
+    "https://placekitten.com/300/300?image=2",
+    "https://placekitten.com/300/300?image=3",
+    "https://placekitten.com/300/300?image=4"
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [transactionInfo, setTransactionInfo] = useState("");
   const [provider, setProvider] = useState(null);
+  const [activeTab, setActiveTab] = useState("home");
+  const [leaderboard, setLeaderboard] = useState([]);
+
+  // Örnek liderlik tablosu verisi
+  const sampleLeaderboard = [
+    { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
+    { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
+    { rank: 3, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 7650 },
+    { rank: 4, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 6320 },
+    { rank: 5, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 5100 },
+    { rank: 6, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 4870 },
+    { rank: 7, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 4320 },
+    { rank: 8, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 3980 },
+    { rank: 9, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 3650 },
+    { rank: 10, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 3420 },
+  ];
 
   useEffect(() => {
     // Sayfa yüklendiğinde otomatik olarak cüzdan bağlı mı kontrol et
@@ -26,6 +44,9 @@ export default function Home() {
       window.ethereum.on('accountsChanged', handleAccountsChanged);
       window.ethereum.on('chainChanged', handleChainChanged);
     }
+
+    // Liderlik tablosunu yükle
+    setLeaderboard(sampleLeaderboard);
 
     return () => {
       if (window.ethereum) {
@@ -179,14 +200,14 @@ export default function Home() {
     setIsLoading(true);
 
     // Rastgele kazanan belirle
-    const winner = Math.floor(Math.random() * 2);
+    const winner = Math.floor(Math.random() * 4);
     const earnedPoints = winner === index ? 100 : 10;
 
     // Kazanma mesajı göster
     if (winner === index) {
-      setStatusMessage("🎉 Tebrikler! Kazandınız! +100 puan");
+      setStatusMessage("🎉 Tebrikler! Kazandınız! +100 puan 🥳");
     } else {
-      setStatusMessage("😢 Maalesef kaybettiniz. +10 puan");
+      setStatusMessage("😢 Maalesef kaybettiniz. +10 puan 😔");
     }
 
     // Blockchain'e kaydet
@@ -196,10 +217,12 @@ export default function Home() {
       // Frontend puanı güncelle
       setPoints(points + earnedPoints);
       
-      // Yeni resimler
+      // Yeni resimler (aynı resimlerle devam)
       setImages([
-        `https://placekitten.com/200/200?image=${Math.floor(Math.random() * 16)}`,
-        `https://placekitten.com/200/200?image=${Math.floor(Math.random() * 16)}`,
+        "https://placekitten.com/300/300?image=1",
+        "https://placekitten.com/300/300?image=2",
+        "https://placekitten.com/300/300?image=3",
+        "https://placekitten.com/300/300?image=4"
       ]);
     }
 
@@ -209,84 +232,212 @@ export default function Home() {
     setTimeout(() => setStatusMessage(""), 3000);
   }
 
+  // Navigasyon sekmeleri
+  const renderHomeTab = () => (
+    <div className="space-y-6">
+      <h2 className="text-3xl font-bold text-center text-indigo-700">YoYo Guild'e Hoş Geldiniz!</h2>
+      
+      <div className="bg-gradient-to-r from-indigo-100 to-purple-100 p-6 rounded-xl">
+        <h3 className="text-xl font-semibold text-indigo-800 mb-3">YoYo Guild Nedir?</h3>
+        <p className="text-gray-700">
+          YoYo Guild, blokzincir teknolojisi ve oyun mekaniklerini birleştiren yenilikçi bir topluluktur. 
+          Guild üyeleri, oyunlar oynayarak puan kazanır ve bu puanlarla çeşitli ödüller elde edebilirler.
+        </p>
+      </div>
+      
+      <div className="bg-gradient-to-r from-green-100 to-blue-100 p-6 rounded-xl">
+        <h3 className="text-xl font-semibold text-green-800 mb-3">Nasıl Çalışır?</h3>
+        <ol className="list-decimal pl-5 text-gray-700 space-y-2">
+          <li>Cüzdanınızı bağlayın</li>
+          <li>Oyunlar sekmesine gidin</li>
+          <li>Resimlerden birini seçin ve kazanıp kazanmadığınızı görün</li>
+          <li>Kazandığınız puanları blockchain'e kaydedin</li>
+          <li>Liderlik tablosunda yükselin</li>
+        </ol>
+      </div>
+      
+      <div className="bg-gradient-to-r from-yellow-100 to-orange-100 p-6 rounded-xl">
+        <h3 className="text-xl font-semibold text-orange-800 mb-3">Neden YoYo Guild?</h3>
+        <ul className="list-disc pl-5 text-gray-700 space-y-2">
+          <li>Eğlenceli ve kazançlı oyun deneyimi</li>
+          <li>Şeffaf ve güvenli blokzincir teknolojisi</li>
+          <li>Topluluk odaklı yaklaşım</li>
+          <li>Düzenli etkinlikler ve ödüller</li>
+        </ul>
+      </div>
+    </div>
+  );
+
+  const renderPlayTab = () => (
+    <div className="space-y-8">
+      <h2 className="text-3xl font-bold text-center text-indigo-700">Oyunu Oyna</h2>
+      
+      {walletConnected ? (
+        <>
+          <div className="bg-indigo-100 p-4 rounded-lg text-center">
+            <p className="text-indigo-800 font-semibold">Toplam Puanınız: <span className="text-2xl">{points}</span></p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            {images.map((img, i) => (
+              <div 
+                key={i}
+                className={`relative cursor-pointer transition-all duration-300 rounded-xl overflow-hidden shadow-lg ${isLoading ? "opacity-60 cursor-not-allowed" : "hover:scale-105 hover:shadow-xl"}`}
+                onClick={() => !isLoading && selectImage(i)}
+              >
+                <img
+                  src={img}
+                  alt={`Seçenek ${i + 1}`}
+                  className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    e.target.src = "https://placekitten.com/300/300?image=" + (i+1);
+                  }}
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white py-2 text-center font-semibold">
+                  Seçenek {i + 1}
+                </div>
+                {isLoading && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          <div className="text-center">
+            <p className="text-gray-600">Bir resim seçin ve kazanıp kazanmadığınızı görün!</p>
+          </div>
+        </>
+      ) : (
+        <div className="text-center py-10">
+          <div className="bg-yellow-100 p-6 rounded-xl max-w-md mx-auto">
+            <h3 className="text-xl font-semibold text-yellow-800 mb-4">Oyun Oynamak İçin Cüzdan Bağlayın</h3>
+            <button
+              onClick={connectWallet}
+              className="bg-gradient-to-r from-indigo-600 to-green-500 hover:from-indigo-700 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-all duration-300"
+            >
+              Cüzdanı Bağla
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderLeaderboardTab = () => (
+    <div className="space-y-6">
+      <h2 className="text-3xl font-bold text-center text-indigo-700">Liderlik Tablosu - Top 10</h2>
+      
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="grid grid-cols-3 bg-indigo-100 text-indigo-800 font-semibold p-4">
+          <div>Sıra</div>
+          <div>Cüzdan Adresi</div>
+          <div className="text-right">Puan</div>
+        </div>
+        
+        <div className="divide-y">
+          {leaderboard.map((player, index) => (
+            <div key={index} className="grid grid-cols-3 p-4 hover:bg-gray-50">
+              <div className="font-medium">#{player.rank}</div>
+              <div className="truncate">
+                {player.address.substring(0, 6)}...{player.address.substring(player.address.length - 4)}
+              </div>
+              <div className="text-right font-semibold">{player.points.toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <div className="text-center text-gray-500 text-sm">
+        <p>Liderlik tablosu her gün güncellenmektedir.</p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-500 flex flex-col items-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-500 flex flex-col items-center p-4">
       <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden">
-        <header className="bg-gradient-to-r from-indigo-600 to-green-500 text-white py-8 px-6 text-center">
-          <h1 className="text-4xl font-bold mb-2">🎮 YoYo Guild Game</h1>
-          <p className="text-lg opacity-90">Kazanmak için bir resim seçin ve puan toplayın!</p>
+        <header className="bg-gradient-to-r from-indigo-600 to-green-500 text-white py-6 px-6 text-center">
+          <h1 className="text-4xl font-bold mb-2">🎮 YoYo Guild</h1>
+          <p className="text-lg opacity-90">Blokzincir tabanlı eğlence ve kazanç platformu</p>
         </header>
         
-        <div className="p-6">
-          <div className="text-center mb-8">
-            {!walletConnected ? (
-              <button
-                onClick={connectWallet}
-                className="bg-gradient-to-r from-indigo-600 to-green-500 hover:from-indigo-700 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
-              >
-                Cüzdanı Bağla
-              </button>
-            ) : (
-              <div className="space-y-4">
-                <div className="bg-gray-100 p-4 rounded-lg">
-                  <p className="text-gray-700">
-                    <span className="font-semibold">Cüzdan:</span> {userAddress.substring(0, 6)}...{userAddress.substring(userAddress.length - 4)}
-                  </p>
-                  <p className="text-gray-700 mt-2">
-                    <span className="font-semibold">Toplam Puan:</span> <span className="text-indigo-600 font-bold text-xl">{points}</span>
-                  </p>
-                </div>
-                <button
-                  onClick={disconnectWallet}
-                  className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-full text-sm transition-colors duration-300"
-                >
-                  Cüzdanı Bağlantısını Kes
-                </button>
-              </div>
-            )}
+        {/* Navigasyon Menüsü */}
+        <nav className="bg-indigo-100 p-2">
+          <div className="flex flex-wrap justify-center gap-2">
+            <button 
+              onClick={() => setActiveTab("home")} 
+              className={`px-4 py-2 rounded-full transition-colors ${activeTab === "home" ? "bg-indigo-600 text-white" : "bg-white text-indigo-600 hover:bg-indigo-50"}`}
+            >
+              Ana Sayfa
+            </button>
+            <button 
+              onClick={() => setActiveTab("play")} 
+              className={`px-4 py-2 rounded-full transition-colors ${activeTab === "play" ? "bg-indigo-600 text-white" : "bg-white text-indigo-600 hover:bg-indigo-50"}`}
+            >
+              Oyunu Oyna
+            </button>
+            <button 
+              onClick={() => setActiveTab("leaderboard")} 
+              className={`px-4 py-2 rounded-full transition-colors ${activeTab === "leaderboard" ? "bg-indigo-600 text-white" : "bg-white text-indigo-600 hover:bg-indigo-50"}`}
+            >
+              Liderlik Tablosu
+            </button>
+            <a 
+              href="https://tevaera.com/guilds/YoYo" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors"
+            >
+              YoYo Guild'e Katıl
+            </a>
           </div>
-
+        </nav>
+        
+        <div className="p-6">
+          {/* Cüzdan Bilgileri */}
           {walletConnected && (
-            <div className="game-section">
-              <div className="flex flex-col md:flex-row justify-center gap-6 mb-8">
-                {images.map((img, i) => (
-                  <div 
-                    key={i}
-                    className={`relative cursor-pointer transition-all duration-300 rounded-xl overflow-hidden shadow-lg ${isLoading ? "opacity-60 cursor-not-allowed" : "hover:scale-105 hover:shadow-xl"}`}
-                    onClick={() => !isLoading && selectImage(i)}
-                  >
-                    <img
-                      src={img}
-                      alt={`Seçenek ${i + 1}`}
-                      className="w-64 h-64 object-cover"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white py-2 text-center font-semibold">
-                      Seçenek {i + 1}
-                    </div>
-                    {isLoading && (
-                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+            <div className="mb-6 p-4 bg-gray-100 rounded-lg flex justify-between items-center flex-wrap gap-4">
+              <div>
+                <p className="text-gray-700">
+                  <span className="font-semibold">Cüzdan:</span> {userAddress.substring(0, 6)}...{userAddress.substring(userAddress.length - 4)}
+                </p>
+                <p className="text-gray-700 mt-1">
+                  <span className="font-semibold">Puanlar:</span> <span className="text-indigo-600 font-bold text-xl">{points}</span>
+                </p>
               </div>
+              <button
+                onClick={disconnectWallet}
+                className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-full text-sm transition-colors"
+              >
+                Çıkış Yap
+              </button>
             </div>
           )}
+          
+          {/* İçerik Alanı */}
+          <div className="min-h-[400px]">
+            {activeTab === "home" && renderHomeTab()}
+            {activeTab === "play" && renderPlayTab()}
+            {activeTab === "leaderboard" && renderLeaderboardTab()}
+          </div>
 
+          {/* Durum Mesajları */}
           {statusMessage && (
-            <div className={`p-4 rounded-lg text-center mb-4 ${
+            <div className={`mt-6 p-4 rounded-lg text-center ${
               statusMessage.includes("Tebrikler") || statusMessage.includes("başarıyla") ? "bg-green-100 text-green-800" : 
               statusMessage.includes("Maalesef") || statusMessage.includes("reddedildi") ? "bg-red-100 text-red-800" : 
               statusMessage.includes("bağlanıyor") || statusMessage.includes("kaydediliyor") ? "bg-blue-100 text-blue-800" : 
               "bg-yellow-100 text-yellow-800"
             }`}>
-              {statusMessage}
+              <p className="font-semibold">{statusMessage}</p>
             </div>
           )}
 
+          {/* İşlem Bilgileri */}
           {transactionInfo && (
-            <div className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-40">
+            <div className="mt-6 bg-gray-100 p-4 rounded-lg overflow-auto max-h-40">
               <p className="text-gray-700 font-semibold mb-2">İşlem Bilgisi:</p>
               <pre className="text-sm text-gray-600 whitespace-pre-wrap">{transactionInfo}</pre>
             </div>
@@ -294,7 +445,7 @@ export default function Home() {
         </div>
         
         <footer className="bg-gray-800 text-white py-4 text-center">
-          <p>YoYo Guild Game - Blokzincir ile oyun deneyimi</p>
+          <p>YoYo Guild - Blokzincir ile oyun deneyimi</p>
         </footer>
       </div>
     </div>
