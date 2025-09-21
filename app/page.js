@@ -1,62 +1,55 @@
 "use client";
 import { useState } from "react";
 import { ethers } from "ethers";
-
-// Kontrat bilgileri
-const contractAddress = "KONTRAT_ADRESİNİ_BURAYA_YAZ"; 
-const abi = [ /* Remix’ten aldığın ABI buraya */ ];
+import { contractAddress, abi } from "./utils/contract"; // ← buradan alıyoruz
 
 export default function Home() {
-  const [points, setPoints] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [userAddress, setUserAddress] = useState("");
+  const [contract, setContract] = useState(null);
 
-  async function connectContract() {
-    if (!window.ethereum) return alert("MetaMask yok!");
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    const signer = provider.getSigner();
-    return new ethers.Contract(contractAddress, abi, signer);
-  }
-
-  async function addPointsToBlockchain(amount) {
+  async function connectWallet() {
     try {
-      const contract = await connectContract();
-      const tx = await contract.addPoints(await contract.signer.getAddress(), amount);
-      await tx.wait();
-      console.log(`✅ ${amount} puan kontrata kaydedildi!`);
+      if (!window.ethereum) return alert("MetaMask yok!");
+
+      // MetaMask ile cüzdan bağla
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+
+      const signer = await provider.getSigner();
+      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+
+      setContract(contractInstance);
+      const address = await signer.getAddress();
+      setUserAddress(address);
+      setWalletConnected(true);
+
+      console.log("✅ Cüzdan bağlandı:", address);
+      console.log("Contract instance:", contractInstance);
+      alert(`Cüzdan bağlandı: ${address}`);
     } catch (err) {
-      console.error("❌ Puan kontrata kaydedilemedi:", err);
+      console.error("Cüzdan bağlanamadı:", err);
+      alert("Cüzdan bağlanamadı. Konsolu kontrol et.");
     }
   }
 
-  async function playGame() {
-    setIsLoading(true);
-
-    // frontend puanını arttır
-    const newPoints = points + 100; // örnek: her oyunda 100 puan
-    setPoints(newPoints);
-
-    // blockchain'e kaydet
-    await addPointsToBlockchain(100);
-
-    setIsLoading(false);
-  }
-
   return (
-    <main className="p-10 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-6">🎮 YoYo Guild Game</h1>
+    <main className="flex min-h-screen flex-col items-center justify-center p-10">
+      <h1 className="text-3xl font-bold mb-6">YoYo Guild - Connect Wallet Test</h1>
 
-      <button
-        onClick={playGame}
-        disabled={isLoading}
-        className={`px-6 py-3 rounded-lg text-white ${
-          isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-        }`}
-      >
-        {isLoading ? "İşleniyor..." : "Oyunu Oyna ve Puan Kazan"}
-      </button>
-
-      <p className="mt-4 text-lg">Toplam Puan: {points}</p>
+      {!walletConnected ? (
+        <button
+          onClick={connectWallet}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
+        >
+          Connect Wallet
+        </button>
+      ) : (
+        <div className="text-center">
+          <p className="mb-2">✅ Cüzdan Bağlandı!</p>
+          <p>Adres: {userAddress}</p>
+        </div>
+      )}
     </main>
   );
 }
