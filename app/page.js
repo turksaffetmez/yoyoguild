@@ -1,46 +1,62 @@
 "use client";
 import { useState } from "react";
-import { addPointsToBlockchain, getPointsFromBlockchain } from "./utils/blockchain";
+import { ethers } from "ethers";
+
+// Kontrat bilgileri
+const contractAddress = "KONTRAT_ADRESİNİ_BURAYA_YAZ"; 
+const abi = [ /* Remix’ten aldığın ABI buraya */ ];
 
 export default function Home() {
   const [points, setPoints] = useState(0);
-  const [address, setAddress] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  async function playGame() {
+  async function connectContract() {
+    if (!window.ethereum) return alert("MetaMask yok!");
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = provider.getSigner();
+    return new ethers.Contract(contractAddress, abi, signer);
+  }
+
+  async function addPointsToBlockchain(amount) {
     try {
-      // Önce cüzdan adresini alalım
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      const player = accounts[0];
-      setAddress(player);
-
-      // Oyunda puan ekle (örnek: 100 puan)
-      await addPointsToBlockchain(100);
-
-      // Güncel puanı blockchain'den al
-      const newPoints = await getPointsFromBlockchain(player);
-      setPoints(newPoints);
+      const contract = await connectContract();
+      const tx = await contract.addPoints(await contract.signer.getAddress(), amount);
+      await tx.wait();
+      console.log(`✅ ${amount} puan kontrata kaydedildi!`);
     } catch (err) {
-      console.error("Oyun hatası:", err);
+      console.error("❌ Puan kontrata kaydedilemedi:", err);
     }
   }
 
+  async function playGame() {
+    setIsLoading(true);
+
+    // frontend puanını arttır
+    const newPoints = points + 100; // örnek: her oyunda 100 puan
+    setPoints(newPoints);
+
+    // blockchain'e kaydet
+    await addPointsToBlockchain(100);
+
+    setIsLoading(false);
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-10">
+    <main className="p-10 flex flex-col items-center">
       <h1 className="text-3xl font-bold mb-6">🎮 YoYo Guild Game</h1>
-      
+
       <button
         onClick={playGame}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
+        disabled={isLoading}
+        className={`px-6 py-3 rounded-lg text-white ${
+          isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+        }`}
       >
-        Oyna ve 100 Puan Kazan
+        {isLoading ? "İşleniyor..." : "Oyunu Oyna ve Puan Kazan"}
       </button>
 
-      {address && (
-        <div className="mt-6 text-lg">
-          <p><strong>Cüzdan:</strong> {address}</p>
-          <p><strong>Toplam Puan:</strong> {points}</p>
-        </div>
-      )}
+      <p className="mt-4 text-lg">Toplam Puan: {points}</p>
     </main>
   );
 }
