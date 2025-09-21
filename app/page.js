@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { contractAddress, abi } from "../utils/contract";
 
@@ -35,6 +35,42 @@ export default function Home() {
     { rank: 10, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 3420 },
   ];
 
+  // useCallback ile fonksiyonları memoize et
+  const handleAccountsChanged = useCallback((accounts) => {
+    if (accounts.length === 0) {
+      // Kullanıcı cüzdanı bağlantısını kesti
+      disconnectWallet();
+      setStatusMessage("Cüzdan bağlantısı kesildi.");
+    } else if (accounts[0] !== userAddress) {
+      // Farklı bir hesaba geçiş yapıldı
+      setUserAddress(accounts[0]);
+      setStatusMessage("Hesap değiştirildi.");
+      setTimeout(() => setStatusMessage(""), 3000);
+    }
+  }, [userAddress]);
+
+  const handleChainChanged = useCallback(() => {
+    // Zincir değiştiğinde sayfayı yenile
+    window.location.reload();
+  }, []);
+
+  const checkWalletConnection = useCallback(async () => {
+    if (!window.ethereum) return;
+    
+    try {
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+      const accounts = await newProvider.send("eth_accounts", []);
+      
+      if (accounts.length > 0) {
+        // Otomatik olarak bağlan
+        await connectWallet();
+      }
+    } catch (err) {
+      console.error("Otomatik bağlantı hatası:", err);
+    }
+  }, []);
+
   useEffect(() => {
     // Sayfa yüklendiğinde otomatik olarak cüzdan bağlı mı kontrol et
     checkWalletConnection();
@@ -54,42 +90,7 @@ export default function Home() {
         window.ethereum.removeListener('chainChanged', handleChainChanged);
       }
     };
-  }, []);
-
-  function handleAccountsChanged(accounts) {
-    if (accounts.length === 0) {
-      // Kullanıcı cüzdanı bağlantısını kesti
-      disconnectWallet();
-      setStatusMessage("Cüzdan bağlantısı kesildi.");
-    } else if (accounts[0] !== userAddress) {
-      // Farklı bir hesaba geçiş yapıldı
-      setUserAddress(accounts[0]);
-      setStatusMessage("Hesap değiştirildi.");
-      setTimeout(() => setStatusMessage(""), 3000);
-    }
-  }
-
-  function handleChainChanged(chainId) {
-    // Zincir değiştiğinde sayfayı yenile
-    window.location.reload();
-  }
-
-  async function checkWalletConnection() {
-    if (!window.ethereum) return;
-    
-    try {
-      const newProvider = new ethers.BrowserProvider(window.ethereum);
-      setProvider(newProvider);
-      const accounts = await newProvider.send("eth_accounts", []);
-      
-      if (accounts.length > 0) {
-        // Otomatik olarak bağlan
-        await connectWallet();
-      }
-    } catch (err) {
-      console.error("Otomatik bağlantı hatası:", err);
-    }
-  }
+  }, [checkWalletConnection, handleAccountsChanged, handleChainChanged]);
 
   async function connectWallet() {
     if (!window.ethereum) {
@@ -137,7 +138,7 @@ export default function Home() {
     if (!contractInstance) return;
     
     try {
-      // Kontratta getPoints fonksiyonu olduğunu varsayıyoruz
+      // Kontrattaki getPoints fonksiyonunu çağır
       const userPoints = await contractInstance.getPoints(address);
       setPoints(parseInt(userPoints.toString()));
     } catch (err) {
@@ -154,13 +155,13 @@ export default function Home() {
     }
     
     try {
-      setStatusMessage("İşlem blockchain'e kaydediliyor...");
+      setStatusMessage("İşlem blockchain&apos;e kaydediliyor...");
       
       // Signer'ı güncelle
       const signer = await provider.getSigner();
       const updatedContract = contract.connect(signer);
       
-      // Kontrat ile etkileşim
+      // Kontrat ile etkileşim - addPoints fonksiyonunu çağır
       const tx = await updatedContract.addPoints(await signer.getAddress(), amount);
       
       // İşlem hash'ini göster
@@ -235,7 +236,7 @@ export default function Home() {
   // Navigasyon sekmeleri
   const renderHomeTab = () => (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-center text-indigo-700">YoYo Guild'e Hoş Geldiniz!</h2>
+      <h2 className="text-3xl font-bold text-center text-indigo-700">YoYo Guild&apos;e Hoş Geldiniz!</h2>
       
       <div className="bg-gradient-to-r from-indigo-100 to-purple-100 p-6 rounded-xl">
         <h3 className="text-xl font-semibold text-indigo-800 mb-3">YoYo Guild Nedir?</h3>
@@ -251,7 +252,7 @@ export default function Home() {
           <li>Cüzdanınızı bağlayın</li>
           <li>Oyunlar sekmesine gidin</li>
           <li>Resimlerden birini seçin ve kazanıp kazanmadığınızı görün</li>
-          <li>Kazandığınız puanları blockchain'e kaydedin</li>
+          <li>Kazandığınız puanları blockchain&apos;e kaydedin</li>
           <li>Liderlik tablosunda yükselin</li>
         </ol>
       </div>
@@ -390,7 +391,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors"
             >
-              YoYo Guild'e Katıl
+              YoYo Guild&apos;e Katıl
             </a>
           </div>
         </nav>
