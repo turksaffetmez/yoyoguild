@@ -3,6 +3,13 @@ import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { contractAddress, abi } from "../utils/contract";
 
+// YOYO Coin kontrat adresi ve ABI (örnek)
+const YOYO_COIN_ADDRESS = "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1";
+const YOYO_COIN_ABI = [
+  "function balanceOf(address owner) view returns (uint256)",
+  "function decimals() view returns (uint8)"
+];
+
 export default function Home() {
   const [walletConnected, setWalletConnected] = useState(false);
   const [userAddress, setUserAddress] = useState("");
@@ -10,9 +17,7 @@ export default function Home() {
   const [points, setPoints] = useState(0);
   const [images, setImages] = useState([
     "https://placekitten.com/300/300?image=1",
-    "https://placekitten.com/300/300?image=2",
-    "https://placekitten.com/300/300?image=3",
-    "https://placekitten.com/300/300?image=4"
+    "https://placekitten.com/300/300?image=2"
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -20,23 +25,25 @@ export default function Home() {
   const [provider, setProvider] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
   const [leaderboard, setLeaderboard] = useState([]);
+  const [yoyoBalance, setYoyoBalance] = useState(0);
+  const [yoyoDecimals, setYoyoDecimals] = useState(18);
 
-  // Örnek liderlik tablosu verisi
-  const sampleLeaderboard = [
-    { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
-    { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
-    { rank: 3, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 7650 },
-    { rank: 4, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 6320 },
-    { rank: 5, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 5100 },
-    { rank: 6, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 4870 },
-    { rank: 7, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 4320 },
-    { rank: 8, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 3980 },
-    { rank: 9, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 3650 },
-    { rank: 10, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 3420 },
-  ];
+  useEffect(() => {
+    // Sayfa yüklendiğinde otomatik olarak cüzdan bağlı mı kontrol et
+    checkWalletConnection();
+    
+    // Liderlik tablosunu yükle
+    loadLeaderboard();
 
-  // useCallback ile fonksiyonları memoize et
-  const handleAccountsChanged = useCallback((accounts) => {
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
+  }, []);
+
+  const handleAccountsChanged = useCallback(async (accounts) => {
     if (accounts.length === 0) {
       // Kullanıcı cüzdanı bağlantısını kesti
       disconnectWallet();
@@ -45,6 +52,10 @@ export default function Home() {
       // Farklı bir hesaba geçiş yapıldı
       setUserAddress(accounts[0]);
       setStatusMessage("Hesap değiştirildi.");
+      
+      // Yeni hesap için YOYO bakiyesini kontrol et
+      await checkYoyoBalance(accounts[0]);
+      
       setTimeout(() => setStatusMessage(""), 3000);
     }
   }, [userAddress]);
@@ -60,6 +71,11 @@ export default function Home() {
     try {
       const newProvider = new ethers.BrowserProvider(window.ethereum);
       setProvider(newProvider);
+      
+      // Ethereum event listener'larını ekle
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+      
       const accounts = await newProvider.send("eth_accounts", []);
       
       if (accounts.length > 0) {
@@ -69,28 +85,28 @@ export default function Home() {
     } catch (err) {
       console.error("Otomatik bağlantı hatası:", err);
     }
-  }, []);
+  }, [handleAccountsChanged, handleChainChanged]);
 
-  useEffect(() => {
-    // Sayfa yüklendiğinde otomatik olarak cüzdan bağlı mı kontrol et
-    checkWalletConnection();
+  async function checkYoyoBalance(address) {
+    if (!window.ethereum) return;
     
-    // Ethereum hesap değişikliklerini dinle
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const yoyoContract = new ethers.Contract(YOYO_COIN_ADDRESS, YOYO_COIN_ABI, provider);
+      
+      // Decimals değerini al
+      const decimals = await yoyoContract.decimals();
+      setYoyoDecimals(Number(decimals));
+      
+      // Bakiyeyi al
+      const balance = await yoyoContract.balanceOf(address);
+      const formattedBalance = Number(ethers.formatUnits(balance, decimals));
+      setYoyoBalance(formattedBalance);
+    } catch (err) {
+      console.error("YOYO bakiyesi alınamadı:", err);
+      setYoyoBalance(0);
     }
-
-    // Liderlik tablosunu yükle
-    setLeaderboard(sampleLeaderboard);
-
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
-      }
-    };
-  }, [checkWalletConnection, handleAccountsChanged, handleChainChanged]);
+  }
 
   async function connectWallet() {
     if (!window.ethereum) {
@@ -112,6 +128,9 @@ export default function Home() {
       setUserAddress(address);
       setWalletConnected(true);
       
+      // YOYO Coin bakiyesini kontrol et
+      await checkYoyoBalance(address);
+      
       // Mevcut puanları al
       await getPointsFromBlockchain(contractInstance, address);
       
@@ -126,12 +145,18 @@ export default function Home() {
   }
 
   async function disconnectWallet() {
+    if (window.ethereum && window.ethereum.removeListener) {
+      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      window.ethereum.removeListener('chainChanged', handleChainChanged);
+    }
+    
     setWalletConnected(false);
     setUserAddress("");
     setContract(null);
     setPoints(0);
     setProvider(null);
     setTransactionInfo("");
+    setYoyoBalance(0);
   }
 
   async function getPointsFromBlockchain(contractInstance, address) {
@@ -146,6 +171,20 @@ export default function Home() {
       // Puanları alamazsak sıfırdan devam et
       setPoints(0);
     }
+  }
+
+  async function loadLeaderboard() {
+    // Gerçek uygulamada bu veriler contract'tan alınacak
+    // Şimdilik örnek verilerle devam ediyoruz
+    const sampleLeaderboard = [
+      { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
+      { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
+      { rank: 3, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 7650 },
+      { rank: 4, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 6320 },
+      { rank: 5, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 5100 },
+    ];
+    
+    setLeaderboard(sampleLeaderboard);
   }
 
   async function addPointsToBlockchain(amount) {
@@ -176,6 +215,9 @@ export default function Home() {
       // Puanları güncelle
       await getPointsFromBlockchain(updatedContract, await signer.getAddress());
       
+      // Liderlik tablosunu yenile
+      await loadLeaderboard();
+      
       // 3 saniye sonra durum mesajını temizle
       setTimeout(() => setStatusMessage(""), 3000);
       
@@ -200,15 +242,24 @@ export default function Home() {
     
     setIsLoading(true);
 
+    // Temel kazanma şansı %50
+    let winChance = 50;
+    
+    // YOYO Coin'e sahipse %10 ekstra şans
+    if (yoyoBalance > 0) {
+      winChance += 10;
+    }
+    
     // Rastgele kazanan belirle
-    const winner = Math.floor(Math.random() * 4);
-    const earnedPoints = winner === index ? 100 : 10;
+    const randomNum = Math.floor(Math.random() * 100);
+    const isWinner = randomNum < winChance;
+    const earnedPoints = isWinner ? 100 : 10;
 
     // Kazanma mesajı göster
-    if (winner === index) {
-      setStatusMessage("🎉 Tebrikler! Kazandınız! +100 puan 🥳");
+    if (isWinner) {
+      setStatusMessage(`🎉 Tebrikler! Kazandınız! +100 puan 🥳 ${yoyoBalance > 0 ? '(%10 YOYO bonusu ile)' : ''}`);
     } else {
-      setStatusMessage("😢 Maalesef kaybettiniz. +10 puan 😔");
+      setStatusMessage(`😢 Maalesef kaybettiniz. +10 puan 😔 ${yoyoBalance > 0 ? '(%10 YOYO bonusuna rağmen)' : ''}`);
     }
 
     // Blockchain'e kaydet
@@ -217,14 +268,6 @@ export default function Home() {
     if (success) {
       // Frontend puanı güncelle
       setPoints(points + earnedPoints);
-      
-      // Yeni resimler (aynı resimlerle devam)
-      setImages([
-        "https://placekitten.com/300/300?image=1",
-        "https://placekitten.com/300/300?image=2",
-        "https://placekitten.com/300/300?image=3",
-        "https://placekitten.com/300/300?image=4"
-      ]);
     }
 
     setIsLoading(false);
@@ -247,24 +290,30 @@ export default function Home() {
       </div>
       
       <div className="bg-gradient-to-r from-green-100 to-blue-100 p-6 rounded-xl">
-        <h3 className="text-xl font-semibold text-green-800 mb-3">Nasıl Çalışır?</h3>
-        <ol className="list-decimal pl-5 text-gray-700 space-y-2">
-          <li>Cüzdanınızı bağlayın</li>
-          <li>Oyunlar sekmesine gidin</li>
-          <li>Resimlerden birini seçin ve kazanıp kazanmadığınızı görün</li>
-          <li>Kazandığınız puanları blockchain&apos;e kaydedin</li>
-          <li>Liderlik tablosunda yükselin</li>
-        </ol>
+        <h3 className="text-xl font-semibold text-green-800 mb-3">YOYO Coin Avantajı</h3>
+        <p className="text-gray-700">
+          YOYO Coin&apos;e sahipseniz, oyunlarda kazanma şansınız %10 artar! 
+          Daha fazla kazanmak için YOYO Coin edinin.
+        </p>
+        {walletConnected && yoyoBalance > 0 && (
+          <div className="mt-3 p-3 bg-green-200 rounded-lg">
+            <p className="text-green-800 font-semibold">
+              🎉 Tebrikler! {yoyoBalance} YOYO Coin&apos;iniz var. Kazanma şansınız %10 arttı!
+            </p>
+          </div>
+        )}
       </div>
       
       <div className="bg-gradient-to-r from-yellow-100 to-orange-100 p-6 rounded-xl">
-        <h3 className="text-xl font-semibold text-orange-800 mb-3">Neden YoYo Guild?</h3>
-        <ul className="list-disc pl-5 text-gray-700 space-y-2">
-          <li>Eğlenceli ve kazançlı oyun deneyimi</li>
-          <li>Şeffaf ve güvenli blokzincir teknolojisi</li>
-          <li>Topluluk odaklı yaklaşım</li>
-          <li>Düzenli etkinlikler ve ödüller</li>
-        </ul>
+        <h3 className="text-xl font-semibold text-orange-800 mb-3">Nasıl Çalışır?</h3>
+        <ol className="list-decimal pl-5 text-gray-700 space-y-2">
+          <li>Cüzdanınızı bağlayın</li>
+          <li>Oyunlar sekmesine gidin</li>
+          <li>İki resimden birini seçin (%50 kazanma şansı)</li>
+          <li>YOYO Coin&apos;iniz varsa %60 şansla kazanın</li>
+          <li>Kazandığınız puanları blockchain&apos;e kaydedin</li>
+          <li>Liderlik tablosunda yükselin</li>
+        </ol>
       </div>
     </div>
   );
@@ -273,13 +322,20 @@ export default function Home() {
     <div className="space-y-8">
       <h2 className="text-3xl font-bold text-center text-indigo-700">Oyunu Oyna</h2>
       
+      {walletConnected && (
+        <div className="bg-indigo-100 p-4 rounded-lg text-center">
+          <p className="text-indigo-800 font-semibold">Toplam Puanınız: <span className="text-2xl">{points}</span></p>
+          {yoyoBalance > 0 && (
+            <p className="text-green-600 mt-1">
+              🎉 {yoyoBalance} YOYO Coin&apos;iniz var! Kazanma şansınız: <span className="font-bold">%60</span>
+            </p>
+          )}
+        </div>
+      )}
+      
       {walletConnected ? (
         <>
-          <div className="bg-indigo-100 p-4 rounded-lg text-center">
-            <p className="text-indigo-800 font-semibold">Toplam Puanınız: <span className="text-2xl">{points}</span></p>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex justify-center gap-6">
             {images.map((img, i) => (
               <div 
                 key={i}
@@ -289,7 +345,7 @@ export default function Home() {
                 <img
                   src={img}
                   alt={`Seçenek ${i + 1}`}
-                  className="w-full h-48 object-cover"
+                  className="w-64 h-64 object-cover"
                   onError={(e) => {
                     e.target.src = "https://placekitten.com/300/300?image=" + (i+1);
                   }}
@@ -308,6 +364,9 @@ export default function Home() {
           
           <div className="text-center">
             <p className="text-gray-600">Bir resim seçin ve kazanıp kazanmadığınızı görün!</p>
+            <p className="text-sm text-gray-500 mt-1">
+              {yoyoBalance > 0 ? 'Kazanma şansınız: %60' : 'Kazanma şansınız: %50'}
+            </p>
           </div>
         </>
       ) : (
@@ -328,7 +387,7 @@ export default function Home() {
 
   const renderLeaderboardTab = () => (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-center text-indigo-700">Liderlik Tablosu - Top 10</h2>
+      <h2 className="text-3xl font-bold text-center text-indigo-700">Liderlik Tablosu - Top 5</h2>
       
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="grid grid-cols-3 bg-indigo-100 text-indigo-800 font-semibold p-4">
@@ -407,6 +466,11 @@ export default function Home() {
                 <p className="text-gray-700 mt-1">
                   <span className="font-semibold">Puanlar:</span> <span className="text-indigo-600 font-bold text-xl">{points}</span>
                 </p>
+                {yoyoBalance > 0 && (
+                  <p className="text-green-600 mt-1">
+                    <span className="font-semibold">YOYO Coin:</span> {yoyoBalance}
+                  </p>
+                )}
               </div>
               <button
                 onClick={disconnectWallet}
