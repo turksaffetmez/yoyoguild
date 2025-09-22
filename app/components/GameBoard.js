@@ -79,7 +79,7 @@ const GameBoard = ({
       
       <div className="flex justify-center items-center gap-8 relative min-h-80">
         <AnimatePresence mode="wait">
-          {gameState.images.map((image, index) => (
+          {gameState.images.slice(0, 2).map((image, index) => (
             <motion.div
               key={image.id}
               className="relative cursor-pointer"
@@ -100,15 +100,18 @@ const GameBoard = ({
               whileHover={gameState.gamePhase === "idle" ? { scale: 1.05 } : {}}
               onClick={() => gameState.gamePhase === "idle" && !gameState.isLoading && onStartGame(index)}
             >
-              <Image
-                src={image.url}
-                alt={`TeVans ${index + 1}`}
-                width={200}
-                height={200}
-                className="rounded-xl shadow-lg border-4 border-gray-300"
-              />
+              {/* Sağdaki TeVans'ı yansıt (sola baksın) */}
+              <div className={`${index === 1 ? 'transform scale-x-[-1]' : ''}`}>
+                <Image
+                  src={image.url}
+                  alt={`TeVans ${image.id}`}
+                  width={200}
+                  height={200}
+                  className="rounded-xl shadow-lg border-4 border-gray-300"
+                />
+              </div>
               <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-sm">
-                TeVans {index + 1}
+                TeVans {image.id}
               </div>
               {gameState.gamePhase === "selecting" && gameState.selectedImage === index && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs">
@@ -119,6 +122,7 @@ const GameBoard = ({
           ))}
         </AnimatePresence>
         
+        {/* VS yazısı */}
         <motion.div
           className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
           initial={{ scale: 0, opacity: 0 }}
@@ -130,6 +134,7 @@ const GameBoard = ({
           </span>
         </motion.div>
 
+        {/* Oyun durumu göstergesi */}
         {gameState.gamePhase !== "idle" && (
           <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-sm">
             {gameState.gamePhase === "selecting" && "🔄 TeVans seçiliyor..."}

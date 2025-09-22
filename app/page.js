@@ -29,42 +29,315 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
   const [showWalletOptions, setShowWalletOptions] = useState(false);
   
-  // Oyun state'leri - TEVANS olarak güncellendi
+  // Oyun state'leri - 19 TeVans desteği
   const [gameState, setGameState] = useState({
     selectedImage: null,
     winnerIndex: null,
     gamePhase: "idle",
     images: [
       { id: 1, url: "/images/tevans1.png" },
-	  { id: 2, url: "/images/tevans2.png" },
-	  { id: 3, url: "/images/tevans3.png" },
-	  { id: 4, url: "/images/tevans4.png" },
-	  { id: 5, url: "/images/tevans5.png" },
-	  { id: 6, url: "/images/tevans6.png" },
-	  { id: 7, url: "/images/tevans7.png" },
-	  { id: 8, url: "/images/tevans8.png" },
-	  { id: 9, url: "/images/tevans9.png" },
-	  { id: 10, url: "/images/tevans10.png" },
-	  { id: 11, url: "/images/tevans11.png" },
-	  { id: 12, url: "/images/tevans12.png" },
-	  { id: 13, url: "/images/tevans13.png" },
-	  { id: 14, url: "/images/tevans14.png" },
-	  { id: 15, url: "/images/tevans15.png" },
-	  { id: 16, url: "/images/tevans16.png" },
-	  { id: 17, url: "/images/tevans17.png" },
-	  { id: 18, url: "/images/tevans18.png" },
+      { id: 2, url: "/images/tevans2.png" },
+      { id: 3, url: "/images/tevans3.png" },
+      { id: 4, url: "/images/tevans4.png" },
+      { id: 5, url: "/images/tevans5.png" },
+      { id: 6, url: "/images/tevans6.png" },
+      { id: 7, url: "/images/tevans7.png" },
+      { id: 8, url: "/images/tevans8.png" },
+      { id: 9, url: "/images/tevans9.png" },
+      { id: 10, url: "/images/tevans10.png" },
+      { id: 11, url: "/images/tevans11.png" },
+      { id: 12, url: "/images/tevans12.png" },
+      { id: 13, url: "/images/tevans13.png" },
+      { id: 14, url: "/images/tevans14.png" },
+      { id: 15, url: "/images/tevans15.png" },
+      { id: 16, url: "/images/tevans16.png" },
+      { id: 17, url: "/images/tevans17.png" },
+      { id: 18, url: "/images/tevans18.png" },
       { id: 19, url: "/images/tevans19.png" }
     ],
     isLoading: false
   });
 
-  // ... (diğer fonksiyonlar aynı kalacak, sadece resetGame fonksiyonunu güncelliyorum)
+  // useCallback ile fonksiyonları memoize et
+  const disconnectWallet = useCallback(() => {
+    if (window.ethereum && window.ethereum.removeListener) {
+      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      window.ethereum.removeListener('chainChanged', handleChainChanged);
+    }
+    
+    setWalletConnected(false);
+    setUserAddress("");
+    setContract(null);
+    setPoints(0);
+    setProvider(null);
+    setTransactionInfo("");
+    setYoyoBalance(0);
+    setShowWalletOptions(false);
+    setGameState(prev => ({ ...prev, gamePhase: "idle", selectedImage: null, winnerIndex: null }));
+  }, []);
+
+  const handleAccountsChanged = useCallback(async (accounts) => {
+    if (accounts.length === 0) {
+      disconnectWallet();
+      setStatusMessage("Cüzdan bağlantısı kesildi.");
+    } else if (accounts[0] !== userAddress) {
+      setUserAddress(accounts[0]);
+      setStatusMessage("Hesap değiştirildi.");
+      await checkYoyoBalance(accounts[0]);
+      setTimeout(() => setStatusMessage(""), 3000);
+    }
+  }, [userAddress, disconnectWallet]);
+
+  const handleChainChanged = useCallback(() => {
+    window.location.reload();
+  }, []);
+
+  const checkYoyoBalance = useCallback(async (address) => {
+    if (!window.ethereum) return;
+    
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const yoyoContract = new ethers.Contract(YOYO_COIN_ADDRESS, YOYO_COIN_ABI, provider);
+      
+      const balance = await yoyoContract.balanceOf(address);
+      const formattedBalance = Number(ethers.formatUnits(balance, 18));
+      setYoyoBalance(formattedBalance);
+    } catch (err) {
+      console.error("YOYO bakiyesi alınamadı:", err);
+      setYoyoBalance(0);
+    }
+  }, []);
+
+  const connectWallet = useCallback(async () => {
+    if (window.ethereum) {
+      try {
+        setStatusMessage("Cüzdan bağlanıyor...");
+        
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(newProvider);
+        
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        const signer = await newProvider.getSigner();
+        const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+        
+        setContract(contractInstance);
+        const address = await signer.getAddress();
+        setUserAddress(address);
+        setWalletConnected(true);
+        
+        await checkYoyoBalance(address);
+        await getPointsFromBlockchain(contractInstance, address);
+        
+        setStatusMessage("Cüzdan başarıyla bağlandı!");
+        setTimeout(() => setStatusMessage(""), 3000);
+      } catch (err) {
+        console.error("Cüzdan bağlanamadı:", err);
+        setStatusMessage("Cüzdan bağlanamadı. Lütfen tekrar deneyin.");
+      }
+    } else {
+      if (isMobile) {
+        setShowWalletOptions(true);
+      } else {
+        setStatusMessage("Lütfen bir Web3 cüzdanı yükleyin (MetaMask, Coinbase Wallet, vs.)!");
+      }
+    }
+  }, [checkYoyoBalance, isMobile]);
+
+  const checkWalletConnection = useCallback(async () => {
+    if (window.ethereum) {
+      try {
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(newProvider);
+        
+        window.ethereum.on('accountsChanged', handleAccountsChanged);
+        window.ethereum.on('chainChanged', handleChainChanged);
+        
+        const accounts = await newProvider.send("eth_accounts", []);
+        
+        if (accounts.length > 0) {
+          await connectWallet();
+        }
+      } catch (err) {
+        console.error("Otomatik bağlantı hatası:", err);
+      }
+    }
+  }, [handleAccountsChanged, handleChainChanged, connectWallet]);
+
+  useEffect(() => {
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    setIsMobile(mobile);
+    checkWalletConnection();
+    loadLeaderboard();
+  }, [checkWalletConnection]);
+
+  async function getPointsFromBlockchain(contractInstance, address) {
+    if (!contractInstance) return;
+    
+    try {
+      const userPoints = await contractInstance.getPoints(address);
+      setPoints(parseInt(userPoints.toString()));
+    } catch (err) {
+      console.error("Puanlar alınamadı:", err);
+      setPoints(0);
+    }
+  }
+
+  async function loadLeaderboard() {
+    try {
+      if (!window.ethereum) {
+        setLeaderboard([
+          { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
+          { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
+          { rank: 3, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", points: 7650 },
+        ]);
+        return;
+      }
+      
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const contractInstance = new ethers.Contract(contractAddress, abi, provider);
+      
+      const sampleAddresses = [
+        "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+        "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
+        "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        userAddress
+      ].filter(addr => addr);
+      
+      const leaderboardData = [];
+      
+      for (const address of sampleAddresses) {
+        try {
+          const userPoints = await contractInstance.getPoints(address);
+          const pointsValue = parseInt(userPoints.toString());
+          if (pointsValue > 0) {
+            leaderboardData.push({ address, points: pointsValue });
+          }
+        } catch (err) {
+          console.error(`Adres ${address} için puan alınamadı:`, err);
+        }
+      }
+      
+      leaderboardData.sort((a, b) => b.points - a.points);
+      const top10 = leaderboardData.slice(0, 10);
+      
+      const rankedLeaderboard = top10.map((player, index) => ({
+        rank: index + 1,
+        address: player.address,
+        points: player.points
+      }));
+      
+      setLeaderboard(rankedLeaderboard);
+    } catch (err) {
+      console.error("Liderlik tablosu yüklenemedi:", err);
+      setLeaderboard([
+        { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
+        { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
+        { rank: 3, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", points: 7650 },
+      ]);
+    }
+  }
+
+  async function addPointsToBlockchain(amount) {
+    if (!contract) {
+      setStatusMessage("Önce cüzdanı bağlayın!");
+      return false;
+    }
+    
+    try {
+      setStatusMessage("İşlem blockchain&apos;e kaydediliyor...");
+      
+      const signer = await provider.getSigner();
+      const updatedContract = contract.connect(signer);
+      
+      const tx = await updatedContract.addPoints(await signer.getAddress(), amount);
+      
+      setTransactionInfo(`İşlem gönderildi: ${tx.hash}`);
+      
+      // İŞLEM ONAYLANDIKTAN SONRA ANİMASYON BAŞLASIN
+      const receipt = await tx.wait();
+      
+      setStatusMessage(`İşlem onaylandı! ${amount} puan eklendi.`);
+      setTransactionInfo(prev => prev + `\nİşlem onaylandı. Blok: ${receipt.blockNumber}`);
+      
+      await getPointsFromBlockchain(updatedContract, await signer.getAddress());
+      await loadLeaderboard();
+      
+      setTimeout(() => setStatusMessage(""), 3000);
+      
+      return true;
+    } catch (err) {
+      console.error("Hata:", err);
+      if (err.message.includes("user rejected")) {
+        setStatusMessage("İşlem kullanıcı tarafından reddedildi.");
+      } else {
+        setStatusMessage("İşlem başarısız: " + err.message);
+      }
+      return false;
+    }
+  }
+
+  // Oyun mekaniği fonksiyonları - Cüzdan onayından SONRA animasyon başlayacak
+  const startGame = async (selectedIndex) => {
+    if (!walletConnected) {
+      setStatusMessage("Önce cüzdanı bağlayın!");
+      return;
+    }
+    
+    if (gameState.gamePhase !== "idle") return;
+    
+    setGameState(prev => ({ ...prev, isLoading: true, selectedImage: selectedIndex, gamePhase: "selecting" }));
+    
+    // 1. Seçim animasyonu
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setGameState(prev => ({ ...prev, gamePhase: "waiting" }));
+    
+    // 2. Blockchain işlemini gönder (ANİMASYON ÖNCESİ)
+    const winChance = yoyoBalance > 0 ? 60 : 50;
+    const isWinner = Math.floor(Math.random() * 100) < winChance;
+    const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
+    const earnedPoints = isWinner ? 100 : 10;
+    
+    // 3. Blockchain işlemini gönder ve ONAY BEKLE
+    const success = await addPointsToBlockchain(earnedPoints);
+    
+    if (success) {
+      // 4. İŞLEM ONAYLANDIKTAN SONRA ANİMASYON BAŞLASIN
+      setGameState(prev => ({ ...prev, winnerIndex, gamePhase: "fighting" }));
+      
+      // Dövüş animasyonu
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setGameState(prev => ({ ...prev, gamePhase: "result" }));
+      
+      // Puanları güncelle
+      setPoints(points + earnedPoints);
+      
+      if (isWinner) {
+        setStatusMessage(`🎉 Tebrikler! Kazandınız! +100 puan 🥳 ${yoyoBalance > 0 ? '(%10 YOYO bonusu ile)' : ''}`);
+      } else {
+        setStatusMessage(`😢 Maalesef kaybettiniz. +10 puan 😔 ${yoyoBalance > 0 ? '(%10 YOYO bonusuna rağmen)' : ''}`);
+      }
+      
+      // Yeni oyun için hazırlık
+      setTimeout(() => {
+        resetGame();
+      }, 3000);
+    } else {
+      // İşlem başarısız olursa
+      setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
+    }
+  };
 
   const resetGame = () => {
+    // Kaybeden resmi değiştir
     if (gameState.winnerIndex !== null) {
       const loserIndex = gameState.winnerIndex === 0 ? 1 : 0;
       const newImages = [...gameState.images];
-      const randomTeVans = Math.floor(Math.random() * 8) + 3; // 3-10 arası rastgele tevans
+      // 3-19 arası rastgele TeVans (mevcut 2 resim hariç)
+      const availableTeVans = Array.from({length: 17}, (_, i) => i + 3); // 3-19 arası
+      
+      const randomTeVans = availableTeVans[Math.floor(Math.random() * availableTeVans.length)];
+      
       newImages[loserIndex] = {
         ...newImages[loserIndex],
         url: `/images/tevans${randomTeVans}.png`
@@ -81,7 +354,28 @@ export default function Home() {
     }
   };
 
-  // ... (diğer tüm fonksiyonlar aynı kalacak)
+  // Mobil cüzdan bağlantı fonksiyonu
+  const connectMobileWallet = useCallback((walletType) => {
+    const currentUrl = encodeURIComponent(window.location.href);
+    let walletUrl = '';
+    
+    const WALLET_LINKS = {
+      metamask: { universal: "https://metamask.app.link/dapp/" },
+      coinbase: { universal: "https://go.cb-w.com/dapp?cb_url=" },
+      trust: { universal: "https://link.trustwallet.com/dapp/" }
+    };
+    
+    switch(walletType) {
+      case 'metamask': walletUrl = `${WALLET_LINKS.metamask.universal}${currentUrl}`; break;
+      case 'coinbase': walletUrl = `${WALLET_LINKS.coinbase.universal}${currentUrl}`; break;
+      case 'trust': walletUrl = `${WALLET_LINKS.trust.universal}${currentUrl}`; break;
+      default: return;
+    }
+    
+    window.open(walletUrl, '_blank');
+    setShowWalletOptions(false);
+    setTimeout(() => checkWalletConnection(), 3000);
+  }, [checkWalletConnection]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-500 flex flex-col items-center p-4">
