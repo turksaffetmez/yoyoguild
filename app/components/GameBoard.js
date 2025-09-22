@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import Image from "next/image";
 
 export default function GameBoard({ 
   walletConnected, 
@@ -13,28 +14,13 @@ export default function GameBoard({
   onStartNewGame,
   onResetGame
 }) {
-  const [localGameState, setLocalGameState] = useState({
-    fightAnimation: false,
-    showResult: false
-  });
-
   // Oyun fazı değişikliklerini takip et
   useEffect(() => {
     if (gameState.gamePhase === "result") {
-      // Sonuç gösterildikten 3 saniye sonra otomatik reset
+      // Sonuç gösterildikten 5 saniye sonra otomatik reset
       const timer = setTimeout(() => {
         onResetGame();
       }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-    
-    if (gameState.gamePhase === "fighting") {
-      // Dövüş animasyonu
-      setLocalGameState(prev => ({ ...prev, fightAnimation: true }));
-      const timer = setTimeout(() => {
-        setLocalGameState(prev => ({ ...prev, fightAnimation: false }));
-      }, 2000);
       
       return () => clearTimeout(timer);
     }
@@ -56,9 +42,11 @@ export default function GameBoard({
         gameState.winnerIndex !== null && gameState.winnerIndex !== index ? "border-red-300 bg-red-50" :
         "border-gray-300"
       } transition-all duration-500`}>
-        <img 
+        <Image 
           src={character.url} 
           alt={`TeVans ${character.id}`}
+          width={128}
+          height={128}
           className="w-32 h-32 object-contain mx-auto transition-transform duration-300 group-hover:scale-110"
         />
         <div className="mt-2 text-center">
@@ -167,16 +155,20 @@ export default function GameBoard({
             {/* Karakterler dövüş sırasında da görünsün */}
             <div className="grid grid-cols-2 gap-8 w-full max-w-2xl mt-8 opacity-70">
               <div>
-                <img 
+                <Image 
                   src={gameState.images[0].url} 
                   alt="TeVans 1"
+                  width={128}
+                  height={128}
                   className="w-32 h-32 object-contain mx-auto"
                 />
               </div>
               <div>
-                <img 
+                <Image 
                   src={gameState.images[1].url} 
                   alt="TeVans 2" 
+                  width={128}
+                  height={128}
                   className="w-32 h-32 object-contain mx-auto"
                 />
               </div>
@@ -202,9 +194,11 @@ export default function GameBoard({
               <div className={`p-4 rounded-2xl transition-all duration-500 ${
                 gameState.winnerIndex === 0 ? "bg-green-500 scale-105" : "bg-red-500"
               }`}>
-                <img 
+                <Image 
                   src={gameState.images[0].url} 
                   alt="TeVans 1"
+                  width={128}
+                  height={128}
                   className="w-32 h-32 object-contain mx-auto"
                 />
                 <div className="mt-2 font-bold">
@@ -215,9 +209,11 @@ export default function GameBoard({
               <div className={`p-4 rounded-2xl transition-all duration-500 ${
                 gameState.winnerIndex === 1 ? "bg-green-500 scale-105" : "bg-red-500"
               }`}>
-                <img 
+                <Image 
                   src={gameState.images[1].url} 
                   alt="TeVans 2"
+                  width={128}
+                  height={128}
                   className="w-32 h-32 object-contain mx-auto"
                 />
                 <div className="mt-2 font-bold">
@@ -257,7 +253,7 @@ export default function GameBoard({
         <h4 className="font-bold mb-2">🎯 Oyun Talimatları:</h4>
         <ul className="text-sm space-y-1">
           <li>• Bir karakter seçerek dövüşü başlat</li>
-          <li>• YOYO token'ın varsa kazanma şansın %60</li>
+          <li>• YOYO token&apos;ın varsa kazanma şansın %60</li>
           <li>• Kazanırsan +100 puan, kaybedersen +10 puan</li>
           <li>• Kaybeden karakter bir sonraki dövüşte değişir</li>
         </ul>

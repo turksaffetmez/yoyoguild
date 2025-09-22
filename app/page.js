@@ -33,7 +33,7 @@ export default function Home() {
   const [gameState, setGameState] = useState({
     selectedImage: null,
     winnerIndex: null,
-    gamePhase: "idle",
+    gamePhase: "idle", // idle, selecting, waiting, fighting, result
     images: [
       { id: 1, url: "/images/tevans1.png" },
       { id: 2, url: "/images/tevans2.png" },
@@ -144,25 +144,61 @@ export default function Home() {
     }
   }, [checkYoyoBalance, isMobile]);
 
-  const checkWalletConnection = useCallback(async () => {
-    if (window.ethereum) {
-      try {
-        const newProvider = new ethers.BrowserProvider(window.ethereum);
-        setProvider(newProvider);
-        
-        window.ethereum.on('accountsChanged', handleAccountsChanged);
-        window.ethereum.on('chainChanged', handleChainChanged);
-        
-        const accounts = await newProvider.send("eth_accounts", []);
-        
-        if (accounts.length > 0) {
-          await connectWallet();
-        }
-      } catch (err) {
-        console.error("Otomatik bağlantı hatası:", err);
+const checkWalletConnection = useCallback(async () => {
+  if (window.ethereum) {
+    try {
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+      
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+      
+      const accounts = await newProvider.send("eth_accounts", []);
+      
+      if (accounts.length > 0) {
+        await connectWallet();
       }
+    } catch (err) {
+      console.error("Otomatik bağlantı hatası:", err);
     }
-  }, [handleAccountsChanged, handleChainChanged, connectWallet]);
+  }
+}, [handleAccountsChanged, handleChainChanged, connectWallet]); // Dependency'ler eklendi
+
+const connectWallet = useCallback(async () => {
+  if (window.ethereum) {
+    try {
+      setStatusMessage("Cüzdan bağlanıyor...");
+      
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+      
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      
+      const signer = await newProvider.getSigner();
+      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+      
+      setContract(contractInstance);
+      const address = await signer.getAddress();
+      setUserAddress(address);
+      setWalletConnected(true);
+      
+      await checkYoyoBalance(address);
+      await getPointsFromBlockchain(contractInstance, address);
+      
+      setStatusMessage("Cüzdan başarıyla bağlandı!");
+      setTimeout(() => setStatusMessage(""), 3000);
+    } catch (err) {
+      console.error("Cüzdan bağlanamadı:", err);
+      setStatusMessage("Cüzdan bağlanamadı. Lütfen tekrar deneyin.");
+    }
+  } else {
+    if (isMobile) {
+      setShowWalletOptions(true);
+    } else {
+      setStatusMessage("Lütfen bir Web3 cüzdanı yükleyin (MetaMask, Coinbase Wallet, vs.)!");
+    }
+  }
+}, [checkYoyoBalance, isMobile, contractAddress, abi]);
 
   const loadLeaderboard = useCallback(async () => {
     try {
@@ -245,7 +281,7 @@ export default function Home() {
     }
     
     try {
-      setStatusMessage("İşlem blockchain&apos;e kaydediliyor...");
+      setStatusMessage("İşlem blockchain'e kaydediliyor...");
       
       const signer = await provider.getSigner();
       const updatedContract = contract.connect(signer);
@@ -277,7 +313,44 @@ export default function Home() {
     }
   }
 
-  // Oyun mekaniği fonksiyonları - Cüzdan onayından SONRA animasyon başlayacak
+  // Reset fonksiyonunu düzelt
+  const resetGame = useCallback(() => {
+    setGameState(prev => {
+      const newImages = [...prev.images];
+      
+      // Sadece kaybeden karakteri değiştir
+      if (prev.winnerIndex !== null) {
+        const loserIndex = prev.winnerIndex === 0 ? 1 : 0;
+        
+        // Mevcut karakterler hariç yeni rastgele karakter
+        const currentIds = [prev.images[0].id, prev.images[1].id];
+        const availableIds = Array.from({length: 19}, (_, i) => i + 1)
+          .filter(id => !currentIds.includes(id));
+        
+        if (availableIds.length > 0) {
+          const randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
+          newImages[loserIndex] = {
+            id: randomId,
+            url: `/images/tevans${randomId}.png`
+          };
+        }
+      }
+      
+      return {
+        ...prev,
+        selectedImage: null,
+        winnerIndex: null,
+        gamePhase: "idle",
+        isLoading: false,
+        images: newImages
+      };
+    });
+    
+    // Status mesajını temizle
+    setStatusMessage("");
+  }, []);
+
+  // Oyun mekaniği fonksiyonları
   const startGame = async (selectedIndex) => {
     if (!walletConnected) {
       setStatusMessage("Önce cüzdanı bağlayın!");
@@ -286,73 +359,62 @@ export default function Home() {
     
     if (gameState.gamePhase !== "idle") return;
     
-    setGameState(prev => ({ ...prev, isLoading: true, selectedImage: selectedIndex, gamePhase: "selecting" }));
+    // Oyunu başlat
+    setGameState(prev => ({ 
+      ...prev, 
+      isLoading: true, 
+      selectedImage: selectedIndex, 
+      gamePhase: "selecting",
+      winnerIndex: null
+    }));
     
-    // 1. Seçim animasyonu
+    // 1. Seçim animasyonu (1 saniye)
     await new Promise(resolve => setTimeout(resolve, 1000));
     setGameState(prev => ({ ...prev, gamePhase: "waiting" }));
     
-    // 2. Blockchain işlemini gönder (ANİMASYON ÖNCESİ)
+    // 2. Kazanma şansını hesapla
     const winChance = yoyoBalance > 0 ? 60 : 50;
     const isWinner = Math.floor(Math.random() * 100) < winChance;
     const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
     const earnedPoints = isWinner ? 100 : 10;
     
-    // 3. Blockchain işlemini gönder ve ONAY BEKLE
+    // 3. Blockchain işlemini gönder
     const success = await addPointsToBlockchain(earnedPoints);
     
     if (success) {
-      // 4. İŞLEM ONAYLANDIKTAN SONRA ANİMASYON BAŞLASIN
+      // 4. Dövüş animasyonunu başlat
       setGameState(prev => ({ ...prev, winnerIndex, gamePhase: "fighting" }));
       
-      // Dövüş animasyonu
+      // Dövüş animasyonu (2 saniye)
       await new Promise(resolve => setTimeout(resolve, 2000));
-      setGameState(prev => ({ ...prev, gamePhase: "result" }));
       
-      // Puanları güncelle
-      setPoints(points + earnedPoints);
+      // 5. Sonucu göster
+      setGameState(prev => ({ ...prev, gamePhase: "result" }));
+      setPoints(prevPoints => prevPoints + earnedPoints);
       
       if (isWinner) {
-        setStatusMessage(`🎉 Tebrikler! Kazandınız! +100 puan 🥳 ${yoyoBalance > 0 ? '(%10 YOYO bonusu ile)' : ''}`);
+        setStatusMessage(`🎉 Tebrikler! Kazandınız! +100 puan 🥳`);
       } else {
-        setStatusMessage(`😢 Maalesef kaybettiniz. +10 puan 😔 ${yoyoBalance > 0 ? '(%10 YOYO bonusuna rağmen)' : ''}`);
+        setStatusMessage(`😢 Maalesef kaybettiniz. +10 puan 😔`);
       }
       
-      // Yeni oyun için hazırlık
-      setTimeout(() => {
-        resetGame();
-      }, 3000);
     } else {
       // İşlem başarısız olursa
-      setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
+      setGameState(prev => ({ 
+        ...prev, 
+        gamePhase: "idle", 
+        isLoading: false 
+      }));
+      setStatusMessage("Blockchain işlemi başarısız. Lütfen tekrar deneyin.");
     }
   };
 
-  const resetGame = () => {
-    // Kaybeden resmi değiştir
-    if (gameState.winnerIndex !== null) {
-      const loserIndex = gameState.winnerIndex === 0 ? 1 : 0;
-      const newImages = [...gameState.images];
-      // 3-19 arası rastgele TeVans (mevcut 2 resim hariç)
-      const availableTeVans = Array.from({length: 17}, (_, i) => i + 3); // 3-19 arası
-      
-      const randomTeVans = availableTeVans[Math.floor(Math.random() * availableTeVans.length)];
-      
-      newImages[loserIndex] = {
-        ...newImages[loserIndex],
-        url: `/images/tevans${randomTeVans}.png`
-      };
-      
-      setGameState(prev => ({ 
-        ...prev, 
-        selectedImage: null, 
-        winnerIndex: null, 
-        gamePhase: "idle", 
-        isLoading: false,
-        images: newImages
-      }));
+  // Yeni oyun başlatma fonksiyonu
+  const startNewGame = useCallback(() => {
+    if (gameState.gamePhase === "result") {
+      resetGame();
     }
-  };
+  }, [gameState.gamePhase, resetGame]);
 
   // Mobil cüzdan bağlantı fonksiyonu
   const connectMobileWallet = useCallback((walletType) => {
@@ -418,7 +480,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors"
             >
-              YoYo Guild&apos;e Katıl
+              YoYo Guild'e Katıl
             </a>
           </div>
         </nav>
@@ -447,6 +509,8 @@ export default function Home() {
                 onConnectWallet={connectWallet}
                 isMobile={isMobile}
                 onShowWalletOptions={() => setShowWalletOptions(true)}
+                onStartNewGame={startNewGame}
+                onResetGame={resetGame}
               />
             )}
             {activeTab === "leaderboard" && <Leaderboard leaderboard={leaderboard} />}
