@@ -108,7 +108,7 @@ export default function Home() {
     }
   }, []);
 
-const connectWallet = useCallback(async () => {
+  const connectWallet = useCallback(async () => {
     if (window.ethereum) {
       try {
         setStatusMessage("Cüzdan bağlanıyor...");
@@ -166,44 +166,6 @@ const connectWallet = useCallback(async () => {
 
   const loadLeaderboard = useCallback(async () => {
     try {
-      setLeaderboard([
-        { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
-        { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
-        { rank: 3, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", points: 7650 },
-        { rank: 4, address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", points: 5420 },
-        { rank: 5, address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", points: 3980 },
-      ]);
-    } catch (err) {
-      console.error("Liderlik tablosu yüklenemedi:", err);
-      setLeaderboard([
-        { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
-        { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
-        { rank: 3, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", points: 7650 },
-      ]);
-    }
-  }, []);
-
-  useEffect(() => {
-    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    setIsMobile(mobile);
-    checkWalletConnection();
-    loadLeaderboard();
-  }, [checkWalletConnection, loadLeaderboard]);
-
-  async function getPointsFromBlockchain(contractInstance, address) {
-    if (!contractInstance) return;
-    
-    try {
-      const userPoints = await contractInstance.getPoints(address);
-      setPoints(parseInt(userPoints.toString()));
-    } catch (err) {
-      console.error("Puanlar alınamadı:", err);
-      setPoints(0);
-    }
-  }
-
-  async function loadLeaderboard() {
-    try {
       if (!window.ethereum) {
         setLeaderboard([
           { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
@@ -254,6 +216,25 @@ const connectWallet = useCallback(async () => {
         { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
         { rank: 3, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", points: 7650 },
       ]);
+    }
+  }, [userAddress]);
+
+  useEffect(() => {
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    setIsMobile(mobile);
+    checkWalletConnection();
+    loadLeaderboard();
+  }, [checkWalletConnection, loadLeaderboard]);
+
+  async function getPointsFromBlockchain(contractInstance, address) {
+    if (!contractInstance) return;
+    
+    try {
+      const userPoints = await contractInstance.getPoints(address);
+      setPoints(parseInt(userPoints.toString()));
+    } catch (err) {
+      console.error("Puanlar alınamadı:", err);
+      setPoints(0);
     }
   }
 
