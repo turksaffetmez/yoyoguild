@@ -1,11 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
-
-const inter = Inter({ 
-  subsets: ['latin'],
-  display: 'swap'
-})
 
 export const metadata: Metadata = {
   title: 'YoYo Guild - Blockchain Battle Arena',
@@ -19,8 +13,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        {children}
+      <body className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
+        <main className="min-h-screen">
+          {children}
+        </main>
       </body>
     </html>
   )
