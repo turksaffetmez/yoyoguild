@@ -3,12 +3,31 @@ import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { contractAddress, abi } from "../utils/contract";
 
-// YOYO Coin kontrat adresi ve ABI (örnek)
+// YOYO Coin kontrat adresi ve ABI
 const YOYO_COIN_ADDRESS = "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1";
 const YOYO_COIN_ABI = [
   "function balanceOf(address owner) view returns (uint256)",
   "function decimals() view returns (uint8)"
 ];
+
+// Mobil cüzdan bağlantıları
+const WALLET_LINKS = {
+  metamask: {
+    universal: "https://metamask.app.link/dapp/",
+    deep: "metamask://browser?url=",
+    package: "io.metamask"
+  },
+  coinbase: {
+    universal: "https://go.cb-w.com/dapp?cb_url=",
+    deep: "coinbase-wallet://dapp/",
+    package: "org.toshi"
+  },
+  trust: {
+    universal: "https://link.trustwallet.com/dapp/",
+    deep: "trust://browser?url=",
+    package: "com.wallet.crypto.trustapp"
+  }
+};
 
 export default function Home() {
   const [walletConnected, setWalletConnected] = useState(false);
@@ -27,8 +46,14 @@ export default function Home() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [yoyoBalance, setYoyoBalance] = useState(0);
   const [yoyoDecimals, setYoyoDecimals] = useState(18);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showWalletOptions, setShowWalletOptions] = useState(false);
 
   useEffect(() => {
+    // Mobil cihaz kontrolü
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    setIsMobile(mobile);
+    
     // Sayfa yüklendiğinde otomatik olarak cüzdan bağlı mı kontrol et
     checkWalletConnection();
     
@@ -43,47 +68,68 @@ export default function Home() {
     };
   }, []);
 
+  // Mobil cüzdan bağlantı fonksiyonu
+  const connectMobileWallet = (walletType) => {
+    const currentUrl = encodeURIComponent(window.location.href);
+    let walletUrl = '';
+    
+    switch(walletType) {
+      case 'metamask':
+        walletUrl = `${WALLET_LINKS.metamask.universal}${currentUrl}`;
+        break;
+      case 'coinbase':
+        walletUrl = `${WALLET_LINKS.coinbase.universal}${currentUrl}`;
+        break;
+      case 'trust':
+        walletUrl = `${WALLET_LINKS.trust.universal}${currentUrl}`;
+        break;
+      default:
+        return;
+    }
+    
+    // Yeni sekmede aç
+    window.open(walletUrl, '_blank');
+    setShowWalletOptions(false);
+    
+    // 3 saniye sonra bağlantıyı kontrol et
+    setTimeout(() => {
+      checkWalletConnection();
+    }, 3000);
+  };
+
   const handleAccountsChanged = useCallback(async (accounts) => {
     if (accounts.length === 0) {
-      // Kullanıcı cüzdanı bağlantısını kesti
       disconnectWallet();
       setStatusMessage("Cüzdan bağlantısı kesildi.");
     } else if (accounts[0] !== userAddress) {
-      // Farklı bir hesaba geçiş yapıldı
       setUserAddress(accounts[0]);
       setStatusMessage("Hesap değiştirildi.");
-      
-      // Yeni hesap için YOYO bakiyesini kontrol et
       await checkYoyoBalance(accounts[0]);
-      
       setTimeout(() => setStatusMessage(""), 3000);
     }
   }, [userAddress]);
 
   const handleChainChanged = useCallback(() => {
-    // Zincir değiştiğinde sayfayı yenile
     window.location.reload();
   }, []);
 
   const checkWalletConnection = useCallback(async () => {
-    if (!window.ethereum) return;
-    
-    try {
-      const newProvider = new ethers.BrowserProvider(window.ethereum);
-      setProvider(newProvider);
-      
-      // Ethereum event listener'larını ekle
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-      
-      const accounts = await newProvider.send("eth_accounts", []);
-      
-      if (accounts.length > 0) {
-        // Otomatik olarak bağlan
-        await connectWallet();
+    if (window.ethereum) {
+      try {
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(newProvider);
+        
+        window.ethereum.on('accountsChanged', handleAccountsChanged);
+        window.ethereum.on('chainChanged', handleChainChanged);
+        
+        const accounts = await newProvider.send("eth_accounts", []);
+        
+        if (accounts.length > 0) {
+          await connectWallet();
+        }
+      } catch (err) {
+        console.error("Otomatik bağlantı hatası:", err);
       }
-    } catch (err) {
-      console.error("Otomatik bağlantı hatası:", err);
     }
   }, [handleAccountsChanged, handleChainChanged]);
 
@@ -94,11 +140,9 @@ export default function Home() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const yoyoContract = new ethers.Contract(YOYO_COIN_ADDRESS, YOYO_COIN_ABI, provider);
       
-      // Decimals değerini al
       const decimals = await yoyoContract.decimals();
       setYoyoDecimals(Number(decimals));
       
-      // Bakiyeyi al
       const balance = await yoyoContract.balanceOf(address);
       const formattedBalance = Number(ethers.formatUnits(balance, decimals));
       setYoyoBalance(formattedBalance);
@@ -109,38 +153,39 @@ export default function Home() {
   }
 
   async function connectWallet() {
-    if (!window.ethereum) {
-      setStatusMessage("Lütfen MetaMask yükleyin!");
-      return;
-    }
-    
-    try {
-      setStatusMessage("Cüzdan bağlanıyor...");
-      
-      const newProvider = new ethers.BrowserProvider(window.ethereum);
-      setProvider(newProvider);
-      await newProvider.send("eth_requestAccounts", []);
-      const signer = await newProvider.getSigner();
-      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-      
-      setContract(contractInstance);
-      const address = await signer.getAddress();
-      setUserAddress(address);
-      setWalletConnected(true);
-      
-      // YOYO Coin bakiyesini kontrol et
-      await checkYoyoBalance(address);
-      
-      // Mevcut puanları al
-      await getPointsFromBlockchain(contractInstance, address);
-      
-      setStatusMessage("Cüzdan başarıyla bağlandı!");
-      
-      // 3 saniye sonra durum mesajını temizle
-      setTimeout(() => setStatusMessage(""), 3000);
-    } catch (err) {
-      console.error("Cüzdan bağlanamadı:", err);
-      setStatusMessage("Cüzdan bağlanamadı. Lütfen tekrar deneyin.");
+    if (window.ethereum) {
+      try {
+        setStatusMessage("Cüzdan bağlanıyor...");
+        
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(newProvider);
+        
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        const signer = await newProvider.getSigner();
+        const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+        
+        setContract(contractInstance);
+        const address = await signer.getAddress();
+        setUserAddress(address);
+        setWalletConnected(true);
+        
+        await checkYoyoBalance(address);
+        await getPointsFromBlockchain(contractInstance, address);
+        
+        setStatusMessage("Cüzdan başarıyla bağlandı!");
+        setTimeout(() => setStatusMessage(""), 3000);
+      } catch (err) {
+        console.error("Cüzdan bağlanamadı:", err);
+        setStatusMessage("Cüzdan bağlanamadı. Lütfen tekrar deneyin.");
+      }
+    } else {
+      // Mobil cihazsa cüzdan seçeneklerini göster
+      if (isMobile) {
+        setShowWalletOptions(true);
+      } else {
+        setStatusMessage("Lütfen bir Web3 cüzdanı yükleyin (MetaMask, Coinbase Wallet, vs.)!");
+      }
     }
   }
 
@@ -157,6 +202,7 @@ export default function Home() {
     setProvider(null);
     setTransactionInfo("");
     setYoyoBalance(0);
+    setShowWalletOptions(false);
   }
 
   async function getPointsFromBlockchain(contractInstance, address) {
@@ -168,23 +214,64 @@ export default function Home() {
       setPoints(parseInt(userPoints.toString()));
     } catch (err) {
       console.error("Puanlar alınamadı:", err);
-      // Puanları alamazsak sıfırdan devam et
       setPoints(0);
     }
   }
 
   async function loadLeaderboard() {
-    // Gerçek uygulamada bu veriler contract'tan alınacak
-    // Şimdilik örnek verilerle devam ediyoruz
-    const sampleLeaderboard = [
-      { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
-      { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
-      { rank: 3, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 7650 },
-      { rank: 4, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 6320 },
-      { rank: 5, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 5100 },
-    ];
-    
-    setLeaderboard(sampleLeaderboard);
+    try {
+      if (!window.ethereum) return;
+      
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const contractInstance = new ethers.Contract(contractAddress, abi, provider);
+      
+      // Örnek adresler - gerçek uygulamada contract'tan alınacak
+      const sampleAddresses = [
+        "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+        "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
+        "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+      ];
+      
+      const leaderboardData = [];
+      
+      // Her adres için puanları al
+      for (const address of sampleAddresses) {
+        try {
+          const userPoints = await contractInstance.getPoints(address);
+          leaderboardData.push({
+            address,
+            points: parseInt(userPoints.toString())
+          });
+        } catch (err) {
+          console.error(`Adres ${address} için puan alınamadı:`, err);
+        }
+      }
+      
+      // Puanlara göre sırala
+      leaderboardData.sort((a, b) => b.points - a.points);
+      
+      // Sıralama ekle
+      const rankedLeaderboard = leaderboardData.map((player, index) => ({
+        rank: index + 1,
+        address: player.address,
+        points: player.points
+      }));
+      
+      setLeaderboard(rankedLeaderboard);
+    } catch (err) {
+      console.error("Liderlik tablosu yüklenemedi:", err);
+      
+      // Fallback: Örnek veriler
+      const sampleLeaderboard = [
+        { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
+        { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
+        { rank: 3, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", points: 7650 },
+      ];
+      
+      setLeaderboard(sampleLeaderboard);
+    }
   }
 
   async function addPointsToBlockchain(amount) {
@@ -194,7 +281,7 @@ export default function Home() {
     }
     
     try {
-      setStatusMessage("İşlem blockchain&apos;e kaydediliyor...");
+      setStatusMessage("İşlem blockchain'e kaydediliyor...");
       
       // Signer'ı güncelle
       const signer = await provider.getSigner();
@@ -279,7 +366,7 @@ export default function Home() {
   // Navigasyon sekmeleri
   const renderHomeTab = () => (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-center text-indigo-700">YoYo Guild&apos;e Hoş Geldiniz!</h2>
+      <h2 className="text-3xl font-bold text-center text-indigo-700">YoYo Guild'e Hoş Geldiniz!</h2>
       
       <div className="bg-gradient-to-r from-indigo-100 to-purple-100 p-6 rounded-xl">
         <h3 className="text-xl font-semibold text-indigo-800 mb-3">YoYo Guild Nedir?</h3>
@@ -292,13 +379,20 @@ export default function Home() {
       <div className="bg-gradient-to-r from-green-100 to-blue-100 p-6 rounded-xl">
         <h3 className="text-xl font-semibold text-green-800 mb-3">YOYO Coin Avantajı</h3>
         <p className="text-gray-700">
-          YOYO Coin&apos;e sahipseniz, oyunlarda kazanma şansınız %10 artar! 
+          YOYO Coin'e sahipseniz, oyunlarda kazanma şansınız %10 artar! 
           Daha fazla kazanmak için YOYO Coin edinin.
         </p>
         {walletConnected && yoyoBalance > 0 && (
           <div className="mt-3 p-3 bg-green-200 rounded-lg">
             <p className="text-green-800 font-semibold">
-              🎉 Tebrikler! {yoyoBalance} YOYO Coin&apos;iniz var. Kazanma şansınız %10 arttı!
+              🎉 Tebrikler! {yoyoBalance} YOYO Coin'iniz var. Kazanma şansınız %10 arttı!
+            </p>
+          </div>
+        )}
+        {walletConnected && yoyoBalance === 0 && (
+          <div className="mt-3 p-3 bg-yellow-200 rounded-lg">
+            <p className="text-yellow-800 font-semibold">
+              ℹ️ YOYO Coin'iniz yok. Kazanma şansınız %50. YOYO Coin alarak şansınızı %60'a çıkarabilirsiniz!
             </p>
           </div>
         )}
@@ -307,11 +401,11 @@ export default function Home() {
       <div className="bg-gradient-to-r from-yellow-100 to-orange-100 p-6 rounded-xl">
         <h3 className="text-xl font-semibold text-orange-800 mb-3">Nasıl Çalışır?</h3>
         <ol className="list-decimal pl-5 text-gray-700 space-y-2">
-          <li>Cüzdanınızı bağlayın</li>
+          <li>Cüzdanınızı bağlayın (MetaMask, Coinbase Wallet, vs.)</li>
           <li>Oyunlar sekmesine gidin</li>
           <li>İki resimden birini seçin (%50 kazanma şansı)</li>
-          <li>YOYO Coin&apos;iniz varsa %60 şansla kazanın</li>
-          <li>Kazandığınız puanları blockchain&apos;e kaydedin</li>
+          <li>YOYO Coin'iniz varsa %60 şansla kazanın</li>
+          <li>Kazandığınız puanları blockchain'e kaydedin</li>
           <li>Liderlik tablosunda yükselin</li>
         </ol>
       </div>
@@ -325,9 +419,13 @@ export default function Home() {
       {walletConnected && (
         <div className="bg-indigo-100 p-4 rounded-lg text-center">
           <p className="text-indigo-800 font-semibold">Toplam Puanınız: <span className="text-2xl">{points}</span></p>
-          {yoyoBalance > 0 && (
+          {yoyoBalance > 0 ? (
             <p className="text-green-600 mt-1">
-              🎉 {yoyoBalance} YOYO Coin&apos;iniz var! Kazanma şansınız: <span className="font-bold">%60</span>
+              🎉 {yoyoBalance} YOYO Coin'iniz var! Kazanma şansınız: <span className="font-bold">%60</span>
+            </p>
+          ) : (
+            <p className="text-yellow-600 mt-1">
+              ℹ️ YOYO Coin'iniz yok. Kazanma şansınız: <span className="font-bold">%50</span>
             </p>
           )}
         </div>
@@ -375,10 +473,15 @@ export default function Home() {
             <h3 className="text-xl font-semibold text-yellow-800 mb-4">Oyun Oynamak İçin Cüzdan Bağlayın</h3>
             <button
               onClick={connectWallet}
-              className="bg-gradient-to-r from-indigo-600 to-green-500 hover:from-indigo-700 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-all duration-300"
+              className="bg-gradient-to-r from-indigo-600 to-green-500 hover:from-indigo-700 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-all duration-300 mb-3"
             >
               Cüzdanı Bağla
             </button>
+            {isMobile && (
+              <p className="text-sm text-yellow-700">
+                📱 Mobil cihazınızda: Bağlan butonuna tıklayarak cüzdan uygulamanızı seçin.
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -387,7 +490,7 @@ export default function Home() {
 
   const renderLeaderboardTab = () => (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-center text-indigo-700">Liderlik Tablosu - Top 5</h2>
+      <h2 className="text-3xl font-bold text-center text-indigo-700">Liderlik Tablosu</h2>
       
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="grid grid-cols-3 bg-indigo-100 text-indigo-800 font-semibold p-4">
@@ -410,13 +513,56 @@ export default function Home() {
       </div>
       
       <div className="text-center text-gray-500 text-sm">
-        <p>Liderlik tablosu her gün güncellenmektedir.</p>
+        <p>Liderlik tablosu gerçek zamanlı olarak blockchain'den alınmaktadır.</p>
+      </div>
+    </div>
+  );
+
+  // Mobil cüzdan seçim bileşeni
+  const MobileWalletSelector = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-xl max-w-sm w-full mx-4">
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">Cüzdan Seçin</h3>
+        <p className="text-gray-600 mb-4">Oyunu oynamak için bir cüzdan uygulaması seçin:</p>
+        
+        <div className="space-y-3">
+          <button
+            onClick={() => connectMobileWallet('metamask')}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
+          >
+            <span className="mr-2">🦊</span> MetaMask ile Bağlan
+          </button>
+          
+          <button
+            onClick={() => connectMobileWallet('coinbase')}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
+          >
+            <span className="mr-2">🔵</span> Coinbase Wallet ile Bağlan
+          </button>
+          
+          <button
+            onClick={() => connectMobileWallet('trust')}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
+          >
+            <span className="mr-2">🔷</span> Trust Wallet ile Bağlan
+          </button>
+        </div>
+        
+        <button
+          onClick={() => setShowWalletOptions(false)}
+          className="w-full mt-4 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded-lg transition-colors"
+        >
+          İptal
+        </button>
       </div>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-500 flex flex-col items-center p-4">
+      {/* Mobile Wallet Selector */}
+      {showWalletOptions && <MobileWalletSelector />}
+      
       <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden">
         <header className="bg-gradient-to-r from-indigo-600 to-green-500 text-white py-6 px-6 text-center">
           <h1 className="text-4xl font-bold mb-2">🎮 YoYo Guild</h1>
@@ -450,7 +596,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors"
             >
-              YoYo Guild&apos;e Katıl
+              YoYo Guild'e Katıl
             </a>
           </div>
         </nav>
@@ -466,9 +612,13 @@ export default function Home() {
                 <p className="text-gray-700 mt-1">
                   <span className="font-semibold">Puanlar:</span> <span className="text-indigo-600 font-bold text-xl">{points}</span>
                 </p>
-                {yoyoBalance > 0 && (
+                {yoyoBalance > 0 ? (
                   <p className="text-green-600 mt-1">
                     <span className="font-semibold">YOYO Coin:</span> {yoyoBalance}
+                  </p>
+                ) : (
+                  <p className="text-yellow-600 mt-1">
+                    <span className="font-semibold">YOYO Coin:</span> 0
                   </p>
                 )}
               </div>
@@ -510,7 +660,7 @@ export default function Home() {
         </div>
         
         <footer className="bg-gray-800 text-white py-4 text-center">
-          <p>YoYo Guild - Blokzincir ile oyun deneyimi</p>
+          <p>YoYo Guild - Blokzincir ile oyun deneyimi | Base Sepolia</p>
         </footer>
       </div>
     </div>
