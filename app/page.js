@@ -10,25 +10,6 @@ const YOYO_COIN_ABI = [
   "function decimals() view returns (uint8)"
 ];
 
-// Mobil cüzdan bağlantıları
-const WALLET_LINKS = {
-  metamask: {
-    universal: "https://metamask.app.link/dapp/",
-    deep: "metamask://browser?url=",
-    package: "io.metamask"
-  },
-  coinbase: {
-    universal: "https://go.cb-w.com/dapp?cb_url=",
-    deep: "coinbase-wallet://dapp/",
-    package: "org.toshi"
-  },
-  trust: {
-    universal: "https://link.trustwallet.com/dapp/",
-    deep: "trust://browser?url=",
-    package: "com.wallet.crypto.trustapp"
-  }
-};
-
 export default function Home() {
   const [walletConnected, setWalletConnected] = useState(false);
   const [userAddress, setUserAddress] = useState("");
@@ -47,12 +28,10 @@ export default function Home() {
   const [yoyoBalance, setYoyoBalance] = useState(0);
   const [yoyoDecimals, setYoyoDecimals] = useState(18);
   const [isMobile, setIsMobile] = useState(false);
-  const [showWalletOptions, setShowWalletOptions] = useState(false);
 
   useEffect(() => {
     // Mobil cihaz kontrolü
-    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    setIsMobile(mobile);
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
     
     // Sayfa yüklendiğinde otomatik olarak cüzdan bağlı mı kontrol et
     checkWalletConnection();
@@ -68,68 +47,47 @@ export default function Home() {
     };
   }, []);
 
-  // Mobil cüzdan bağlantı fonksiyonu
-  const connectMobileWallet = (walletType) => {
-    const currentUrl = encodeURIComponent(window.location.href);
-    let walletUrl = '';
-    
-    switch(walletType) {
-      case 'metamask':
-        walletUrl = `${WALLET_LINKS.metamask.universal}${currentUrl}`;
-        break;
-      case 'coinbase':
-        walletUrl = `${WALLET_LINKS.coinbase.universal}${currentUrl}`;
-        break;
-      case 'trust':
-        walletUrl = `${WALLET_LINKS.trust.universal}${currentUrl}`;
-        break;
-      default:
-        return;
-    }
-    
-    // Yeni sekmede aç
-    window.open(walletUrl, '_blank');
-    setShowWalletOptions(false);
-    
-    // 3 saniye sonra bağlantıyı kontrol et
-    setTimeout(() => {
-      checkWalletConnection();
-    }, 3000);
-  };
-
   const handleAccountsChanged = useCallback(async (accounts) => {
     if (accounts.length === 0) {
+      // Kullanıcı cüzdanı bağlantısını kesti
       disconnectWallet();
       setStatusMessage("Cüzdan bağlantısı kesildi.");
     } else if (accounts[0] !== userAddress) {
+      // Farklı bir hesaba geçiş yapıldı
       setUserAddress(accounts[0]);
       setStatusMessage("Hesap değiştirildi.");
+      
+      // Yeni hesap için YOYO bakiyesini kontrol et
       await checkYoyoBalance(accounts[0]);
+      
       setTimeout(() => setStatusMessage(""), 3000);
     }
   }, [userAddress]);
 
   const handleChainChanged = useCallback(() => {
+    // Zincir değiştiğinde sayfayı yenile
     window.location.reload();
   }, []);
 
   const checkWalletConnection = useCallback(async () => {
-    if (window.ethereum) {
-      try {
-        const newProvider = new ethers.BrowserProvider(window.ethereum);
-        setProvider(newProvider);
-        
-        window.ethereum.on('accountsChanged', handleAccountsChanged);
-        window.ethereum.on('chainChanged', handleChainChanged);
-        
-        const accounts = await newProvider.send("eth_accounts", []);
-        
-        if (accounts.length > 0) {
-          await connectWallet();
-        }
-      } catch (err) {
-        console.error("Otomatik bağlantı hatası:", err);
+    if (!window.ethereum) return;
+    
+    try {
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+      
+      // Ethereum event listener'larını ekle
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+      
+      const accounts = await newProvider.send("eth_accounts", []);
+      
+      if (accounts.length > 0) {
+        // Otomatik olarak bağlan
+        await connectWallet();
       }
+    } catch (err) {
+      console.error("Otomatik bağlantı hatası:", err);
     }
   }, [handleAccountsChanged, handleChainChanged]);
 
@@ -140,9 +98,11 @@ export default function Home() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const yoyoContract = new ethers.Contract(YOYO_COIN_ADDRESS, YOYO_COIN_ABI, provider);
       
+      // Decimals değerini al
       const decimals = await yoyoContract.decimals();
       setYoyoDecimals(Number(decimals));
       
+      // Bakiyeyi al
       const balance = await yoyoContract.balanceOf(address);
       const formattedBalance = Number(ethers.formatUnits(balance, decimals));
       setYoyoBalance(formattedBalance);
@@ -153,39 +113,41 @@ export default function Home() {
   }
 
   async function connectWallet() {
-    if (window.ethereum) {
-      try {
-        setStatusMessage("Cüzdan bağlanıyor...");
-        
-        const newProvider = new ethers.BrowserProvider(window.ethereum);
-        setProvider(newProvider);
-        
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        
-        const signer = await newProvider.getSigner();
-        const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-        
-        setContract(contractInstance);
-        const address = await signer.getAddress();
-        setUserAddress(address);
-        setWalletConnected(true);
-        
-        await checkYoyoBalance(address);
-        await getPointsFromBlockchain(contractInstance, address);
-        
-        setStatusMessage("Cüzdan başarıyla bağlandı!");
-        setTimeout(() => setStatusMessage(""), 3000);
-      } catch (err) {
-        console.error("Cüzdan bağlanamadı:", err);
-        setStatusMessage("Cüzdan bağlanamadı. Lütfen tekrar deneyin.");
-      }
-    } else {
-      // Mobil cihazsa cüzdan seçeneklerini göster
-      if (isMobile) {
-        setShowWalletOptions(true);
-      } else {
-        setStatusMessage("Lütfen bir Web3 cüzdanı yükleyin (MetaMask, Coinbase Wallet, vs.)!");
-      }
+    if (!window.ethereum) {
+      setStatusMessage("Lütfen bir Web3 cüzdanı yükleyin (MetaMask, Coinbase Wallet, vs.)!");
+      return;
+    }
+    
+    try {
+      setStatusMessage("Cüzdan bağlanıyor...");
+      
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+      
+      // Tüm cüzdanları destekleyen bağlantı
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      
+      const signer = await newProvider.getSigner();
+      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+      
+      setContract(contractInstance);
+      const address = await signer.getAddress();
+      setUserAddress(address);
+      setWalletConnected(true);
+      
+      // YOYO Coin bakiyesini kontrol et
+      await checkYoyoBalance(address);
+      
+      // Mevcut puanları al
+      await getPointsFromBlockchain(contractInstance, address);
+      
+      setStatusMessage("Cüzdan başarıyla bağlandı!");
+      
+      // 3 saniye sonra durum mesajını temizle
+      setTimeout(() => setStatusMessage(""), 3000);
+    } catch (err) {
+      console.error("Cüzdan bağlanamadı:", err);
+      setStatusMessage("Cüzdan bağlanamadı. Lütfen tekrar deneyin.");
     }
   }
 
@@ -202,7 +164,6 @@ export default function Home() {
     setProvider(null);
     setTransactionInfo("");
     setYoyoBalance(0);
-    setShowWalletOptions(false);
   }
 
   async function getPointsFromBlockchain(contractInstance, address) {
@@ -214,6 +175,7 @@ export default function Home() {
       setPoints(parseInt(userPoints.toString()));
     } catch (err) {
       console.error("Puanlar alınamadı:", err);
+      // Puanları alamazsak sıfırdan devam et
       setPoints(0);
     }
   }
@@ -366,7 +328,7 @@ export default function Home() {
   // Navigasyon sekmeleri
   const renderHomeTab = () => (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-center text-indigo-700">YoYo Guild'e Hoş Geldiniz!</h2>
+      <h2 className="text-3xl font-bold text-center text-indigo-700">YoYo Guild&apos;e Hoş Geldiniz!</h2>
       
       <div className="bg-gradient-to-r from-indigo-100 to-purple-100 p-6 rounded-xl">
         <h3 className="text-xl font-semibold text-indigo-800 mb-3">YoYo Guild Nedir?</h3>
@@ -379,20 +341,20 @@ export default function Home() {
       <div className="bg-gradient-to-r from-green-100 to-blue-100 p-6 rounded-xl">
         <h3 className="text-xl font-semibold text-green-800 mb-3">YOYO Coin Avantajı</h3>
         <p className="text-gray-700">
-          YOYO Coin'e sahipseniz, oyunlarda kazanma şansınız %10 artar! 
+          YOYO Coin&apos;e sahipseniz, oyunlarda kazanma şansınız %10 artar! 
           Daha fazla kazanmak için YOYO Coin edinin.
         </p>
         {walletConnected && yoyoBalance > 0 && (
           <div className="mt-3 p-3 bg-green-200 rounded-lg">
             <p className="text-green-800 font-semibold">
-              🎉 Tebrikler! {yoyoBalance} YOYO Coin'iniz var. Kazanma şansınız %10 arttı!
+              🎉 Tebrikler! {yoyoBalance} YOYO Coin&apos;iniz var. Kazanma şansınız %10 arttı!
             </p>
           </div>
         )}
         {walletConnected && yoyoBalance === 0 && (
           <div className="mt-3 p-3 bg-yellow-200 rounded-lg">
             <p className="text-yellow-800 font-semibold">
-              ℹ️ YOYO Coin'iniz yok. Kazanma şansınız %50. YOYO Coin alarak şansınızı %60'a çıkarabilirsiniz!
+              ℹ️ YOYO Coin&apos;iniz yok. Kazanma şansınız %50. YOYO Coin alarak şansınızı %60&apos;a çıkarabilirsiniz!
             </p>
           </div>
         )}
@@ -404,8 +366,8 @@ export default function Home() {
           <li>Cüzdanınızı bağlayın (MetaMask, Coinbase Wallet, vs.)</li>
           <li>Oyunlar sekmesine gidin</li>
           <li>İki resimden birini seçin (%50 kazanma şansı)</li>
-          <li>YOYO Coin'iniz varsa %60 şansla kazanın</li>
-          <li>Kazandığınız puanları blockchain'e kaydedin</li>
+          <li>YOYO Coin&apos;iniz varsa %60 şansla kazanın</li>
+          <li>Kazandığınız puanları blockchain&apos;e kaydedin</li>
           <li>Liderlik tablosunda yükselin</li>
         </ol>
       </div>
@@ -421,11 +383,11 @@ export default function Home() {
           <p className="text-indigo-800 font-semibold">Toplam Puanınız: <span className="text-2xl">{points}</span></p>
           {yoyoBalance > 0 ? (
             <p className="text-green-600 mt-1">
-              🎉 {yoyoBalance} YOYO Coin'iniz var! Kazanma şansınız: <span className="font-bold">%60</span>
+              🎉 {yoyoBalance} YOYO Coin&apos;iniz var! Kazanma şansınız: <span className="font-bold">%60</span>
             </p>
           ) : (
             <p className="text-yellow-600 mt-1">
-              ℹ️ YOYO Coin'iniz yok. Kazanma şansınız: <span className="font-bold">%50</span>
+              ℹ️ YOYO Coin&apos;iniz yok. Kazanma şansınız: <span className="font-bold">%50</span>
             </p>
           )}
         </div>
@@ -473,13 +435,13 @@ export default function Home() {
             <h3 className="text-xl font-semibold text-yellow-800 mb-4">Oyun Oynamak İçin Cüzdan Bağlayın</h3>
             <button
               onClick={connectWallet}
-              className="bg-gradient-to-r from-indigo-600 to-green-500 hover:from-indigo-700 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-all duration-300 mb-3"
+              className="bg-gradient-to-r from-indigo-600 to-green-500 hover:from-indigo-700 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-all duration-300"
             >
               Cüzdanı Bağla
             </button>
             {isMobile && (
-              <p className="text-sm text-yellow-700">
-                📱 Mobil cihazınızda: Bağlan butonuna tıklayarak cüzdan uygulamanızı seçin.
+              <p className="text-sm text-yellow-700 mt-3">
+                📱 Mobil cihazınızda: MetaMask, Coinbase Wallet veya Trust Wallet gibi bir Web3 cüzdan uygulaması kullanın.
               </p>
             )}
           </div>
@@ -513,56 +475,13 @@ export default function Home() {
       </div>
       
       <div className="text-center text-gray-500 text-sm">
-        <p>Liderlik tablosu gerçek zamanlı olarak blockchain'den alınmaktadır.</p>
-      </div>
-    </div>
-  );
-
-  // Mobil cüzdan seçim bileşeni
-  const MobileWalletSelector = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl max-w-sm w-full mx-4">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">Cüzdan Seçin</h3>
-        <p className="text-gray-600 mb-4">Oyunu oynamak için bir cüzdan uygulaması seçin:</p>
-        
-        <div className="space-y-3">
-          <button
-            onClick={() => connectMobileWallet('metamask')}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
-          >
-            <span className="mr-2">🦊</span> MetaMask ile Bağlan
-          </button>
-          
-          <button
-            onClick={() => connectMobileWallet('coinbase')}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
-          >
-            <span className="mr-2">🔵</span> Coinbase Wallet ile Bağlan
-          </button>
-          
-          <button
-            onClick={() => connectMobileWallet('trust')}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
-          >
-            <span className="mr-2">🔷</span> Trust Wallet ile Bağlan
-          </button>
-        </div>
-        
-        <button
-          onClick={() => setShowWalletOptions(false)}
-          className="w-full mt-4 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded-lg transition-colors"
-        >
-          İptal
-        </button>
+        <p>Liderlik tablosu gerçek zamanlı olarak blockchain&apos;den alınmaktadır.</p>
       </div>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-500 flex flex-col items-center p-4">
-      {/* Mobile Wallet Selector */}
-      {showWalletOptions && <MobileWalletSelector />}
-      
       <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden">
         <header className="bg-gradient-to-r from-indigo-600 to-green-500 text-white py-6 px-6 text-center">
           <h1 className="text-4xl font-bold mb-2">🎮 YoYo Guild</h1>
@@ -596,7 +515,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors"
             >
-              YoYo Guild'e Katıl
+              YoYo Guild&apos;e Katıl
             </a>
           </div>
         </nav>
