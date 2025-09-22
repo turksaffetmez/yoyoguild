@@ -1,152 +1,267 @@
-import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
+"use client";
+import { useEffect, useState } from "react";
 
-const GameBoard = ({ 
+export default function GameBoard({ 
   walletConnected, 
   gameState, 
+  yoyoBalance, 
   points, 
   onStartGame, 
-  onConnectWallet, 
+  onConnectWallet,
   isMobile,
-  onShowWalletOptions 
-}) => {
-  
-  const imageVariants = {
-    idle: { scale: 1, x: 0, opacity: 1 },
-    selected: { scale: 1.1, x: 0, opacity: 1 },
-    attacking: (custom) => ({
-      x: custom.direction * 50,
-      scale: 1.2,
-      transition: { duration: 0.5 }
-    }),
-    winning: { 
-      scale: 1.3, 
-      rotate: 360,
-      transition: { duration: 1 }
-    },
-    losing: { 
-      scale: 0.5, 
-      opacity: 0,
-      x: -100,
-      transition: { duration: 1 }
-    }
-  };
+  onShowWalletOptions,
+  onStartNewGame,
+  onResetGame
+}) {
+  const [localGameState, setLocalGameState] = useState({
+    fightAnimation: false,
+    showResult: false
+  });
 
-  if (!walletConnected) {
-    return (
-      <div className="text-center py-10">
-        <div className="bg-yellow-100 p-6 rounded-xl max-w-md mx-auto">
-          <h3 className="text-xl font-semibold text-yellow-800 mb-4">Oyun Oynamak İçin Cüzdan Bağlayın</h3>
-          <button
-            onClick={onConnectWallet}
-            className="bg-gradient-to-r from-indigo-600 to-green-500 hover:from-indigo-700 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-all duration-300 mb-3"
-          >
-            Cüzdanı Bağla
-          </button>
-          {isMobile && (
-            <>
-              <p className="text-sm text-yellow-700 mb-2">📱 Mobil cihazınızda cüzdan bağlamak için:</p>
-              <button
-                onClick={onShowWalletOptions}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-full text-sm"
-              >
-                Diğer Cüzdan Seçenekleri
-              </button>
-            </>
-          )}
+  // Oyun fazı değişikliklerini takip et
+  useEffect(() => {
+    if (gameState.gamePhase === "result") {
+      // Sonuç gösterildikten 3 saniye sonra otomatik reset
+      const timer = setTimeout(() => {
+        onResetGame();
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    if (gameState.gamePhase === "fighting") {
+      // Dövüş animasyonu
+      setLocalGameState(prev => ({ ...prev, fightAnimation: true }));
+      const timer = setTimeout(() => {
+        setLocalGameState(prev => ({ ...prev, fightAnimation: false }));
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.gamePhase, onResetGame]);
+
+  // Karakter seçim butonu
+  const CharacterButton = ({ index, character }) => (
+    <button
+      onClick={() => onStartGame(index)}
+      disabled={!walletConnected || gameState.gamePhase !== "idle" || gameState.isLoading}
+      className={`relative group transition-all duration-300 transform hover:scale-105 ${
+        gameState.gamePhase !== "idle" || gameState.isLoading ? "opacity-50 cursor-not-allowed" : "hover:shadow-2xl"
+      } ${
+        gameState.selectedImage === index ? "ring-4 ring-yellow-400 scale-105" : ""
+      }`}
+    >
+      <div className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl p-4 border-4 ${
+        gameState.winnerIndex === index ? "border-green-500 bg-green-50" : 
+        gameState.winnerIndex !== null && gameState.winnerIndex !== index ? "border-red-300 bg-red-50" :
+        "border-gray-300"
+      } transition-all duration-500`}>
+        <img 
+          src={character.url} 
+          alt={`TeVans ${character.id}`}
+          className="w-32 h-32 object-contain mx-auto transition-transform duration-300 group-hover:scale-110"
+        />
+        <div className="mt-2 text-center">
+          <span className="font-bold text-gray-700">TeVans #{character.id}</span>
         </div>
       </div>
-    );
-  }
+      
+      {/* Seçim efekti */}
+      {gameState.selectedImage === index && gameState.gamePhase === "selecting" && (
+        <div className="absolute inset-0 rounded-2xl bg-yellow-200 bg-opacity-30 animate-pulse"></div>
+      )}
+      
+      {/* Kazanan efekti */}
+      {gameState.winnerIndex === index && gameState.gamePhase === "result" && (
+        <div className="absolute inset-0 rounded-2xl bg-green-200 bg-opacity-40 animate-ping"></div>
+      )}
+    </button>
+  );
+
+  // Dövüş animasyonu
+  const FightAnimation = () => (
+    <div className="absolute inset-0 flex items-center justify-center z-10">
+      <div className="text-6xl animate-bounce">⚔️</div>
+      <div className="absolute text-4xl animate-ping">🔥</div>
+    </div>
+  );
 
   return (
-    <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-center text-indigo-700">Dövüş Arenası</h2>
-      
-      <div className="bg-indigo-100 p-4 rounded-lg text-center">
-        <p className="text-indigo-800 font-semibold">Toplam Puanınız: <span className="text-2xl">{points}</span></p>
-        <p className="text-yellow-600 mt-1">
-          ℹ️ Kazanma şansınız: <span className="font-bold">%50</span>
-        </p>
+    <div className="max-w-4xl mx-auto p-6">
+      {/* Oyun Bilgileri */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-blue-50 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-blue-600">{points}</div>
+          <div className="text-sm text-blue-500">Toplam Puan</div>
+        </div>
+        <div className="bg-green-50 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-green-600">{yoyoBalance} YOYO</div>
+          <div className="text-sm text-green-500">Token Balance</div>
+        </div>
+        <div className="bg-purple-50 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-purple-600">
+            {yoyoBalance > 0 ? "%60" : "%50"}
+          </div>
+          <div className="text-sm text-purple-500">Kazanma Şansı</div>
+        </div>
       </div>
-      
-      <div className="flex justify-center items-center gap-8 relative min-h-80">
-        <AnimatePresence mode="wait">
-          {gameState.images.slice(0, 2).map((image, index) => (
-            <motion.div
-              key={image.id}
-              className="relative cursor-pointer"
-              variants={imageVariants}
-              initial="idle"
-              animate={
-                gameState.gamePhase === "selecting" && gameState.selectedImage === index ? "selected" :
-                gameState.gamePhase === "fighting" ? 
-                  (index === gameState.selectedImage ? 
-                    { x: index === 0 ? 50 : -50, scale: 1.2 } : 
-                    { x: index === 0 ? -20 : 20, scale: 0.9 }
-                  ) :
-                gameState.gamePhase === "result" ?
-                  (index === gameState.winnerIndex ? "winning" : "losing") :
-                "idle"
-              }
-              transition={{ duration: 0.5 }}
-              whileHover={gameState.gamePhase === "idle" ? { scale: 1.05 } : {}}
-              onClick={() => gameState.gamePhase === "idle" && !gameState.isLoading && onStartGame(index)}
+
+      {/* Oyun Arena */}
+      <div className="relative bg-gradient-to-br from-gray-900 to-gray-700 rounded-3xl p-8 shadow-2xl min-h-[500px] flex items-center justify-center">
+        {/* Dövüş Arenası Başlığı */}
+        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full font-bold text-lg shadow-lg">
+          ⚔️ DÖVÜŞ ARENASI ⚔️
+        </div>
+
+        {/* Cüzdan Bağlı Değilse */}
+        {!walletConnected && (
+          <div className="text-center text-white p-8">
+            <div className="text-6xl mb-4">🔒</div>
+            <h3 className="text-2xl font-bold mb-4">Cüzdan Bağlantısı Gerekli</h3>
+            <p className="text-gray-300 mb-6">Dövüşe başlamak için cüzdanınızı bağlayın</p>
+            <button
+              onClick={isMobile ? onShowWalletOptions : onConnectWallet}
+              className="bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-3 px-8 rounded-full hover:from-green-600 hover:to-blue-600 transition-all transform hover:scale-105 shadow-lg"
             >
-              <div className={`${index === 1 ? 'transform scale-x-[-1]' : ''}`}>
-                <Image
-                  src={image.url}
-                  alt={`TeVans ${image.id}`}
-                  width={200}
-                  height={200}
-                  className="rounded-xl shadow-lg border-4 border-gray-300 object-cover"
-                  onError={() => {
-                    console.log("Resim yüklenemedi:", image.url);
-                  }}
+              {isMobile ? "Mobil Cüzdan Bağla" : "Cüzdan Bağla"}
+            </button>
+          </div>
+        )}
+
+        {/* Cüzdan Bağlıysa ve Oyun Hazırsa */}
+        {walletConnected && gameState.gamePhase === "idle" && (
+          <div className="text-center text-white">
+            <div className="text-4xl mb-4">🎮</div>
+            <h3 className="text-2xl font-bold mb-2">Dövüşe Hazır!</h3>
+            <p className="text-gray-300 mb-6">Bir karakter seçerek dövüşü başlat</p>
+          </div>
+        )}
+
+        {/* Karakter Seçim Ekranı */}
+        {walletConnected && (gameState.gamePhase === "idle" || gameState.gamePhase === "selecting") && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-2xl">
+            <CharacterButton index={0} character={gameState.images[0]} />
+            <CharacterButton index={1} character={gameState.images[1]} />
+          </div>
+        )}
+
+        {/* Bekleme Ekranı */}
+        {walletConnected && gameState.gamePhase === "waiting" && (
+          <div className="text-center text-white">
+            <div className="text-6xl mb-4 animate-pulse">⏳</div>
+            <h3 className="text-2xl font-bold mb-2">Blockchain İşlemi Bekleniyor...</h3>
+            <p className="text-gray-300">Lütfen cüzdanınızdaki işlemi onaylayın</p>
+          </div>
+        )}
+
+        {/* Dövüş Animasyonu */}
+        {walletConnected && gameState.gamePhase === "fighting" && (
+          <div className="text-center text-white relative">
+            <FightAnimation />
+            <div className="relative z-20">
+              <div className="text-6xl mb-4 animate-bounce">⚔️</div>
+              <h3 className="text-2xl font-bold mb-2">DÖVÜŞ!</h3>
+              <p className="text-gray-300">Karakterler savaşıyor...</p>
+            </div>
+            
+            {/* Karakterler dövüş sırasında da görünsün */}
+            <div className="grid grid-cols-2 gap-8 w-full max-w-2xl mt-8 opacity-70">
+              <div>
+                <img 
+                  src={gameState.images[0].url} 
+                  alt="TeVans 1"
+                  className="w-32 h-32 object-contain mx-auto"
                 />
               </div>
-              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-sm">
-                TeVans {image.id}
+              <div>
+                <img 
+                  src={gameState.images[1].url} 
+                  alt="TeVans 2" 
+                  className="w-32 h-32 object-contain mx-auto"
+                />
               </div>
-              {gameState.gamePhase === "selecting" && gameState.selectedImage === index && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs">
-                  Seçildi!
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        
-        <motion.div
-          className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <span className="text-4xl font-bold bg-gradient-to-r from-red-500 to-yellow-500 text-transparent bg-clip-text">
-            VS
-          </span>
-        </motion.div>
+            </div>
+          </div>
+        )}
 
-        {gameState.gamePhase !== "idle" && (
-          <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-sm">
-            {gameState.gamePhase === "selecting" && "🔄 TeVans seçiliyor..."}
-            {gameState.gamePhase === "waiting" && "⏳ Blockchain onayı bekleniyor..."}
-            {gameState.gamePhase === "fighting" && "⚔️ Dövüş devam ediyor!"}
-            {gameState.gamePhase === "result" && "🎯 Sonuç belirleniyor..."}
+        {/* Sonuç Ekranı */}
+        {walletConnected && gameState.gamePhase === "result" && (
+          <div className="text-center text-white w-full">
+            <div className={`text-6xl mb-4 animate-bounce ${
+              gameState.winnerIndex === 0 ? "text-green-400" : 
+              gameState.winnerIndex === 1 ? "text-green-400" : "text-gray-400"
+            }`}>
+              {gameState.winnerIndex !== null ? "🏆" : "😢"}
+            </div>
+            
+            <h3 className="text-3xl font-bold mb-2">
+              {gameState.winnerIndex !== null ? "🎉 KAZANAN BELLİ OLDU! 🎉" : "❌ BERABERE ❌"}
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-2xl mx-auto mt-8">
+              <div className={`p-4 rounded-2xl transition-all duration-500 ${
+                gameState.winnerIndex === 0 ? "bg-green-500 scale-105" : "bg-red-500"
+              }`}>
+                <img 
+                  src={gameState.images[0].url} 
+                  alt="TeVans 1"
+                  className="w-32 h-32 object-contain mx-auto"
+                />
+                <div className="mt-2 font-bold">
+                  {gameState.winnerIndex === 0 ? "🏆 KAZANDI!" : "💀 KAYBETTİ"}
+                </div>
+              </div>
+              
+              <div className={`p-4 rounded-2xl transition-all duration-500 ${
+                gameState.winnerIndex === 1 ? "bg-green-500 scale-105" : "bg-red-500"
+              }`}>
+                <img 
+                  src={gameState.images[1].url} 
+                  alt="TeVans 2"
+                  className="w-32 h-32 object-contain mx-auto"
+                />
+                <div className="mt-2 font-bold">
+                  {gameState.winnerIndex === 1 ? "🏆 KAZANDI!" : "💀 KAYBETTİ"}
+                </div>
+              </div>
+            </div>
+
+            {/* Yeni Oyun Butonu */}
+            <div className="mt-8">
+              <button 
+                onClick={onStartNewGame}
+                className="bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-3 px-8 rounded-full hover:from-green-600 hover:to-blue-600 transition-all transform hover:scale-105 shadow-lg animate-pulse"
+              >
+                🎮 YENİ DÖVÜŞ BAŞLAT
+              </button>
+              <p className="text-gray-300 mt-2 text-sm">
+                Otomatik olarak 5 saniye sonra yeni dövüş başlayacak
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Loading Durumu */}
+        {gameState.isLoading && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-3xl">
+            <div className="text-white text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+              <p>Yükleniyor...</p>
+            </div>
           </div>
         )}
       </div>
-      
-      <div className="text-center">
-        <p className="text-gray-600">Bir TeVans seçin ve kazanıp kazanmadığınızı görün!</p>
-        <p className="text-sm text-gray-500 mt-1">Kazanma şansınız: %50</p>
-        {gameState.gamePhase === "idle" && !gameState.isLoading && (
-          <p className="text-xs text-gray-400 mt-2">TeVans&apos;ların üzerine tıklayarak seçim yapın</p>
-        )}
+
+      {/* Oyun Talimatları */}
+      <div className="mt-6 bg-gray-800 text-white rounded-lg p-4">
+        <h4 className="font-bold mb-2">🎯 Oyun Talimatları:</h4>
+        <ul className="text-sm space-y-1">
+          <li>• Bir karakter seçerek dövüşü başlat</li>
+          <li>• YOYO token'ın varsa kazanma şansın %60</li>
+          <li>• Kazanırsan +100 puan, kaybedersen +10 puan</li>
+          <li>• Kaybeden karakter bir sonraki dövüşte değişir</li>
+        </ul>
       </div>
     </div>
   );
-};
-
-export default GameBoard;
+}
