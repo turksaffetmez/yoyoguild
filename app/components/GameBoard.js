@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 const GameBoard = ({ 
   walletConnected, 
   gameState, 
-  yoyoBalance, 
   points, 
   onStartGame, 
   onConnectWallet, 
@@ -93,22 +93,15 @@ const GameBoard = ({
               whileHover={gameState.gamePhase === "idle" ? { scale: 1.05 } : {}}
               onClick={() => gameState.gamePhase === "idle" && !gameState.isLoading && onStartGame(index)}
             >
-              {/* Basit img tag'i kullan - Next.js Image sorun yaratıyorsa */}
               <div className={`${index === 1 ? 'transform scale-x-[-1]' : ''}`}>
-                <img
+                <Image
                   src={image.url}
                   alt={`TeVans ${image.id}`}
-                  width="200"
-                  height="200"
+                  width={200}
+                  height={200}
                   className="rounded-xl shadow-lg border-4 border-gray-300 object-cover"
-                  onError={(e) => {
+                  onError={() => {
                     console.log("Resim yüklenemedi:", image.url);
-                    // Fallback resim
-                    e.target.src = `https://placehold.co/200x200/4f46e5/white?text=TeVans+${image.id}`;
-                    e.target.onerror = null; // Sonsuz döngüyü engelle
-                  }}
-                  onLoad={(e) => {
-                    console.log("Resim yüklendi:", image.url);
                   }}
                 />
               </div>
@@ -149,7 +142,7 @@ const GameBoard = ({
         <p className="text-gray-600">Bir TeVans seçin ve kazanıp kazanmadığınızı görün!</p>
         <p className="text-sm text-gray-500 mt-1">Kazanma şansınız: %50</p>
         {gameState.gamePhase === "idle" && !gameState.isLoading && (
-          <p className="text-xs text-gray-400 mt-2">TeVans'ların üzerine tıklayarak seçim yapın</p>
+          <p className="text-xs text-gray-400 mt-2">TeVans&apos;ların üzerine tıklayarak seçim yapın</p>
         )}
       </div>
     </div>
