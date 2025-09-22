@@ -1,5 +1,5 @@
 // Contract adresi ve ABI
-export const contractAddress = "0xYourContractAddressHere"; // Base Sepolia'daki contract adresin
+export const contractAddress = "0xbD6B6FEB5d0E00C30FE0aDbc6d0205653e594A6F"; // Base Sepolia'daki contract adresin
 export const abi = [
   {
     "inputs": [
