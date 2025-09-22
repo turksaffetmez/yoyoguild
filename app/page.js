@@ -12,8 +12,24 @@ const YOYO_COIN_ABI = [
   "function decimals() view returns (uint8)"
 ];
 
-// WalletConnect ve diğer cüzdan bağlantıları
-const WALLET_CONNECT_PROJECT_ID = "your-walletconnect-project-id"; // WalletConnect proje ID'nizi buraya ekleyin
+// Mobil cüzdan bağlantıları
+const WALLET_LINKS = {
+  metamask: {
+    universal: "https://metamask.app.link/dapp/",
+    deep: "metamask://browser?url=",
+    package: "io.metamask"
+  },
+  coinbase: {
+    universal: "https://go.cb-w.com/dapp?cb_url=",
+    deep: "coinbase-wallet://dapp/",
+    package: "org.toshi"
+  },
+  trust: {
+    universal: "https://link.trustwallet.com/dapp/",
+    deep: "trust://browser?url=",
+    package: "com.wallet.crypto.trustapp"
+  }
+};
 
 export default function Home() {
   const [walletConnected, setWalletConnected] = useState(false);
@@ -33,10 +49,10 @@ export default function Home() {
   // Oyun state'leri
   const [selectedImage, setSelectedImage] = useState(null);
   const [winnerIndex, setWinnerIndex] = useState(null);
-  const [gamePhase, setGamePhase] = useState("idle"); // idle, selecting, fighting, result
+  const [gamePhase, setGamePhase] = useState("idle");
   const [images, setImages] = useState([
-    { id: 1, url: "https://placekitten.com/300/300?image=1", winner: false },
-    { id: 2, url: "https://placekitten.com/300/300?image=2", winner: false }
+    { id: 1, url: "https://placekitten.com/300/300?image=1" },
+    { id: 2, url: "https://placekitten.com/300/300?image=2" }
   ]);
 
   // useCallback ile fonksiyonları memoize et
@@ -54,6 +70,9 @@ export default function Home() {
     setTransactionInfo("");
     setYoyoBalance(0);
     setShowWalletOptions(false);
+    setGamePhase("idle");
+    setSelectedImage(null);
+    setWinnerIndex(null);
   }, []);
 
   const handleAccountsChanged = useCallback(async (accounts) => {
@@ -88,48 +107,41 @@ export default function Home() {
     }
   }, []);
 
-  // Farcaster ve mobil cüzdan bağlantısı
-  const connectWallet = useCallback(async (walletType = "injected") => {
-    try {
-      setStatusMessage("Cüzdan bağlanıyor...");
-      
-      let newProvider;
-      
-      if (walletType === "walletconnect") {
-        // WalletConnect entegrasyonu buraya eklenecek
-        setStatusMessage("WalletConnect destekleniyor...");
-        return;
-      } else {
-        // Injected provider (MetaMask, Coinbase Wallet, etc.)
-        if (!window.ethereum) {
-          setStatusMessage("Web3 cüzdanı bulunamadı. Lütfen MetaMask veya benzeri bir cüzdan yükleyin.");
-          return;
-        }
+  const connectWallet = useCallback(async () => {
+    if (window.ethereum) {
+      try {
+        setStatusMessage("Cüzdan bağlanıyor...");
         
-        newProvider = new ethers.BrowserProvider(window.ethereum);
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
         setProvider(newProvider);
         
         await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        const signer = await newProvider.getSigner();
+        const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+        
+        setContract(contractInstance);
+        const address = await signer.getAddress();
+        setUserAddress(address);
+        setWalletConnected(true);
+        
+        await checkYoyoBalance(address);
+        await getPointsFromBlockchain(contractInstance, address);
+        
+        setStatusMessage("Cüzdan başarıyla bağlandı!");
+        setTimeout(() => setStatusMessage(""), 3000);
+      } catch (err) {
+        console.error("Cüzdan bağlanamadı:", err);
+        setStatusMessage("Cüzdan bağlanamadı. Lütfen tekrar deneyin.");
       }
-      
-      const signer = await newProvider.getSigner();
-      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-      
-      setContract(contractInstance);
-      const address = await signer.getAddress();
-      setUserAddress(address);
-      setWalletConnected(true);
-      
-      await checkYoyoBalance(address);
-      await getPointsFromBlockchain(contractInstance, address);
-      
-      setStatusMessage("Cüzdan başarıyla bağlandı!");
-      setTimeout(() => setStatusMessage(""), 3000);
-    } catch (err) {
-      console.error("Cüzdan bağlanamadı:", err);
-      setStatusMessage("Cüzdan bağlanamadı. Lütfen tekrar deneyin.");
+    } else {
+      if (isMobile) {
+        setShowWalletOptions(true);
+      } else {
+        setStatusMessage("Lütfen bir Web3 cüzdanı yükleyin (MetaMask, Coinbase Wallet, vs.)!");
+      }
     }
-  }, [checkYoyoBalance]);
+  }, [checkYoyoBalance, isMobile]);
 
   const checkWalletConnection = useCallback(async () => {
     if (window.ethereum) {
@@ -158,11 +170,48 @@ export default function Home() {
     loadLeaderboard();
   }, [checkWalletConnection]);
 
-  // Liderlik tablosunu contract'tan çek
+  // Mobil cüzdan bağlantı fonksiyonu
+  const connectMobileWallet = (walletType) => {
+    const currentUrl = encodeURIComponent(window.location.href);
+    let walletUrl = '';
+    
+    switch(walletType) {
+      case 'metamask':
+        walletUrl = `${WALLET_LINKS.metamask.universal}${currentUrl}`;
+        break;
+      case 'coinbase':
+        walletUrl = `${WALLET_LINKS.coinbase.universal}${currentUrl}`;
+        break;
+      case 'trust':
+        walletUrl = `${WALLET_LINKS.trust.universal}${currentUrl}`;
+        break;
+      default:
+        return;
+    }
+    
+    window.open(walletUrl, '_blank');
+    setShowWalletOptions(false);
+    
+    setTimeout(() => {
+      checkWalletConnection();
+    }, 3000);
+  };
+
+  async function getPointsFromBlockchain(contractInstance, address) {
+    if (!contractInstance) return;
+    
+    try {
+      const userPoints = await contractInstance.getPoints(address);
+      setPoints(parseInt(userPoints.toString()));
+    } catch (err) {
+      console.error("Puanlar alınamadı:", err);
+      setPoints(0);
+    }
+  }
+
   async function loadLeaderboard() {
     try {
       if (!window.ethereum) {
-        // Fallback data
         setLeaderboard([
           { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
           { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
@@ -174,13 +223,12 @@ export default function Home() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const contractInstance = new ethers.Contract(contractAddress, abi, provider);
       
-      // Örnek adresler - gerçek uygulamada contract'tan alınacak
       const sampleAddresses = [
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
         "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
         "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        userAddress // Kullanıcının kendi adresini de ekle
-      ].filter(addr => addr); // undefined/null adresleri filtrele
+        userAddress
+      ].filter(addr => addr);
       
       const leaderboardData = [];
       
@@ -196,7 +244,6 @@ export default function Home() {
         }
       }
       
-      // Puanlara göre sırala ve top 10'u al
       leaderboardData.sort((a, b) => b.points - a.points);
       const top10 = leaderboardData.slice(0, 10);
       
@@ -209,24 +256,11 @@ export default function Home() {
       setLeaderboard(rankedLeaderboard);
     } catch (err) {
       console.error("Liderlik tablosu yüklenemedi:", err);
-      // Fallback data
       setLeaderboard([
         { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
         { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
         { rank: 3, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", points: 7650 },
       ]);
-    }
-  }
-
-  async function getPointsFromBlockchain(contractInstance, address) {
-    if (!contractInstance) return;
-    
-    try {
-      const userPoints = await contractInstance.getPoints(address);
-      setPoints(parseInt(userPoints.toString()));
-    } catch (err) {
-      console.error("Puanlar alınamadı:", err);
-      setPoints(0);
     }
   }
 
@@ -277,6 +311,7 @@ export default function Home() {
     
     if (gamePhase !== "idle") return;
     
+    setIsLoading(true);
     setSelectedImage(selectedIndex);
     setGamePhase("selecting");
     
@@ -320,6 +355,7 @@ export default function Home() {
     setSelectedImage(null);
     setWinnerIndex(null);
     setGamePhase("idle");
+    setIsLoading(false);
     
     // Kaybeden resmi değiştir
     if (winnerIndex !== null) {
@@ -327,8 +363,7 @@ export default function Home() {
       const newImages = [...images];
       newImages[loserIndex] = {
         ...newImages[loserIndex],
-        url: `https://placekitten.com/300/300?image=${Math.floor(Math.random() * 10) + 3}`,
-        winner: false
+        url: `https://placekitten.com/300/300?image=${Math.floor(Math.random() * 10) + 3}`
       };
       setImages(newImages);
     }
@@ -339,7 +374,7 @@ export default function Home() {
     idle: { scale: 1, x: 0, opacity: 1 },
     selected: { scale: 1.1, x: 0, opacity: 1 },
     attacking: (custom) => ({
-      x: custom.direction * 100,
+      x: custom.direction * 50,
       scale: 1.2,
       transition: { duration: 0.5 }
     }),
@@ -349,18 +384,59 @@ export default function Home() {
       transition: { duration: 1 }
     },
     losing: { 
-      scale: 0.8, 
+      scale: 0.5, 
       opacity: 0,
-      x: -200,
+      x: -100,
       transition: { duration: 1 }
     }
   };
 
-  // UI bileşenleri
+  // Navigasyon sekmeleri
   const renderHomeTab = () => (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold text-center text-indigo-700">YoYo Guild&apos;e Hoş Geldiniz!</h2>
-      {/* ... home content aynı kalacak ... */}
+      
+      <div className="bg-gradient-to-r from-indigo-100 to-purple-100 p-6 rounded-xl">
+        <h3 className="text-xl font-semibold text-indigo-800 mb-3">YoYo Guild Nedir?</h3>
+        <p className="text-gray-700">
+          YoYo Guild, blokzincir teknolojisi ve oyun mekaniklerini birleştiren yenilikçi bir topluluktur. 
+          Guild üyeleri, oyunlar oynayarak puan kazanır ve bu puanlarla çeşitli ödüller elde edebilirler.
+        </p>
+      </div>
+      
+      <div className="bg-gradient-to-r from-green-100 to-blue-100 p-6 rounded-xl">
+        <h3 className="text-xl font-semibold text-green-800 mb-3">YOYO Coin Avantajı</h3>
+        <p className="text-gray-700">
+          YOYO Coin&apos;e sahipseniz, oyunlarda kazanma şansınız %10 artar! 
+          Daha fazla kazanmak için YOYO Coin edinin.
+        </p>
+        {walletConnected && yoyoBalance > 0 && (
+          <div className="mt-3 p-3 bg-green-200 rounded-lg">
+            <p className="text-green-800 font-semibold">
+              🎉 Tebrikler! {yoyoBalance} YOYO Coin&apos;iniz var. Kazanma şansınız %10 arttı!
+            </p>
+          </div>
+        )}
+        {walletConnected && yoyoBalance === 0 && (
+          <div className="mt-3 p-3 bg-yellow-200 rounded-lg">
+            <p className="text-yellow-800 font-semibold">
+              ℹ️ YOYO Coin&apos;iniz yok. Kazanma şansınız %50. YOYO Coin alarak şansınızı %60&apos;a çıkarabilirsiniz!
+            </p>
+          </div>
+        )}
+      </div>
+      
+      <div className="bg-gradient-to-r from-yellow-100 to-orange-100 p-6 rounded-xl">
+        <h3 className="text-xl font-semibold text-orange-800 mb-3">Nasıl Çalışır?</h3>
+        <ol className="list-decimal pl-5 text-gray-700 space-y-2">
+          <li>Cüzdanınızı bağlayın (MetaMask, Coinbase Wallet, vs.)</li>
+          <li>Oyunlar sekmesine gidin</li>
+          <li>İki dövüşçüden birini seçin (%50 kazanma şansı)</li>
+          <li>YOYO Coin&apos;iniz varsa %60 şansla kazanın</li>
+          <li>Kazandığınız puanları blockchain&apos;e kaydedin</li>
+          <li>Liderlik tablosunda yükselin</li>
+        </ol>
+      </div>
     </div>
   );
 
@@ -385,8 +461,8 @@ export default function Home() {
       
       {walletConnected ? (
         <>
-          <div className="flex justify-center items-center gap-8 relative">
-            <AnimatePresence>
+          <div className="flex justify-center items-center gap-8 relative min-h-80">
+            <AnimatePresence mode="wait">
               {images.map((image, index) => (
                 <motion.div
                   key={image.id}
@@ -396,14 +472,17 @@ export default function Home() {
                   animate={
                     gamePhase === "selecting" && selectedImage === index ? "selected" :
                     gamePhase === "fighting" ? 
-                      (index === selectedImage ? "attacking" : "idle") :
+                      (index === selectedImage ? 
+                        { x: index === 0 ? 50 : -50, scale: 1.2 } : 
+                        { x: index === 0 ? -20 : 20, scale: 0.9 }
+                      ) :
                     gamePhase === "result" ?
                       (index === winnerIndex ? "winning" : "losing") :
                     "idle"
                   }
-                  custom={{ direction: index === 0 ? 1 : -1 }}
+                  transition={{ duration: 0.5 }}
                   whileHover={gamePhase === "idle" ? { scale: 1.05 } : {}}
-                  onClick={() => gamePhase === "idle" && startGame(index)}
+                  onClick={() => gamePhase === "idle" && !isLoading && startGame(index)}
                 >
                   <Image
                     src={image.url}
@@ -412,9 +491,14 @@ export default function Home() {
                     height={200}
                     className="rounded-xl shadow-lg border-4 border-gray-300"
                   />
-                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-3 py-1 rounded-full font-bold">
+                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-sm">
                     Dövüşçü {index + 1}
                   </div>
+                  {gamePhase === "selecting" && selectedImage === index && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs">
+                      Seçildi!
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -422,14 +506,23 @@ export default function Home() {
             {/* VS yazısı */}
             <motion.div
               className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.5 }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.3 }}
             >
               <span className="text-4xl font-bold bg-gradient-to-r from-red-500 to-yellow-500 text-transparent bg-clip-text">
                 VS
               </span>
             </motion.div>
+
+            {/* Oyun durumu göstergesi */}
+            {gamePhase !== "idle" && (
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-sm">
+                {gamePhase === "selecting" && "🔄 Dövüşçü seçiliyor..."}
+                {gamePhase === "fighting" && "⚔️ Dövüş devam ediyor!"}
+                {gamePhase === "result" && "🎯 Sonuç belirleniyor..."}
+              </div>
+            )}
           </div>
           
           <div className="text-center">
@@ -437,6 +530,9 @@ export default function Home() {
             <p className="text-sm text-gray-500 mt-1">
               {yoyoBalance > 0 ? 'Kazanma şansınız: %60' : 'Kazanma şansınız: %50'}
             </p>
+            {gamePhase === "idle" && !isLoading && (
+              <p className="text-xs text-gray-400 mt-2">Dövüşçülerin üzerine tıklayarak seçim yapın</p>
+            )}
           </div>
         </>
       ) : (
@@ -444,7 +540,7 @@ export default function Home() {
           <div className="bg-yellow-100 p-6 rounded-xl max-w-md mx-auto">
             <h3 className="text-xl font-semibold text-yellow-800 mb-4">Oyun Oynamak İçin Cüzdan Bağlayın</h3>
             <button
-              onClick={() => connectWallet()}
+              onClick={connectWallet}
               className="bg-gradient-to-r from-indigo-600 to-green-500 hover:from-indigo-700 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-all duration-300 mb-3"
             >
               Cüzdanı Bağla
@@ -491,27 +587,40 @@ export default function Home() {
           ))}
         </div>
       </div>
+      
+      <div className="text-center text-gray-500 text-sm">
+        <p>Liderlik tablosu gerçek zamanlı olarak blockchain&apos;den güncellenmektedir.</p>
+      </div>
     </div>
   );
 
+  // Mobil cüzdan seçim bileşeni
   const MobileWalletSelector = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-xl max-w-sm w-full mx-4">
         <h3 className="text-xl font-semibold text-gray-800 mb-4">Cüzdan Seçin</h3>
+        <p className="text-gray-600 mb-4">Oyunu oynamak için bir cüzdan uygulaması seçin:</p>
         
         <div className="space-y-3">
           <button
-            onClick={() => connectWallet("injected")}
+            onClick={() => connectMobileWallet('metamask')}
             className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
           >
-            <span className="mr-2">🦊</span> MetaMask/Injected
+            <span className="mr-2">🦊</span> MetaMask ile Bağlan
           </button>
           
           <button
-            onClick={() => connectWallet("walletconnect")}
+            onClick={() => connectMobileWallet('coinbase')}
             className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
           >
-            <span className="mr-2">🔗</span> WalletConnect
+            <span className="mr-2">🔵</span> Coinbase Wallet ile Bağlan
+          </button>
+          
+          <button
+            onClick={() => connectMobileWallet('trust')}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
+          >
+            <span className="mr-2">🔷</span> Trust Wallet ile Bağlan
           </button>
         </div>
         
@@ -530,11 +639,104 @@ export default function Home() {
       {showWalletOptions && <MobileWalletSelector />}
       
       <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden">
-        {/* ... header ve navigation aynı kalacak ... */}
+        <header className="bg-gradient-to-r from-indigo-600 to-green-500 text-white py-6 px-6 text-center">
+          <h1 className="text-4xl font-bold mb-2">🎮 YoYo Guild</h1>
+          <p className="text-lg opacity-90">Blokzincir tabanlı dövüş ve kazanç platformu</p>
+        </header>
+        
+        {/* Navigasyon Menüsü */}
+        <nav className="bg-indigo-100 p-2">
+          <div className="flex flex-wrap justify-center gap-2">
+            <button 
+              onClick={() => setActiveTab("home")} 
+              className={`px-4 py-2 rounded-full transition-colors ${activeTab === "home" ? "bg-indigo-600 text-white" : "bg-white text-indigo-600 hover:bg-indigo-50"}`}
+            >
+              Ana Sayfa
+            </button>
+            <button 
+              onClick={() => setActiveTab("play")} 
+              className={`px-4 py-2 rounded-full transition-colors ${activeTab === "play" ? "bg-indigo-600 text-white" : "bg-white text-indigo-600 hover:bg-indigo-50"}`}
+            >
+              Dövüş Arenası
+            </button>
+            <button 
+              onClick={() => setActiveTab("leaderboard")} 
+              className={`px-4 py-2 rounded-full transition-colors ${activeTab === "leaderboard" ? "bg-indigo-600 text-white" : "bg-white text-indigo-600 hover:bg-indigo-50"}`}
+            >
+              Liderlik Tablosu
+            </button>
+            <a 
+              href="https://tevaera.com/guilds/YoYo" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors"
+            >
+              YoYo Guild&apos;e Katıl
+            </a>
+          </div>
+        </nav>
         
         <div className="p-6">
-          {/* ... cüzdan bilgileri ve içerik aynı kalacak ... */}
+          {/* Cüzdan Bilgileri */}
+          {walletConnected && (
+            <div className="mb-6 p-4 bg-gray-100 rounded-lg flex justify-between items-center flex-wrap gap-4">
+              <div>
+                <p className="text-gray-700">
+                  <span className="font-semibold">Cüzdan:</span> {userAddress.substring(0, 6)}...{userAddress.substring(userAddress.length - 4)}
+                </p>
+                <p className="text-gray-700 mt-1">
+                  <span className="font-semibold">Puanlar:</span> <span className="text-indigo-600 font-bold text-xl">{points}</span>
+                </p>
+                {yoyoBalance > 0 ? (
+                  <p className="text-green-600 mt-1">
+                    <span className="font-semibold">YOYO Coin:</span> {yoyoBalance}
+                  </p>
+                ) : (
+                  <p className="text-yellow-600 mt-1">
+                    <span className="font-semibold">YOYO Coin:</span> 0
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={disconnectWallet}
+                className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-full text-sm transition-colors"
+              >
+                Çıkış Yap
+              </button>
+            </div>
+          )}
+          
+          {/* İçerik Alanı */}
+          <div className="min-h-[400px]">
+            {activeTab === "home" && renderHomeTab()}
+            {activeTab === "play" && renderPlayTab()}
+            {activeTab === "leaderboard" && renderLeaderboardTab()}
+          </div>
+
+          {/* Durum Mesajları */}
+          {statusMessage && (
+            <div className={`mt-6 p-4 rounded-lg text-center ${
+              statusMessage.includes("Tebrikler") || statusMessage.includes("başarıyla") ? "bg-green-100 text-green-800" : 
+              statusMessage.includes("Maalesef") || statusMessage.includes("reddedildi") ? "bg-red-100 text-red-800" : 
+              statusMessage.includes("bağlanıyor") || statusMessage.includes("kaydediliyor") ? "bg-blue-100 text-blue-800" : 
+              "bg-yellow-100 text-yellow-800"
+            }`}>
+              <p className="font-semibold">{statusMessage}</p>
+            </div>
+          )}
+
+          {/* İşlem Bilgileri */}
+          {transactionInfo && (
+            <div className="mt-6 bg-gray-100 p-4 rounded-lg overflow-auto max-h-40">
+              <p className="text-gray-700 font-semibold mb-2">İşlem Bilgisi:</p>
+              <pre className="text-sm text-gray-600 whitespace-pre-wrap">{transactionInfo}</pre>
+            </div>
+          )}
         </div>
+        
+        <footer className="bg-gray-800 text-white py-4 text-center">
+          <p>YoYo Guild - Blokzincir ile dövüş deneyimi | Base Sepolia</p>
+        </footer>
       </div>
     </div>
   );
