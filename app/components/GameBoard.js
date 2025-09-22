@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 const GameBoard = ({ 
@@ -66,15 +65,9 @@ const GameBoard = ({
       
       <div className="bg-indigo-100 p-4 rounded-lg text-center">
         <p className="text-indigo-800 font-semibold">Toplam Puanınız: <span className="text-2xl">{points}</span></p>
-        {yoyoBalance > 0 ? (
-          <p className="text-green-600 mt-1">
-            🎉 {yoyoBalance} YOYO Coin&apos;iniz var! Kazanma şansınız: <span className="font-bold">%60</span>
-          </p>
-        ) : (
-          <p className="text-yellow-600 mt-1">
-            ℹ️ YOYO Coin&apos;iniz yok. Kazanma şansınız: <span className="font-bold">%50</span>
-          </p>
-        )}
+        <p className="text-yellow-600 mt-1">
+          ℹ️ Kazanma şansınız: <span className="font-bold">%50</span>
+        </p>
       </div>
       
       <div className="flex justify-center items-center gap-8 relative min-h-80">
@@ -100,14 +93,23 @@ const GameBoard = ({
               whileHover={gameState.gamePhase === "idle" ? { scale: 1.05 } : {}}
               onClick={() => gameState.gamePhase === "idle" && !gameState.isLoading && onStartGame(index)}
             >
-              {/* Sağdaki TeVans'ı yansıt (sola baksın) */}
+              {/* Basit img tag'i kullan - Next.js Image sorun yaratıyorsa */}
               <div className={`${index === 1 ? 'transform scale-x-[-1]' : ''}`}>
-                <Image
+                <img
                   src={image.url}
                   alt={`TeVans ${image.id}`}
-                  width={200}
-                  height={200}
-                  className="rounded-xl shadow-lg border-4 border-gray-300"
+                  width="200"
+                  height="200"
+                  className="rounded-xl shadow-lg border-4 border-gray-300 object-cover"
+                  onError={(e) => {
+                    console.log("Resim yüklenemedi:", image.url);
+                    // Fallback resim
+                    e.target.src = `https://placehold.co/200x200/4f46e5/white?text=TeVans+${image.id}`;
+                    e.target.onerror = null; // Sonsuz döngüyü engelle
+                  }}
+                  onLoad={(e) => {
+                    console.log("Resim yüklendi:", image.url);
+                  }}
                 />
               </div>
               <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-sm">
@@ -122,7 +124,6 @@ const GameBoard = ({
           ))}
         </AnimatePresence>
         
-        {/* VS yazısı */}
         <motion.div
           className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
           initial={{ scale: 0, opacity: 0 }}
@@ -134,7 +135,6 @@ const GameBoard = ({
           </span>
         </motion.div>
 
-        {/* Oyun durumu göstergesi */}
         {gameState.gamePhase !== "idle" && (
           <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-sm">
             {gameState.gamePhase === "selecting" && "🔄 TeVans seçiliyor..."}
@@ -147,11 +147,9 @@ const GameBoard = ({
       
       <div className="text-center">
         <p className="text-gray-600">Bir TeVans seçin ve kazanıp kazanmadığınızı görün!</p>
-        <p className="text-sm text-gray-500 mt-1">
-          {yoyoBalance > 0 ? 'Kazanma şansınız: %60' : 'Kazanma şansınız: %50'}
-        </p>
+        <p className="text-sm text-gray-500 mt-1">Kazanma şansınız: %50</p>
         {gameState.gamePhase === "idle" && !gameState.isLoading && (
-          <p className="text-xs text-gray-400 mt-2">TeVans&apos;ların üzerine tıklayarak seçim yapın</p>
+          <p className="text-xs text-gray-400 mt-2">TeVans'ların üzerine tıklayarak seçim yapın</p>
         )}
       </div>
     </div>
