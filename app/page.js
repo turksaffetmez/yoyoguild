@@ -108,6 +108,7 @@ export default function Home() {
     }
   }, []);
 
+  // TEK connectWallet FONKSİYONU - diğerini sildim
   const connectWallet = useCallback(async () => {
     if (window.ethereum) {
       try {
@@ -142,63 +143,27 @@ export default function Home() {
         setStatusMessage("Lütfen bir Web3 cüzdanı yükleyin (MetaMask, Coinbase Wallet, vs.)!");
       }
     }
-  }, [checkYoyoBalance, isMobile]);
+  }, [checkYoyoBalance, isMobile, contractAddress, abi]);
 
-const checkWalletConnection = useCallback(async () => {
-  if (window.ethereum) {
-    try {
-      const newProvider = new ethers.BrowserProvider(window.ethereum);
-      setProvider(newProvider);
-      
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-      
-      const accounts = await newProvider.send("eth_accounts", []);
-      
-      if (accounts.length > 0) {
-        await connectWallet();
+  const checkWalletConnection = useCallback(async () => {
+    if (window.ethereum) {
+      try {
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(newProvider);
+        
+        window.ethereum.on('accountsChanged', handleAccountsChanged);
+        window.ethereum.on('chainChanged', handleChainChanged);
+        
+        const accounts = await newProvider.send("eth_accounts", []);
+        
+        if (accounts.length > 0) {
+          await connectWallet();
+        }
+      } catch (err) {
+        console.error("Otomatik bağlantı hatası:", err);
       }
-    } catch (err) {
-      console.error("Otomatik bağlantı hatası:", err);
     }
-  }
-}, [handleAccountsChanged, handleChainChanged, connectWallet]); // Dependency'ler eklendi
-
-const connectWallet = useCallback(async () => {
-  if (window.ethereum) {
-    try {
-      setStatusMessage("Cüzdan bağlanıyor...");
-      
-      const newProvider = new ethers.BrowserProvider(window.ethereum);
-      setProvider(newProvider);
-      
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      
-      const signer = await newProvider.getSigner();
-      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-      
-      setContract(contractInstance);
-      const address = await signer.getAddress();
-      setUserAddress(address);
-      setWalletConnected(true);
-      
-      await checkYoyoBalance(address);
-      await getPointsFromBlockchain(contractInstance, address);
-      
-      setStatusMessage("Cüzdan başarıyla bağlandı!");
-      setTimeout(() => setStatusMessage(""), 3000);
-    } catch (err) {
-      console.error("Cüzdan bağlanamadı:", err);
-      setStatusMessage("Cüzdan bağlanamadı. Lütfen tekrar deneyin.");
-    }
-  } else {
-    if (isMobile) {
-      setShowWalletOptions(true);
-    } else {
-      setStatusMessage("Lütfen bir Web3 cüzdanı yükleyin (MetaMask, Coinbase Wallet, vs.)!");
-    }
-  }
-}, [checkYoyoBalance, isMobile, contractAddress, abi]);
+  }, [handleAccountsChanged, handleChainChanged, connectWallet]);
 
   const loadLeaderboard = useCallback(async () => {
     try {
@@ -480,7 +445,7 @@ const connectWallet = useCallback(async () => {
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors"
             >
-              YoYo Guild'e Katıl
+              YoYo Guild&apos;e Katıl
             </a>
           </div>
         </nav>
