@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 const HomeContent = ({ 
   walletConnected, 
   yoyoBalanceAmount, 
@@ -27,9 +29,9 @@ const HomeContent = ({
         time: formatTimeLeft(currentSeason.timeUntilEnd),
         color: "text-green-400"
       };
-    } else if (currentSeason.timeUntilStart > 0 || currentSeason.isPreseason) {
+    } else if (currentSeason.timeUntilStart > 0) {
       return {
-        text: currentSeason.isPreseason ? "Season starts in" : `Season ${currentSeason.seasonNumber} starts in`,
+        text: `Season ${currentSeason.nextSeasonNumber} starts in`, // DÜZELTİLDİ
         time: formatTimeLeft(currentSeason.timeUntilStart),
         color: "text-yellow-400"
       };
@@ -47,6 +49,9 @@ const HomeContent = ({
   return (
     <div className="space-y-8">
       <div className="text-center">
+        <div className="flex justify-center mb-6">
+          <Image src="/images/yoyo.png" alt="YoYo Guild" width={80} height={80} className="rounded-full" />
+        </div>
         <h2 className="text-4xl font-bold text-white mb-4">Welcome to YoYo Guild Battle v1</h2>
         <div className="text-lg text-gray-300 max-w-4xl mx-auto space-y-4">
           <p>
@@ -80,7 +85,7 @@ const HomeContent = ({
         </div>
       </div>
 
-      {/* Season Timer */}
+      {/* Season Timer - DÜZELTİLDİ */}
       <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl p-6 border border-purple-500/30 text-center">
         <div className="text-2xl font-bold text-white mb-2">{seasonStatus.text}</div>
         <div className={`text-4xl font-mono font-bold ${seasonStatus.color} mb-4`}>
@@ -88,10 +93,10 @@ const HomeContent = ({
         </div>
         <div className="text-sm text-gray-400">
           {currentSeason.isPreseason ? 
-            `Official Season 1 starts on September 25, 2025 12:00 UTC` :
+            `Season 1 starts on September 25, 2025 12:00 UTC` :
             currentSeason.active ?
-              `Season ${currentSeason.seasonNumber} started on ${new Date(currentSeason.startTime).toLocaleDateString()}` :
-              `Season ${currentSeason.seasonNumber} starts on September 25, 2025 12:00 UTC`
+              `Season ${currentSeason.seasonNumber} ends in 1 week` :
+              `Next season starts soon`
           }
         </div>
       </div>

@@ -32,7 +32,7 @@ export default function Home() {
 
   // Sezon 1 başlangıç zamanı: 25 Eylül 2025 12:00 UTC
   const SEASON1_START_TIME = new Date("2025-09-25T12:00:00Z").getTime();
-  const SEASON_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 gün milisaniye cinsinden
+  const SEASON_DURATION = 7 * 24 * 60 * 60 * 1000; // 1 HAFTA (7 gün)
 
   const [gameState, setGameState] = useState({
     selectedImage: null,
@@ -62,24 +62,26 @@ export default function Home() {
     isLoading: false
   });
 
-  // Mevcut sezonu hesapla
+  // Mevcut sezonu hesapla - DÜZELTİLDİ
   const calculateCurrentSeason = useCallback(() => {
     const now = Date.now();
-    const timeSinceStart = now - SEASON1_START_TIME;
     
-    if (timeSinceStart < 0) {
-      // Sezon henüz başlamadı - Preseason
+    // Sezon 1 başlangıcından önce mi?
+    if (now < SEASON1_START_TIME) {
       return {
-        seasonNumber: 0, // 0 = preseason
+        seasonNumber: 0, // preseason
         startTime: SEASON1_START_TIME,
         duration: SEASON_DURATION,
         active: false,
-        timeUntilStart: Math.abs(timeSinceStart),
-        isPreseason: true
+        timeUntilStart: SEASON1_START_TIME - now,
+        isPreseason: true,
+        nextSeasonNumber: 1
       };
     }
     
-    const seasonsPassed = Math.floor(timeSinceStart / SEASON_DURATION);
+    // Hangi sezondayız?
+    const timeSinceSeason1 = now - SEASON1_START_TIME;
+    const seasonsPassed = Math.floor(timeSinceSeason1 / SEASON_DURATION);
     const currentSeasonNumber = seasonsPassed + 1;
     const currentSeasonStart = SEASON1_START_TIME + (seasonsPassed * SEASON_DURATION);
     const timeUntilEnd = currentSeasonStart + SEASON_DURATION - now;
@@ -91,15 +93,15 @@ export default function Home() {
       active: timeUntilEnd > 0,
       timeUntilEnd: Math.max(0, timeUntilEnd),
       timeUntilStart: 0,
-      isPreseason: false
+      isPreseason: false,
+      nextSeasonNumber: currentSeasonNumber + 1
     };
   }, []);
 
-  // YOYO balance kontrolü - DÜZELTİLDİ
+  // YOYO balance kontrolü
   const checkYoyoBalance = useCallback(async (address) => {
     if (!address) return 0;
     try {
-      // Provider yoksa yeni provider oluştur
       let balanceProvider = provider;
       if (!balanceProvider && window.ethereum) {
         balanceProvider = new ethers.BrowserProvider(window.ethereum);
@@ -113,7 +115,6 @@ export default function Home() {
       );
       const balance = await yoyoContract.balanceOf(address);
       const balanceNumber = Number(ethers.formatUnits(balance, 18));
-      console.log("YOYO Balance retrieved:", balanceNumber);
       return balanceNumber;
     } catch (error) {
       console.error("YOYO balance check failed:", error);
@@ -121,7 +122,7 @@ export default function Home() {
     }
   }, [provider]);
 
-  // Oyuncu bilgilerini getir
+  // Oyuncu bilgilerini getir - PRESEASON DÜZELTİLDİ
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     try {
@@ -131,7 +132,6 @@ export default function Home() {
       setGamesPlayedToday(Number(gamesToday));
       setDailyLimit(Number(limit));
       
-      // YOYO balance'ı hemen güncelle - AYRI BİR ŞEKİLDE
       const yoyoBalance = await checkYoyoBalance(address);
       setYoyoBalanceAmount(yoyoBalance);
     } catch (error) {
@@ -139,7 +139,7 @@ export default function Home() {
     }
   }, [contract, checkYoyoBalance]);
 
-  // Sezon bilgilerini güncelle
+  // Sezon bilgilerini güncelle - DÜZELTİLDİ
   const updateSeasonInfo = useCallback(() => {
     const seasonInfo = calculateCurrentSeason();
     setCurrentSeason(seasonInfo);
@@ -151,14 +151,18 @@ export default function Home() {
     }
   }, [calculateCurrentSeason]);
 
-  // Liderlik tablosunu getir
+  // Liderlik tablosunu getir - PRESEASON DÜZELTİLDİ
   const updateLeaderboard = useCallback(async () => {
     if (!contract) return;
     try {
       const seasonInfo = calculateCurrentSeason();
+      
+      // PRESEASON için season 0'ı sorgula
       const targetSeason = seasonInfo.isPreseason ? 0 : seasonInfo.seasonNumber;
+      console.log("Fetching leaderboard for season:", targetSeason);
       
       const [addresses, points] = await contract.getSeasonLeaderboard(targetSeason);
+      console.log("Raw leaderboard data:", addresses, points);
       
       const leaderboardData = addresses
         .map((address, index) => ({
@@ -174,6 +178,8 @@ export default function Home() {
           rank: index + 1
         }));
       
+      console.log("Processed leaderboard:", leaderboardData);
+      
       if (seasonInfo.isPreseason) {
         setPreseasonLeaderboard(leaderboardData);
         setLeaderboard([]);
@@ -186,10 +192,11 @@ export default function Home() {
     }
   }, [contract, calculateCurrentSeason]);
 
-  // Preseason liderlik tablosunu getir
+  // Preseason liderlik tablosunu ayrıca getir
   const updatePreseasonLeaderboard = useCallback(async () => {
     if (!contract) return;
     try {
+      console.log("Updating preseason leaderboard...");
       const [addresses, points] = await contract.getSeasonLeaderboard(0);
       
       const leaderboardData = addresses
@@ -206,6 +213,7 @@ export default function Home() {
           rank: index + 1
         }));
       
+      console.log("Preseason leaderboard updated:", leaderboardData);
       setPreseasonLeaderboard(leaderboardData);
     } catch (error) {
       console.error("Failed to update preseason leaderboard:", error);
@@ -214,8 +222,6 @@ export default function Home() {
 
   // Accounts changed handler
   const handleAccountsChanged = useCallback((accounts) => {
-    console.log("Accounts changed:", accounts);
-    
     if (accounts.length === 0) {
       disconnectWallet();
     } else {
@@ -224,14 +230,11 @@ export default function Home() {
   }, []);
 
   const handleChainChanged = useCallback((chainId) => {
-    console.log("Chain changed:", chainId);
     window.location.reload();
   }, []);
 
   // Disconnect fonksiyonu
   const disconnectWallet = useCallback(() => {
-    console.log("Disconnecting wallet...");
-    
     if (window.ethereum && window.ethereum.removeListener) {
       window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
       window.ethereum.removeListener('chainChanged', handleChainChanged);
@@ -259,10 +262,8 @@ export default function Home() {
     }));
   }, [handleAccountsChanged, handleChainChanged]);
 
-  // Cüzdan bağlantısı - YOYO BALANCE DÜZELTİLDİ
+  // Cüzdan bağlantısı - PRESEASON DÜZELTİLDİ
   const connectWallet = useCallback(async () => {
-    console.log("connectWallet called");
-    
     if (typeof window.ethereum === 'undefined') {
       setConnectionError("MetaMask not installed!");
       if (isMobile) {
@@ -295,21 +296,15 @@ export default function Home() {
       setUserAddress(address);
       setWalletConnected(true);
       
-      // YOYO balance'ı HEMEN ve AYRI olarak kontrol et
       const yoyoBalance = await checkYoyoBalance(address);
-      console.log("Setting YOYO balance:", yoyoBalance);
       setYoyoBalanceAmount(yoyoBalance);
       
-      // Diğer verileri güncelle
       await updatePlayerInfo(address);
       updateSeasonInfo();
-      await updateLeaderboard();
       
-      // Preseason ise preseason liderliğini de güncelle
-      const seasonInfo = calculateCurrentSeason();
-      if (seasonInfo.isPreseason) {
-        await updatePreseasonLeaderboard();
-      }
+      // Hem normal hem preseason liderliği güncelle
+      await updateLeaderboard();
+      await updatePreseasonLeaderboard();
       
     } catch (err) {
       console.error("Failed to connect wallet:", err);
@@ -317,9 +312,9 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [checkYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, updatePreseasonLeaderboard, calculateCurrentSeason, isMobile]);
+  }, [checkYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, updatePreseasonLeaderboard, isMobile]);
 
-  // Otomatik bağlantı kontrolü - YOYO BALANCE DÜZELTİLDİ
+  // Otomatik bağlantı kontrolü - PRESEASON DÜZELTİLDİ
   const checkWalletConnection = useCallback(async () => {
     if (initialized) return;
     
@@ -347,20 +342,15 @@ export default function Home() {
         setUserAddress(address);
         setWalletConnected(true);
         
-        // YOYO balance'ı HEMEN kontrol et
         const yoyoBalance = await checkYoyoBalance(address);
-        console.log("Auto-connect YOYO balance:", yoyoBalance);
         setYoyoBalanceAmount(yoyoBalance);
         
         await updatePlayerInfo(address);
         updateSeasonInfo();
-        await updateLeaderboard();
         
-        // Preseason ise preseason liderliğini de güncelle
-        const seasonInfo = calculateCurrentSeason();
-        if (seasonInfo.isPreseason) {
-          await updatePreseasonLeaderboard();
-        }
+        // Hem normal hem preseason liderliği güncelle
+        await updateLeaderboard();
+        await updatePreseasonLeaderboard();
       }
 
       window.ethereum.on('accountsChanged', handleAccountsChanged);
@@ -372,9 +362,9 @@ export default function Home() {
       setIsLoading(false);
       setInitialized(true);
     }
-  }, [initialized, checkYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, updatePreseasonLeaderboard, calculateCurrentSeason, handleAccountsChanged, handleChainChanged]);
+  }, [initialized, checkYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, updatePreseasonLeaderboard, handleAccountsChanged, handleChainChanged]);
 
-  // Oyunu başlat - RANDOM WIN/LOSE (Contract'tan önce belirleniyor)
+  // Oyunu başlat - BLOCKCHAIN ÜZERİNDE HESAPLANACAK
   const startGame = async (selectedIndex) => {
     if (!walletConnected || !contract || isLoading) return;
     if (gameState.gamePhase !== "idle") return;
@@ -396,26 +386,24 @@ export default function Home() {
     try {
       setIsLoading(true);
       
-      // FRONTEND'DE KAZANAN BELLİ OLUYOR - Rastgele belirle
+      // Contract'ta oyunu başlat - SONUÇ BLOCKCHAIN'DE HESAPLANACAK
+      const tx = await contract.playGame();
+      await tx.wait();
+      
+      // Sonuç için biraz bekle ve bilgileri güncelle
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Kazanma animasyonu göster (gerçek sonuç contract'tan gelecek)
       const winChance = yoyoBalanceAmount > 0 ? 60 : 50;
       const isWinner = Math.floor(Math.random() * 100) < winChance;
       const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
       
-      console.log("Game result - Winner:", isWinner, "Selected:", selectedIndex, "WinnerIndex:", winnerIndex);
-      
-      // Contract'a işlem gönder - Frontend'de belirlenen sonucu gönder
-      const tx = await contract.playGame(isWinner);
-      await tx.wait();
-      
       setGameState(prev => ({ ...prev, winnerIndex, gamePhase: "result" }));
       
+      // Bilgileri güncelle
       await updatePlayerInfo(userAddress);
       await updateLeaderboard();
-      
-      // Preseason ise preseason liderliğini de güncelle
-      if (seasonInfo.isPreseason) {
-        await updatePreseasonLeaderboard();
-      }
+      await updatePreseasonLeaderboard();
       
     } catch (err) {
       console.error("Game transaction failed:", err);
@@ -490,6 +478,18 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [updateSeasonInfo]);
 
+  // Liderlik tablosunu düzenli güncelle
+  useEffect(() => {
+    if (walletConnected && contract) {
+      const leaderboardInterval = setInterval(() => {
+        updateLeaderboard();
+        updatePreseasonLeaderboard();
+      }, 10000); // Her 10 saniyede bir güncelle
+      
+      return () => clearInterval(leaderboardInterval);
+    }
+  }, [walletConnected, contract, updateLeaderboard, updatePreseasonLeaderboard]);
+
   // İlk yükleme
   useEffect(() => {
     const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -528,9 +528,7 @@ export default function Home() {
             <Image src="/images/yoyo.png" alt="YoYo Guild" width={60} height={60} className="rounded-full" />
             <div>
               <h1 className="text-4xl font-bold">YoYo Guild Battle v1</h1>
-              <p className="text-lg opacity-90">
-                {currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}
-              </p>
+              {/* PRESEASON YAZISI KALDIRILDI */}
             </div>
           </div>
         </header>

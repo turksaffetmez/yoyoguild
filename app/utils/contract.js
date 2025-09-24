@@ -2,9 +2,7 @@ export const contractAddress = "0x6f8c7b60425c683397993519ed0f95427af40baa";
 
 export const abi = [
   {
-    "inputs": [
-      {"internalType": "address", "name": "_yoyoToken", "type": "address"}
-    ],
+    "inputs": [{"internalType": "address", "name": "_yoyoToken", "type": "address"}],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
@@ -43,13 +41,6 @@ export const abi = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "getCurrentSeasonTimeLeft",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [{"internalType": "address", "name": "player", "type": "address"}],
     "name": "getPlayerInfo",
     "outputs": [
@@ -63,7 +54,7 @@ export const abi = [
     "type": "function"
   },
   {
-    "inputs": [{"internalType": "bool", "name": "win", "type": "bool"}],
+    "inputs": [],
     "name": "playGame",
     "outputs": [],
     "stateMutability": "nonpayable",

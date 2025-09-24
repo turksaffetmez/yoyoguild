@@ -141,14 +141,13 @@ const WalletConnection = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
-            <div className="flex items-center space-x-2 text-slate-300">
-              <span>{currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}</span>
-              <span>•</span>
-              <span className={seasonStatus.color}>
-                {seasonStatus.text}: {seasonStatus.time}
-              </span>
-            </div>
+  <div className="flex items-center space-x-2 text-slate-300">
+  <span>{currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}</span>
+  <span>•</span>
+  <span className={seasonStatus.color}>
+    {seasonStatus.text}: {seasonStatus.time}
+  </span>
+</div>
             
             <div className="flex items-center space-x-2">
               <div className={`px-3 py-1 rounded-full ${
