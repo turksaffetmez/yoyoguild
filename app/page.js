@@ -26,11 +26,7 @@ export default function Home() {
   const [currentSeason, setCurrentSeason] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [connectionError, setConnectionError] = useState("");
-
-  // DEBUG: isLoading değiştiğinde logla
-  useEffect(() => {
-    console.log("isLoading state changed:", isLoading);
-  }, [isLoading]);
+  const [initialized, setInitialized] = useState(false); // YENİ: Initialization kontrolü
 
   const [gameState, setGameState] = useState({
     selectedImage: null,
@@ -60,7 +56,7 @@ export default function Home() {
     isLoading: false
   });
 
-  // YOYO balance kontrolü
+  // YOYO balance kontrolü - useCallback ile sabitle
   const checkYoyoBalance = useCallback(async (address) => {
     if (!provider || !address) return 0;
     try {
@@ -77,7 +73,7 @@ export default function Home() {
     }
   }, [provider]);
 
-  // Oyuncu bilgilerini getir
+  // Oyuncu bilgilerini getir - useCallback ile sabitle
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     try {
@@ -94,7 +90,7 @@ export default function Home() {
     }
   }, [contract, checkYoyoBalance]);
 
-  // Sezon bilgilerini getir
+  // Sezon bilgilerini getir - useCallback ile sabitle
   const updateSeasonInfo = useCallback(async () => {
     if (!contract) return;
     try {
@@ -113,7 +109,7 @@ export default function Home() {
     }
   }, [contract]);
 
-  // Liderlik tablosunu getir
+  // Liderlik tablosunu getir - useCallback ile sabitle
   const updateLeaderboard = useCallback(async () => {
     if (!contract) return;
     try {
@@ -138,143 +134,15 @@ export default function Home() {
     }
   }, [contract]);
 
-  // DÜZELTİLMİŞ: Basitleştirilmiş cüzdan bağlantısı
-  const connectWallet = useCallback(async () => {
-    console.log("connectWallet called");
-    
-    if (typeof window.ethereum === 'undefined') {
-      setConnectionError("MetaMask not installed!");
-      if (isMobile) {
-        setShowWalletOptions(true);
-      }
-      return;
-    }
-
-    try {
-      console.log("Starting wallet connection...");
-      setIsLoading(true);
-      setConnectionError("");
-
-      // Hesap isteği
-      const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts'
-      });
-
-      console.log("Accounts received:", accounts);
-
-      if (accounts.length === 0) {
-        throw new Error("No accounts found");
-      }
-
-      // Provider oluştur
-      const newProvider = new ethers.BrowserProvider(window.ethereum);
-      setProvider(newProvider);
-      
-      // Signer al
-      const signer = await newProvider.getSigner();
-      const address = await signer.getAddress();
-      console.log("Signer address:", address);
-      
-      // Contract instance oluştur
-      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-      
-      // State'leri güncelle
-      setContract(contractInstance);
-      setUserAddress(address);
-      setWalletConnected(true);
-      
-      // Verileri güncelle (await kullanmadan)
-      updatePlayerInfo(address).catch(console.error);
-      updateSeasonInfo().catch(console.error);
-      updateLeaderboard().catch(console.error);
-      
-      console.log("Wallet connected successfully");
-      
-    } catch (err) {
-      console.error("Failed to connect wallet:", err);
-      setConnectionError(err.message || "Failed to connect wallet");
-    } finally {
-      console.log("Setting isLoading to false");
-      setIsLoading(false);
-    }
-  }, [updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
-
-  // DÜZELTİLMİŞ: Otomatik bağlantı kontrolü
-  const checkWalletConnection = useCallback(async () => {
-    console.log("checkWalletConnection called");
-    
-    if (typeof window.ethereum === 'undefined') {
-      console.log("MetaMask not installed");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      
-      const newProvider = new ethers.BrowserProvider(window.ethereum);
-      setProvider(newProvider);
-      
-      // Mevcut hesapları kontrol et
-      const accounts = await window.ethereum.request({
-        method: 'eth_accounts'
-      });
-
-      console.log("Auto-connect accounts:", accounts);
-
-      if (accounts.length > 0) {
-        // Eğer hesap varsa bağlan
-        const signer = await newProvider.getSigner();
-        const address = await signer.getAddress();
-        const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-        
-        setContract(contractInstance);
-        setUserAddress(address);
-        setWalletConnected(true);
-        
-        // Verileri güncelle (await kullanmadan)
-        updatePlayerInfo(address).catch(console.error);
-        updateSeasonInfo().catch(console.error);
-        updateLeaderboard().catch(console.error);
-        
-        console.log("Auto-connected successfully");
-      }
-
-      // Event listener'ları ekle
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-      
-    } catch (err) {
-      console.error("Auto-connection error:", err);
-    } finally {
-      console.log("Auto-connect isLoading false");
-      setIsLoading(false);
-    }
-  }, [updatePlayerInfo, updateSeasonInfo, updateLeaderboard]);
-
-  // DÜZELTİLMİŞ: Accounts changed handler
-  const handleAccountsChanged = useCallback(async (accounts) => {
+  // DÜZELTİLMİŞ: Accounts changed handler - useCallback ile sabitle
+  const handleAccountsChanged = useCallback((accounts) => {
     console.log("Accounts changed:", accounts);
     
     if (accounts.length === 0) {
       disconnectWallet();
     } else {
-      try {
-        const newProvider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await newProvider.getSigner();
-        const address = accounts[0];
-        const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-        
-        setContract(contractInstance);
-        setUserAddress(address);
-        setWalletConnected(true);
-        
-        updatePlayerInfo(address).catch(console.error);
-        updateLeaderboard().catch(console.error);
-        
-      } catch (error) {
-        console.error("Error handling account change:", error);
-        disconnectWallet();
-      }
+      // Yeniden bağlanmak için checkWalletConnection'ı çağır
+      checkWalletConnection();
     }
   }, []);
 
@@ -283,7 +151,7 @@ export default function Home() {
     window.location.reload();
   }, []);
 
-  // DÜZELTİLMİŞ: Disconnect fonksiyonu
+  // DÜZELTİLMİŞ: Disconnect fonksiyonu - useCallback ile sabitle
   const disconnectWallet = useCallback(() => {
     console.log("Disconnecting wallet...");
     
@@ -302,7 +170,7 @@ export default function Home() {
     setShowWalletOptions(false);
     setLeaderboard([]);
     setConnectionError("");
-    setIsLoading(false); // BU ÇOK ÖNEMLİ: isLoading'i false yap
+    setIsLoading(false);
     
     setGameState(prev => ({ 
       ...prev, 
@@ -311,9 +179,110 @@ export default function Home() {
       winnerIndex: null,
       isLoading: false 
     }));
-    
-    console.log("Wallet disconnected");
   }, [handleAccountsChanged, handleChainChanged]);
+
+  // DÜZELTİLMİŞ: Cüzdan bağlantısı - useCallback ile sabitle
+  const connectWallet = useCallback(async () => {
+    console.log("connectWallet called");
+    
+    if (typeof window.ethereum === 'undefined') {
+      setConnectionError("MetaMask not installed!");
+      if (isMobile) {
+        setShowWalletOptions(true);
+      }
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setConnectionError("");
+
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (accounts.length === 0) {
+        throw new Error("No accounts found");
+      }
+
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+      
+      const signer = await newProvider.getSigner();
+      const address = await signer.getAddress();
+      
+      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+      
+      setContract(contractInstance);
+      setUserAddress(address);
+      setWalletConnected(true);
+      
+      // Verileri güncelle
+      await updatePlayerInfo(address);
+      await updateSeasonInfo();
+      await updateLeaderboard();
+      
+    } catch (err) {
+      console.error("Failed to connect wallet:", err);
+      setConnectionError(err.message || "Failed to connect wallet");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
+
+  // DÜZELTİLMİŞ: Otomatik bağlantı kontrolü - useCallback ile sabitle
+  const checkWalletConnection = useCallback(async () => {
+    console.log("checkWalletConnection called - initialized:", initialized);
+    
+    if (initialized) {
+      console.log("Already initialized, skipping...");
+      return;
+    }
+    
+    if (typeof window.ethereum === 'undefined') {
+      console.log("MetaMask not installed");
+      setInitialized(true);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+      
+      const accounts = await window.ethereum.request({
+        method: 'eth_accounts'
+      });
+
+      console.log("Auto-connect accounts:", accounts);
+
+      if (accounts.length > 0) {
+        const signer = await newProvider.getSigner();
+        const address = await signer.getAddress();
+        const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+        
+        setContract(contractInstance);
+        setUserAddress(address);
+        setWalletConnected(true);
+        
+        await updatePlayerInfo(address);
+        await updateSeasonInfo();
+        await updateLeaderboard();
+      }
+
+      // Event listener'ları ekle (sadece bir kere)
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+      
+    } catch (err) {
+      console.error("Auto-connection error:", err);
+    } finally {
+      setIsLoading(false);
+      setInitialized(true); // Initialization tamamlandı
+      console.log("Wallet connection check completed");
+    }
+  }, [initialized, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, handleAccountsChanged, handleChainChanged]);
 
   // Oyunu başlat
   const startGame = async (selectedIndex) => {
@@ -391,12 +360,16 @@ export default function Home() {
     setTimeout(() => checkWalletConnection(), 3000);
   }, [checkWalletConnection]);
 
+  // DÜZELTİLMİŞ: useEffect - sadece component mount olduğunda çalışsın
   useEffect(() => {
     const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     setIsMobile(mobile);
     
-    checkWalletConnection();
-  }, [checkWalletConnection]);
+    // Sadece bir kere çalışacak
+    if (!initialized) {
+      checkWalletConnection();
+    }
+  }, []); // Boş dependency array - sadece mount'ta çalışır
 
   // Cleanup effect
   useEffect(() => {
@@ -535,18 +508,11 @@ export default function Home() {
         </footer>
       </div>
 
-      {/* DÜZELTİLMİŞ: Loading ekranı - sadece gerçekten loading durumunda göster */}
       {isLoading && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-2xl p-6 flex items-center space-x-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
             <span className="text-white">Processing...</span>
-            <button 
-              onClick={() => setIsLoading(false)}
-              className="ml-4 text-red-400 hover:text-red-300 text-sm"
-            >
-              Cancel
-            </button>
           </div>
         </div>
       )}
