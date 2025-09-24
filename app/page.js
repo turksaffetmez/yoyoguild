@@ -249,7 +249,7 @@ export default function Home() {
       const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
       
       // Contract'a işlem gönder
-      const tx = await contract.playGame(isWinner);
+      const tx = await contract.playGame();
       await tx.wait();
       
       setGameState(prev => ({ ...prev, winnerIndex, gamePhase: "result" }));
