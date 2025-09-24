@@ -2,12 +2,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { contractAddress, abi } from "./utils/contract";
-import { checkYoyoBalance, getYoyoBalance } from "./utils/yoyoToken";
 import WalletConnection from "./components/WalletConnection";
 import GameBoard from "./components/GameBoard";
 import Leaderboard from "./components/Leaderboard";
 import HomeContent from "./components/HomeContent";
 import MobileWalletSelector from "./components/MobileWalletSelector";
+import Image from "next/image";
 
 export default function Home() {
   const [walletConnected, setWalletConnected] = useState(false);
@@ -15,20 +15,18 @@ export default function Home() {
   const [contract, setContract] = useState(null);
   const [points, setPoints] = useState(0);
   const [seasonPoints, setSeasonPoints] = useState(0);
-  const [statusMessage, setStatusMessage] = useState("");
-  const [transactionInfo, setTransactionInfo] = useState("");
   const [provider, setProvider] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
   const [leaderboard, setLeaderboard] = useState([]);
-  const [yoyoBalance, setYoyoBalance] = useState(0);
+  const [yoyoBalanceAmount, setYoyoBalanceAmount] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [showWalletOptions, setShowWalletOptions] = useState(false);
   const [gamesPlayedToday, setGamesPlayedToday] = useState(0);
   const [dailyLimit, setDailyLimit] = useState(20);
   const [seasonTimeLeft, setSeasonTimeLeft] = useState(0);
   const [currentSeason, setCurrentSeason] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Oyun state'leri
   const [gameState, setGameState] = useState({
     selectedImage: null,
     winnerIndex: null,
@@ -57,14 +55,20 @@ export default function Home() {
     isLoading: false
   });
 
-  // YOYO balance kontrolü
-  const updateYoyoBalance = useCallback(async (address) => {
-    if (!provider || !address) return;
+  // YOYO balance kontrolü - Contract üzerinden
+  const checkYoyoBalance = useCallback(async (address) => {
+    if (!provider || !address) return 0;
     try {
-      const balance = await getYoyoBalance(address, provider);
-      setYoyoBalance(balance);
+      const yoyoContract = new ethers.Contract(
+        "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1",
+        ["function balanceOf(address) view returns (uint256)"],
+        provider
+      );
+      const balance = await yoyoContract.balanceOf(address);
+      return Number(ethers.formatUnits(balance, 18));
     } catch (error) {
-      console.error("Failed to update YOYO balance:", error);
+      console.error("YOYO balance check failed:", error);
+      return 0;
     }
   }, [provider]);
 
@@ -72,15 +76,19 @@ export default function Home() {
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     try {
-      const [totalPoints, currentSeasonPoints, gamesToday, limit] = await contract.getPlayerInfo(address);
+      const [totalPoints, currentSeasonPoints, gamesToday, limit, seasonNumber] = await contract.getPlayerInfo(address);
       setPoints(Number(totalPoints));
       setSeasonPoints(Number(currentSeasonPoints));
       setGamesPlayedToday(Number(gamesToday));
       setDailyLimit(Number(limit));
+      
+      // YOYO balance'ı güncelle
+      const yoyoBalance = await checkYoyoBalance(address);
+      setYoyoBalanceAmount(yoyoBalance);
     } catch (error) {
       console.error("Failed to update player info:", error);
     }
-  }, [contract]);
+  }, [contract, checkYoyoBalance]);
 
   // Sezon bilgilerini getir
   const updateSeasonInfo = useCallback(async () => {
@@ -101,16 +109,25 @@ export default function Home() {
     }
   }, [contract]);
 
-  // Liderlik tablosunu getir
+  // Liderlik tablosunu getir ve SIRALA (Frontend'de - Gas tasarrufu)
   const updateLeaderboard = useCallback(async () => {
     if (!contract) return;
     try {
-      const [addresses, points] = await contract.getCurrentLeaderboard();
-      const leaderboardData = addresses.map((address, index) => ({
-        rank: index + 1,
-        address: address,
-        points: Number(points[index])
-      })).filter(player => player.points > 0);
+      const [addresses, points] = await contract.getCurrentSeasonLeaderboard();
+      
+      // Frontend'de sıralama yap (Gas tasarrufu)
+      const leaderboardData = addresses
+        .map((address, index) => ({
+          rank: index + 1,
+          address: address,
+          points: Number(points[index])
+        }))
+        .filter(player => player.points > 0)
+        .sort((a, b) => b.points - a.points) // Büyükten küçüğe sırala
+        .map((player, index) => ({
+          ...player,
+          rank: index + 1 // Sıralamayı güncelle
+        }));
       
       setLeaderboard(leaderboardData);
     } catch (error) {
@@ -122,8 +139,7 @@ export default function Home() {
   const connectWallet = useCallback(async () => {
     if (window.ethereum) {
       try {
-        setStatusMessage("Connecting wallet...");
-        
+        setIsLoading(true);
         const newProvider = new ethers.BrowserProvider(window.ethereum);
         setProvider(newProvider);
         
@@ -137,27 +153,23 @@ export default function Home() {
         setUserAddress(address);
         setWalletConnected(true);
         
-        // Tüm bilgileri güncelle
-        await updateYoyoBalance(address);
         await updatePlayerInfo(address);
         await updateSeasonInfo();
         await updateLeaderboard();
         
-        setStatusMessage("Wallet connected successfully!");
-        setTimeout(() => setStatusMessage(""), 3000);
       } catch (err) {
         console.error("Failed to connect wallet:", err);
-        setStatusMessage("Failed to connect wallet. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
     } else {
       if (isMobile) {
         setShowWalletOptions(true);
-      } else {
-        setStatusMessage("Please install a Web3 wallet (MetaMask, Coinbase Wallet, etc.)!");
       }
     }
-  }, [updateYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
+  }, [updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
 
+  // Disconnect fonksiyonu - TAMAMEN DÜZELTİLMİŞ
   const disconnectWallet = useCallback(() => {
     if (window.ethereum && window.ethereum.removeListener) {
       window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
@@ -170,24 +182,26 @@ export default function Home() {
     setPoints(0);
     setSeasonPoints(0);
     setProvider(null);
-    setTransactionInfo("");
-    setYoyoBalance(0);
+    setYoyoBalanceAmount(0);
     setShowWalletOptions(false);
-    setGameState(prev => ({ ...prev, gamePhase: "idle", selectedImage: null, winnerIndex: null }));
+    setLeaderboard([]);
+    setGameState(prev => ({ 
+      ...prev, 
+      gamePhase: "idle", 
+      selectedImage: null, 
+      winnerIndex: null,
+      isLoading: false 
+    }));
   }, []);
 
   const handleAccountsChanged = useCallback(async (accounts) => {
     if (accounts.length === 0) {
       disconnectWallet();
-      setStatusMessage("Wallet disconnected.");
     } else if (accounts[0] !== userAddress) {
       setUserAddress(accounts[0]);
-      setStatusMessage("Account changed.");
-      await updateYoyoBalance(accounts[0]);
       await updatePlayerInfo(accounts[0]);
-      setTimeout(() => setStatusMessage(""), 3000);
     }
-  }, [userAddress, disconnectWallet, updateYoyoBalance, updatePlayerInfo]);
+  }, [userAddress, disconnectWallet, updatePlayerInfo]);
 
   const handleChainChanged = useCallback(() => {
     window.location.reload();
@@ -213,21 +227,12 @@ export default function Home() {
     }
   }, [handleAccountsChanged, handleChainChanged, connectWallet]);
 
-  // Oyunu başlat - YENİ SİSTEM
+  // Oyunu başlat - YENİ SİSTEM (Contract YOYO kontrolü yapacak)
   const startGame = async (selectedIndex) => {
-    if (!walletConnected || !contract) {
-      setStatusMessage("Please connect wallet first!");
-      return;
-    }
-    
+    if (!walletConnected || !contract || isLoading) return;
     if (gameState.gamePhase !== "idle") return;
+    if (gamesPlayedToday >= dailyLimit) return;
     
-    if (gamesPlayedToday >= dailyLimit) {
-      setStatusMessage("❌ Daily limit reached! Maximum 20 games per day.");
-      return;
-    }
-    
-    // Oyunu başlat
     setGameState(prev => ({ 
       ...prev, 
       isLoading: true, 
@@ -236,77 +241,43 @@ export default function Home() {
       winnerIndex: null
     }));
     
-    // Seçim animasyonu
     await new Promise(resolve => setTimeout(resolve, 1000));
     setGameState(prev => ({ ...prev, gamePhase: "fighting" }));
     
     try {
-      // 1. Önce frontend'de kazananı belirle
-      const winChance = yoyoBalance > 0 ? 60 : 50;
+      setIsLoading(true);
+      
+      // Frontend'de kazananı belirle (sadece görsel için)
+      const winChance = yoyoBalanceAmount > 0 ? 60 : 50;
       const isWinner = Math.floor(Math.random() * 100) < winChance;
       const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
       
-      // 2. YOYO kontrolü
-      const hasYoyo = yoyoBalance > 0;
+      // Contract'a işlem gönder - YOYO kontrolü contract'ta yapılacak
+      const tx = await contract.playGame(isWinner);
+      await tx.wait();
       
-      // 3. Contract'a işlem gönder - GERÇEK SONUÇ BURADA
-      setStatusMessage("🔄 Processing blockchain transaction...");
-      
-      const tx = await contract.playGame(isWinner, hasYoyo);
-      setTransactionInfo(`Transaction sent: ${tx.hash}`);
-      
-      // İşlemin onaylanmasını bekle
-      const receipt = await tx.wait();
-      setTransactionInfo(prev => prev + `\nConfirmed! Block: ${receipt.blockNumber}`);
-      
-      // 4. Başarılıysa animasyonları göster
+      // Başarılıysa animasyonları göster
       setGameState(prev => ({ ...prev, winnerIndex, gamePhase: "result" }));
       
-      // 5. Bilgileri güncelle
+      // Bilgileri güncelle
       await updatePlayerInfo(userAddress);
       await updateLeaderboard();
       
-      // 6. Sonuç mesajı
-      const pointsEarned = isWinner ? (hasYoyo ? 500 : 250) : 10;
-      if (isWinner) {
-        setStatusMessage(`🎉 You won! +${pointsEarned} YOYO Points 🥳`);
-      } else {
-        setStatusMessage(`😢 You lost! +${pointsEarned} YOYO Points`);
-      }
-      
-      setTimeout(() => setStatusMessage(""), 5000);
-      
     } catch (err) {
       console.error("Game transaction failed:", err);
-      
-      if (err.code === 4001 || err.message?.includes('user rejected')) {
-        setStatusMessage("❌ Transaction rejected. Please try again.");
-      } else if (err.message?.includes('Daily limit reached')) {
-        setStatusMessage("❌ Daily limit reached! Maximum 20 games per day.");
-      } else if (err.message?.includes('Season ended')) {
-        setStatusMessage("❌ Current season has ended. Wait for new season.");
-      } else {
-        setStatusMessage("⚠️ Transaction failed. Please try again.");
-      }
-      
       setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Reset game function
   const resetGame = useCallback(() => {
     setGameState(prev => {
       const newImages = [...prev.images];
-      
-      // Only change the losing character
       if (prev.winnerIndex !== null) {
         const loserIndex = prev.winnerIndex === 0 ? 1 : 0;
-        
-        // New random character excluding current ones
         const currentIds = [prev.images[0].id, prev.images[1].id];
-        const availableIds = Array.from({length: 19}, (_, i) => i + 1)
-          .filter(id => !currentIds.includes(id));
-        
+        const availableIds = Array.from({length: 19}, (_, i) => i + 1).filter(id => !currentIds.includes(id));
         if (availableIds.length > 0) {
           const randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
           newImages[loserIndex] = {
@@ -316,7 +287,6 @@ export default function Home() {
           };
         }
       }
-      
       return {
         ...prev,
         selectedImage: null,
@@ -328,31 +298,26 @@ export default function Home() {
     });
   }, []);
 
-  // Yeni oyun başlatma
   const startNewGame = useCallback(() => {
     if (gameState.gamePhase === "result") {
       resetGame();
     }
   }, [gameState.gamePhase, resetGame]);
 
-  // Mobil cüzdan bağlantısı
   const connectMobileWallet = useCallback((walletType) => {
     const currentUrl = encodeURIComponent(window.location.href);
     let walletUrl = '';
-    
     const WALLET_LINKS = {
       metamask: { universal: "https://metamask.app.link/dapp/" },
       coinbase: { universal: "https://go.cb-w.com/dapp?cb_url=" },
       trust: { universal: "https://link.trustwallet.com/dapp/" }
     };
-    
     switch(walletType) {
       case 'metamask': walletUrl = `${WALLET_LINKS.metamask.universal}${currentUrl}`; break;
       case 'coinbase': walletUrl = `${WALLET_LINKS.coinbase.universal}${currentUrl}`; break;
       case 'trust': walletUrl = `${WALLET_LINKS.trust.universal}${currentUrl}`; break;
       default: return;
     }
-    
     window.open(walletUrl, '_blank');
     setShowWalletOptions(false);
     setTimeout(() => checkWalletConnection(), 3000);
@@ -376,10 +341,15 @@ export default function Home() {
       )}
       
       <div className="w-full max-w-6xl bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl shadow-2xl overflow-hidden border-2 border-purple-500/20">
-        <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 text-white py-8 px-6 text-center relative overflow-hidden">
+        <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 text-white py-6 px-6 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
-          <h1 className="text-5xl font-bold mb-3 relative z-10">⚔️ YoYo Guild</h1>
-          <p className="text-xl opacity-90 relative z-10">Blockchain Battle Arena - Season {currentSeason.seasonNumber || 1}</p>
+          <div className="flex items-center justify-center space-x-4 mb-2">
+            <Image src="/images/yoyo.png" alt="YoYo Guild" width={60} height={60} className="rounded-full" />
+            <div>
+              <h1 className="text-4xl font-bold">YoYo Guild Battle v1</h1>
+              <p className="text-lg opacity-90">Season {currentSeason.seasonNumber || 1}</p>
+            </div>
+          </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent"></div>
         </header>
         
@@ -415,7 +385,7 @@ export default function Home() {
             userAddress={userAddress}
             points={points}
             seasonPoints={seasonPoints}
-            yoyoBalance={yoyoBalance}
+            yoyoBalanceAmount={yoyoBalanceAmount}
             onDisconnect={disconnectWallet}
             onConnect={connectWallet}
             isMobile={isMobile}
@@ -423,13 +393,15 @@ export default function Home() {
             remainingGames={remainingGames}
             dailyLimit={dailyLimit}
             seasonTimeLeft={seasonTimeLeft}
+            currentSeason={currentSeason}
+            isLoading={isLoading}
           />
           
           <div className="min-h-[500px]">
             {activeTab === "home" && (
               <HomeContent 
                 walletConnected={walletConnected} 
-                yoyoBalance={yoyoBalance} 
+                yoyoBalanceAmount={yoyoBalanceAmount}
                 remainingGames={remainingGames}
                 seasonTimeLeft={seasonTimeLeft}
                 currentSeason={currentSeason}
@@ -439,7 +411,7 @@ export default function Home() {
               <GameBoard
                 walletConnected={walletConnected}
                 gameState={gameState}
-                yoyoBalance={yoyoBalance}
+                yoyoBalanceAmount={yoyoBalanceAmount}
                 points={points}
                 seasonPoints={seasonPoints}
                 onStartGame={startGame}
@@ -451,6 +423,8 @@ export default function Home() {
                 remainingGames={remainingGames}
                 dailyLimit={dailyLimit}
                 seasonTimeLeft={seasonTimeLeft}
+                currentSeason={currentSeason}
+                isLoading={isLoading}
               />
             )}
             {activeTab === "leaderboard" && (
@@ -460,33 +434,22 @@ export default function Home() {
               />
             )}
           </div>
-
-          {statusMessage && (
-            <div className={`mt-6 p-4 rounded-xl text-center border-2 backdrop-blur-sm ${
-              statusMessage.includes("won") || statusMessage.includes("successfully") 
-                ? "bg-green-500/10 border-green-500/30 text-green-300" 
-                : statusMessage.includes("lost") || statusMessage.includes("rejected") 
-                ? "bg-red-500/10 border-red-500/30 text-red-300"
-                : statusMessage.includes("Processing") 
-                ? "bg-blue-500/10 border-blue-500/30 text-blue-300"
-                : "bg-yellow-500/10 border-yellow-500/30 text-yellow-300"
-            }`}>
-              <p className="font-semibold text-lg">{statusMessage}</p>
-            </div>
-          )}
-
-          {transactionInfo && (
-            <div className="mt-6 bg-gray-700/50 rounded-xl p-4 overflow-auto max-h-40 border border-gray-600">
-              <p className="text-gray-300 font-semibold mb-2">Transaction Info:</p>
-              <pre className="text-sm text-gray-400 whitespace-pre-wrap">{transactionInfo}</pre>
-            </div>
-          )}
         </div>
         
         <footer className="bg-gradient-to-r from-gray-900 to-gray-800 text-gray-400 py-4 text-center border-t border-gray-700">
-          <p>YoYo Guild - Elite Blockchain Battling | Base Mainnet | Season {currentSeason.seasonNumber || 1}</p>
+          <p>YoYo Guild Battle v1 | Base Mainnet | Season {currentSeason.seasonNumber || 1}</p>
         </footer>
       </div>
+
+      {/* Global Loading */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-2xl p-6 flex items-center space-x-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            <span className="text-white">Processing...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

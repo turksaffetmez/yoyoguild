@@ -1,18 +1,12 @@
-"use client";
-import { useEffect, useState } from "react";
-
-export default function HomeContent({ walletConnected, yoyoBalance, remainingGames, seasonTimeLeft, currentSeason }) {
-  const [timeLeft, setTimeLeft] = useState("");
-  
-  const features = [
-    { icon: "⚔️", title: "Blockchain Battles", desc: "Every fight recorded on Base blockchain" },
-    { icon: "💰", title: "YOYO Points", desc: "Earn points for every battle" },
-    { icon: "🏆", title: "Season System", desc: "Compete in weekly seasons" },
-    { icon: "🔒", title: "Provably Fair", desc: "Results stored on-chain" }
-  ];
-
+const HomeContent = ({ 
+  walletConnected, 
+  yoyoBalanceAmount, 
+  remainingGames, 
+  seasonTimeLeft, 
+  currentSeason 
+}) => {
   const formatTimeLeft = (seconds) => {
-    if (!seconds || seconds === 0) return "Season ended";
+    if (seconds <= 0) return "Season Ended";
     
     const days = Math.floor(seconds / (24 * 3600));
     const hours = Math.floor((seconds % (24 * 3600)) / 3600);
@@ -23,132 +17,96 @@ export default function HomeContent({ walletConnected, yoyoBalance, remainingGam
     return `${minutes} minutes`;
   };
 
-  useEffect(() => {
-    setTimeLeft(formatTimeLeft(seasonTimeLeft));
-    
-    const timer = setInterval(() => {
-      setTimeLeft(formatTimeLeft(seasonTimeLeft));
-    }, 60000);
-    
-    return () => clearInterval(timer);
-  }, [seasonTimeLeft]);
-
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Hero Section */}
-      <div className="text-center mb-12">
-        <h2 className="text-5xl font-bold bg-gradient-to-r from-white via-purple-300 to-pink-300 bg-clip-text text-transparent mb-6">
-          Welcome to YoYo Guild Arena
-        </h2>
-        <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-          The ultimate blockchain battle platform where every fight matters. 
-          Compete, earn points, and climb the leaderboard on Base Mainnet!
+    <div className="space-y-8">
+      <div className="text-center">
+        <h2 className="text-4xl font-bold text-white mb-4">Welcome to YoYo Guild Battle! ⚔️</h2>
+        <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          Battle with your Guilders, earn points, and climb the leaderboard. 
+          Hold YOYO tokens to increase your win chance and dominate the arena!
         </p>
-        
-        {/* Season Info */}
-        <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-2xl p-6 mb-8 border border-purple-500/30">
-          <h3 className="text-2xl font-bold text-white mb-2">Season {currentSeason.seasonNumber || 1}</h3>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl p-6 border border-purple-500/30">
+          <div className="text-4xl mb-4">🎮</div>
+          <h3 className="text-xl font-bold text-white mb-2">Daily Battles</h3>
           <p className="text-gray-300">
-            {timeLeft === "Season ended" ? "Season has concluded" : `Season ends in: ${timeLeft}`}
+            Play {remainingGames} out of {walletConnected ? '20' : '20'} games remaining today
+          </p>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 rounded-2xl p-6 border border-green-500/30">
+          <div className="text-4xl mb-4">🎯</div>
+          <h3 className="text-xl font-bold text-white mb-2">YOYO Boost</h3>
+          <p className="text-gray-300">
+            {yoyoBalanceAmount > 0 ? 
+              `Active! ${yoyoBalanceAmount.toFixed(2)} YOYO (+10% win chance)` : 
+              'Not active - hold YOYO for boost'
+            }
+          </p>
+        </div>
+
+        <div className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 rounded-2xl p-6 border border-yellow-500/30">
+          <div className="text-4xl mb-4">⏰</div>
+          <h3 className="text-xl font-bold text-white mb-2">Season {currentSeason.seasonNumber || 1}</h3>
+          <p className="text-gray-300">
+            {formatTimeLeft(seasonTimeLeft)} remaining
           </p>
         </div>
       </div>
 
-      {/* Features Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        {features.map((feature, index) => (
-          <div key={index} className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 text-center border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:scale-105">
-            <div className="text-4xl mb-4">{feature.icon}</div>
-            <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
-            <p className="text-gray-400">{feature.desc}</p>
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700">
+        <h3 className="text-2xl font-bold text-white mb-4 text-center">How to Play</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+              1
+            </div>
+            <h4 className="font-bold text-white mb-2">Connect Wallet</h4>
+            <p className="text-gray-400 text-sm">Connect your Base-compatible wallet</p>
           </div>
-        ))}
-      </div>
 
-      {/* Stats Dashboard */}
-      <div className="bg-gradient-to-r from-purple-900/30 to-violet-900/30 rounded-3xl p-8 mb-12 border border-purple-500/20">
-        <h3 className="text-3xl font-bold text-center text-white mb-8">Current Status</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="text-center">
-            <div className="text-4xl mb-3">{walletConnected ? "✅" : "❌"}</div>
-            <div className="text-sm text-gray-400">Wallet Status</div>
-            <div className="text-lg font-bold text-white">{walletConnected ? "Connected" : "Not Connected"}</div>
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+              2
+            </div>
+            <h4 className="font-bold text-white mb-2">Choose Guilder</h4>
+            <p className="text-gray-400 text-sm">Select your fighter for the battle</p>
           </div>
-          <div className="text-center">
-            <div className="text-4xl mb-3">{yoyoBalance > 0 ? "✅" : "⚠️"}</div>
-            <div className="text-sm text-gray-400">YOYO Tokens</div>
-            <div className="text-lg font-bold text-white">{yoyoBalance > 0 ? "Bonus Active" : "No Bonus"}</div>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl mb-3">🎯</div>
-            <div className="text-sm text-gray-400">Battles Available</div>
-            <div className="text-lg font-bold text-white">{remainingGames}/20</div>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl mb-3">⚡</div>
-            <div className="text-sm text-gray-400">Win Chance</div>
-            <div className="text-lg font-bold text-white">{yoyoBalance > 0 ? "60%" : "50%"}</div>
-          </div>
-        </div>
-      </div>
 
-      {/* Points System */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <div className="bg-gradient-to-br from-green-500/10 to-green-600/20 rounded-2xl p-6 border border-green-500/30">
-          <div className="text-3xl mb-2">🎉</div>
-          <h4 className="text-lg font-bold text-white mb-2">Win with YOYO</h4>
-          <p className="text-2xl font-bold text-green-400">500 Points</p>
-          <p className="text-gray-400 text-sm">60% win chance</p>
-        </div>
-        <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/20 rounded-2xl p-6 border border-blue-500/30">
-          <div className="text-3xl mb-2">👍</div>
-          <h4 className="text-lg font-bold text-white mb-2">Win without YOYO</h4>
-          <p className="text-2xl font-bold text-blue-400">250 Points</p>
-          <p className="text-gray-400 text-sm">50% win chance</p>
-        </div>
-        <div className="bg-gradient-to-br from-gray-500/10 to-gray-600/20 rounded-2xl p-6 border border-gray-500/30">
-          <div className="text-3xl mb-2">💪</div>
-          <h4 className="text-lg font-bold text-white mb-2">Participation</h4>
-          <p className="text-2xl font-bold text-gray-400">10 Points</p>
-          <p className="text-gray-400 text-sm">Always rewarded</p>
+          <div className="text-center">
+            <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+              3
+            </div>
+            <h4 className="font-bold text-white mb-2">Battle</h4>
+            <p className="text-gray-400 text-sm">Win battles to earn points</p>
+          </div>
+
+          <div className="text-center">
+            <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+              4
+            </div>
+            <h4 className="font-bold text-white mb-2">Climb Leaderboard</h4>
+            <p className="text-gray-400 text-sm">Compete for top seasonal rewards</p>
+          </div>
         </div>
       </div>
 
-      {/* Call to Action */}
       {!walletConnected && (
-        <div className="text-center">
-          <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-2xl p-8 border border-green-500/30">
-            <h4 className="text-2xl font-bold text-white mb-4">Ready to Begin Your Quest?</h4>
-            <p className="text-gray-300 mb-6">Connect your wallet and enter the arena today!</p>
-            <div className="text-yellow-400 mb-4">
-              🎯 <strong>Pro Tip:</strong> Hold YOYO tokens for better rewards!
-            </div>
+        <div className="text-center py-8">
+          <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-2xl p-8 border border-purple-500/30">
+            <h3 className="text-2xl font-bold text-white mb-4">Ready to Battle?</h3>
+            <p className="text-gray-300 mb-6">Connect your wallet to start your Guild Battle journey!</p>
+            <button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105">
+              Connect Wallet
+            </button>
           </div>
         </div>
       )}
-
-      {/* Connected State */}
-      {walletConnected && (
-        <div className="text-center">
-          <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-2xl p-8 border border-purple-500/30">
-            <h4 className="text-2xl font-bold text-white mb-4">You're Battle Ready! ⚔️</h4>
-            <p className="text-gray-300 mb-4">
-              {remainingGames > 0 
-                ? `You have ${remainingGames} battle${remainingGames > 1 ? 's' : ''} remaining today!`
-                : "You've completed today's battles. Return tomorrow for more!"}
-            </p>
-            <div className={`font-semibold ${yoyoBalance > 0 ? "text-green-400" : "text-yellow-400"}`}>
-              {yoyoBalance > 0 ? "🎉 YOYO Bonus Active (60% win chance)" : "💡 Get YOYO tokens for better rewards!"}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Blockchain Info */}
-      <div className="mt-8 text-center text-gray-500 text-sm">
-        <p>Powered by Base Mainnet • All transactions are secure and transparent</p>
-        <p className="mt-1">Every battle is recorded on the blockchain for complete fairness</p>
-      </div>
     </div>
   );
-}
+};
+
+export default HomeContent;
