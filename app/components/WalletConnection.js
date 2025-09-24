@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const WalletConnection = ({
   walletConnected,
@@ -16,7 +16,12 @@ const WalletConnection = ({
   currentSeason,
   isLoading
 }) => {
-  const [showDetails, setShowDetails] = useState(false);
+  const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
+
+  // YOYO balance güncellemesi için effect
+  useEffect(() => {
+    setDisplayYoyoBalance(yoyoBalanceAmount);
+  }, [yoyoBalanceAmount]);
 
   const formatAddress = (address) => {
     if (!address) return "";
@@ -33,7 +38,7 @@ const WalletConnection = ({
     const secs = seconds % 60;
     
     if (days > 0) {
-      return `${days}d ${hours}h ${minutes}m`;
+      return `${days}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;
     }
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
@@ -45,9 +50,9 @@ const WalletConnection = ({
         time: formatTimeLeft(currentSeason.timeUntilEnd),
         color: "text-green-400"
       };
-    } else if (currentSeason.timeUntilStart > 0) {
+    } else if (currentSeason.timeUntilStart > 0 || currentSeason.isPreseason) {
       return {
-        text: `Season ${currentSeason.seasonNumber} starts in`,
+        text: currentSeason.isPreseason ? "Preseason - Season starts in" : `Season ${currentSeason.seasonNumber} starts in`,
         time: formatTimeLeft(currentSeason.timeUntilStart),
         color: "text-yellow-400"
       };
@@ -101,12 +106,6 @@ const WalletConnection = ({
             
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => setShowDetails(!showDetails)}
-                className="btn-secondary"
-              >
-                {showDetails ? "Hide" : "Show"} Details
-              </button>
-              <button
                 onClick={onDisconnect}
                 className="bg-red-600 px-4 py-2 rounded-lg text-white hover:bg-red-500 transition-colors"
               >
@@ -115,37 +114,36 @@ const WalletConnection = ({
             </div>
           </div>
 
-          {showDetails && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-600">
-              <div className="bg-slate-900/50 p-4 rounded-xl">
-                <div className="text-slate-400 text-sm">Total Points</div>
-                <div className="text-2xl font-bold text-yellow-400">{points.toLocaleString()}</div>
-              </div>
-              
-              <div className="bg-slate-900/50 p-4 rounded-xl">
-                <div className="text-slate-400 text-sm">Season Points</div>
-                <div className="text-2xl font-bold text-green-400">{seasonPoints.toLocaleString()}</div>
-              </div>
-              
-              <div className="bg-slate-900/50 p-4 rounded-xl">
-                <div className="text-slate-400 text-sm">YOYO Balance</div>
-                <div className="text-2xl font-bold text-purple-400">
-                  {yoyoBalanceAmount.toFixed(2)} YOYO
-                </div>
-              </div>
-              
-              <div className="bg-slate-900/50 p-4 rounded-xl">
-                <div className="text-slate-400 text-sm">Games Today</div>
-                <div className="text-2xl font-bold text-blue-400">
-                  {remainingGames}/{dailyLimit}
-                </div>
+          {/* DETAYLAR DOĞRUDAN GÖSTERİLİYOR - SHOW/HIDE KALDIRILDI */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-600">
+            <div className="bg-slate-900/50 p-4 rounded-xl">
+              <div className="text-slate-400 text-sm">Total Points</div>
+              <div className="text-2xl font-bold text-yellow-400">{points.toLocaleString()}</div>
+            </div>
+            
+            <div className="bg-slate-900/50 p-4 rounded-xl">
+              <div className="text-slate-400 text-sm">Season Points</div>
+              <div className="text-2xl font-bold text-green-400">{seasonPoints.toLocaleString()}</div>
+            </div>
+            
+            <div className="bg-slate-900/50 p-4 rounded-xl">
+              <div className="text-slate-400 text-sm">YOYO Balance</div>
+              <div className="text-2xl font-bold text-purple-400">
+                {displayYoyoBalance.toFixed(2)} YOYO
               </div>
             </div>
-          )}
+            
+            <div className="bg-slate-900/50 p-4 rounded-xl">
+              <div className="text-slate-400 text-sm">Games Today</div>
+              <div className="text-2xl font-bold text-blue-400">
+                {remainingGames}/{dailyLimit}
+              </div>
+            </div>
+          </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
             <div className="flex items-center space-x-2 text-slate-300">
-              <span>Season {currentSeason.seasonNumber || 1}</span>
+              <span>{currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}</span>
               <span>•</span>
               <span className={seasonStatus.color}>
                 {seasonStatus.text}: {seasonStatus.time}
@@ -154,11 +152,11 @@ const WalletConnection = ({
             
             <div className="flex items-center space-x-2">
               <div className={`px-3 py-1 rounded-full ${
-                yoyoBalanceAmount > 0 
+                displayYoyoBalance > 0 
                   ? "bg-green-500/20 text-green-400 border border-green-500/30" 
                   : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
               }`}>
-                {yoyoBalanceAmount > 0 ? "🎯 Boost Active (+10% Win)" : "No YOYO Boost"}
+                {displayYoyoBalance > 0 ? "🎯 Boost Active (+10% Win)" : "No YOYO Boost"}
               </div>
             </div>
           </div>

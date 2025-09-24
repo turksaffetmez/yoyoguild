@@ -27,9 +27,9 @@ const HomeContent = ({
         time: formatTimeLeft(currentSeason.timeUntilEnd),
         color: "text-green-400"
       };
-    } else if (currentSeason.timeUntilStart > 0) {
+    } else if (currentSeason.timeUntilStart > 0 || currentSeason.isPreseason) {
       return {
-        text: `Season ${currentSeason.seasonNumber} starts in`,
+        text: currentSeason.isPreseason ? "Season starts in" : `Season ${currentSeason.seasonNumber} starts in`,
         time: formatTimeLeft(currentSeason.timeUntilStart),
         color: "text-yellow-400"
       };
@@ -87,9 +87,11 @@ const HomeContent = ({
           {seasonStatus.time}
         </div>
         <div className="text-sm text-gray-400">
-          {currentSeason.active ? 
-            `Season ${currentSeason.seasonNumber} started on ${new Date(currentSeason.startTime).toLocaleDateString()}` :
-            `Season ${currentSeason.seasonNumber} starts on September 25, 2025 12:00 UTC`
+          {currentSeason.isPreseason ? 
+            `Official Season 1 starts on September 25, 2025 12:00 UTC` :
+            currentSeason.active ?
+              `Season ${currentSeason.seasonNumber} started on ${new Date(currentSeason.startTime).toLocaleDateString()}` :
+              `Season ${currentSeason.seasonNumber} starts on September 25, 2025 12:00 UTC`
           }
         </div>
       </div>
@@ -119,9 +121,10 @@ const HomeContent = ({
 
         <div className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 rounded-2xl p-6 border border-yellow-500/30">
           <div className="text-4xl mb-4">⏰</div>
-          <h3 className="text-xl font-bold text-white mb-2">Season {currentSeason.seasonNumber || 1}</h3>
+          <h3 className="text-xl font-bold text-white mb-2">{currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}</h3>
           <p className="text-gray-300">
-            {currentSeason.active ? 'Active - Compete for rewards!' : 'Starting soon - Get ready!'}
+            {currentSeason.isPreseason ? 'Testing Phase - Get ready!' : 
+             currentSeason.active ? 'Active - Compete for rewards!' : 'Starting soon - Get ready!'}
           </p>
         </div>
       </div>
@@ -163,6 +166,8 @@ const HomeContent = ({
           </div>
         </div>
       </div>
+
+      {/* "Ready to Battle" SECTION REMOVED */}
     </div>
   );
 };

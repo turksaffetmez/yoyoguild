@@ -50,8 +50,8 @@ const GameBoard = ({
       return;
     }
     
-    if (!currentSeason.active && currentSeason.timeUntilStart > 0) {
-      alert("Season has not started yet! Battles will not count towards leaderboard.");
+    if (currentSeason.isPreseason) {
+      alert("Preseason Mode - Battles will not count towards official leaderboard");
     }
     
     setCountdown(3);
@@ -73,16 +73,17 @@ const GameBoard = ({
               {yoyoBalanceAmount > 0 && <span className="text-green-400 ml-2">(+10% YOYO Boost!)</span>}
             </p>
             
-            <div className="flex justify-center items-center space-x-8 max-w-4xl mx-auto">
+            {/* MOBİL UYUMlu FLEX YAPISI */}
+            <div className={`flex ${isMobile ? 'flex-col space-y-8' : 'flex-row space-x-8'} justify-center items-center max-w-4xl mx-auto`}>
               {/* Sol Tevan */}
               <div className="text-center">
                 <div 
-                  className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
+                  className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 ${isMobile ? 'w-full' : 'p-6'} border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
                     gameState.selectedImage === 0 ? 'border-yellow-400 scale-105' : 'border-gray-600'
                   }`}
                   onClick={() => handleGameStart(0)}
                 >
-                  <div className="w-32 h-32 mx-auto mb-4 relative">
+                  <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                     <Image
                       src={gameState.images[0].url}
                       alt={gameState.images[0].name}
@@ -90,23 +91,25 @@ const GameBoard = ({
                       className="rounded-xl object-cover"
                     />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{gameState.images[0].name}</h3>
+                  <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white mb-2`}>{gameState.images[0].name}</h3>
                   <div className="text-sm text-gray-400">Win Chance: {getWinChance()}%</div>
                 </div>
               </div>
 
-              {/* VS Yazısı */}
-              <div className="text-4xl font-bold text-red-500 animate-pulse">VS</div>
+              {/* VS Yazısı - Mobilde dikey, desktop'ta yatay */}
+              <div className={`font-bold text-red-500 animate-pulse ${isMobile ? 'text-3xl' : 'text-4xl'}`}>
+                VS
+              </div>
 
               {/* Sağ Tevan - Sola dönük */}
               <div className="text-center">
                 <div 
-                  className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
+                  className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 ${isMobile ? 'w-full' : 'p-6'} border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
                     gameState.selectedImage === 1 ? 'border-yellow-400 scale-105' : 'border-gray-600'
                   }`}
                   onClick={() => handleGameStart(1)}
                 >
-                  <div className="w-32 h-32 mx-auto mb-4 relative">
+                  <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                     <Image
                       src={gameState.images[1].url}
                       alt={gameState.images[1].name}
@@ -114,7 +117,7 @@ const GameBoard = ({
                       className="rounded-xl object-cover scale-x-[-1]" // Sola dönük
                     />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{gameState.images[1].name}</h3>
+                  <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white mb-2`}>{gameState.images[1].name}</h3>
                   <div className="text-sm text-gray-400">Win Chance: {getWinChance()}%</div>
                 </div>
               </div>
@@ -134,10 +137,10 @@ const GameBoard = ({
                     {yoyoBalanceAmount > 0 ? "Active (+10%)" : "Not Active"}
                   </span>
                 </div>
-                {!currentSeason.active && currentSeason.timeUntilStart > 0 && (
+                {currentSeason.isPreseason && (
                   <div className="flex justify-between text-yellow-400">
                     <span>Season Status:</span>
-                    <span>Starts Soon (Practice Mode)</span>
+                    <span>Preseason (Practice Mode)</span>
                   </div>
                 )}
               </div>
@@ -149,13 +152,13 @@ const GameBoard = ({
         return (
           <div className="text-center space-y-8">
             <h2 className="text-4xl font-bold text-yellow-400 animate-pulse">Preparing Battle...</h2>
-            <div className="flex justify-center items-center space-x-8">
+            <div className={`flex ${isMobile ? 'flex-col space-y-8' : 'flex-row space-x-8'} justify-center items-center`}>
               {gameState.images.slice(0, 2).map((image, index) => (
                 <div key={image.id} className={`transform transition-all duration-500 ${
                   gameState.selectedImage === index ? 'scale-110' : 'scale-90 opacity-60'
                 }`}>
-                  <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border-4 border-yellow-400">
-                    <div className="w-32 h-32 mx-auto mb-4 relative">
+                  <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 border-4 border-yellow-400">
+                    <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                       <Image
                         src={image.url}
                         alt={image.name}
@@ -163,11 +166,11 @@ const GameBoard = ({
                         className={`rounded-xl object-cover ${index === 1 ? 'scale-x-[-1]' : ''}`}
                       />
                     </div>
-                    <h3 className="text-xl font-bold text-white">{image.name}</h3>
+                    <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white`}>{image.name}</h3>
                   </div>
                 </div>
               ))}
-              <div className="text-4xl font-bold text-red-500">VS</div>
+              <div className={`font-bold text-red-500 ${isMobile ? 'text-3xl' : 'text-4xl'}`}>VS</div>
             </div>
           </div>
         );
@@ -179,15 +182,15 @@ const GameBoard = ({
               {countdown > 0 ? `Battle starts in ${countdown}...` : 'BATTLE!'}
             </h2>
             
-            <div className={`flex justify-center items-center space-x-8 transition-all duration-300 ${
+            <div className={`flex ${isMobile ? 'flex-col space-y-8' : 'flex-row space-x-8'} justify-center items-center transition-all duration-300 ${
               fightAnimation ? 'scale-110' : 'scale-100'
             }`}>
               {gameState.images.slice(0, 2).map((image, index) => (
                 <div key={image.id} className={`transform transition-all duration-500 ${
                   fightAnimation && index === gameState.selectedImage ? 'animate-bounce' : ''
                 }`}>
-                  <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border-4 border-red-500">
-                    <div className="w-32 h-32 mx-auto mb-4 relative">
+                  <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 border-4 border-red-500">
+                    <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                       <Image
                         src={image.url}
                         alt={image.name}
@@ -195,11 +198,11 @@ const GameBoard = ({
                         className={`rounded-xl object-cover ${index === 1 ? 'scale-x-[-1]' : ''}`}
                       />
                     </div>
-                    <h3 className="text-xl font-bold text-white">{image.name}</h3>
+                    <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white`}>{image.name}</h3>
                   </div>
                 </div>
               ))}
-              <div className="text-4xl font-bold text-red-500">VS</div>
+              <div className={`font-bold text-red-500 ${isMobile ? 'text-3xl' : 'text-4xl'}`}>VS</div>
             </div>
 
             {fightAnimation && (
@@ -216,15 +219,15 @@ const GameBoard = ({
               {isWinner ? 'VICTORY! 🎉' : 'DEFEAT! 💀'}
             </div>
             
-            <div className="flex justify-center items-center space-x-8">
+            <div className={`flex ${isMobile ? 'flex-col space-y-8' : 'flex-row space-x-8'} justify-center items-center`}>
               {gameState.images.slice(0, 2).map((image, index) => (
                 <div key={image.id} className={`transform transition-all duration-500 ${
                   index === gameState.winnerIndex ? 'scale-110 border-green-400' : 'scale-90 border-red-400 opacity-70'
                 }`}>
-                  <div className={`bg-gradient-to-br rounded-2xl p-6 border-4 ${
+                  <div className={`bg-gradient-to-br rounded-2xl p-4 border-4 ${
                     index === gameState.winnerIndex ? 'from-green-900/50 to-emerald-900/50' : 'from-red-900/50 to-rose-900/50'
                   }`}>
-                    <div className="w-32 h-32 mx-auto mb-4 relative">
+                    <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                       <Image
                         src={image.url}
                         alt={image.name}
@@ -232,14 +235,14 @@ const GameBoard = ({
                         className={`rounded-xl object-cover ${index === 1 ? 'scale-x-[-1]' : ''}`}
                       />
                     </div>
-                    <h3 className="text-xl font-bold text-white">{image.name}</h3>
+                    <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white`}>{image.name}</h3>
                     <div className={`text-lg font-bold ${index === gameState.winnerIndex ? 'text-green-400' : 'text-red-400'}`}>
                       {index === gameState.winnerIndex ? 'WINNER' : 'LOSER'}
                     </div>
                   </div>
                 </div>
               ))}
-              <div className="text-4xl font-bold text-red-500">VS</div>
+              <div className={`font-bold text-red-500 ${isMobile ? 'text-3xl' : 'text-4xl'}`}>VS</div>
             </div>
 
             <div className="bg-gray-800/50 rounded-xl p-6 max-w-md mx-auto">
@@ -247,9 +250,9 @@ const GameBoard = ({
                 <div className="text-2xl font-bold text-yellow-400">
                   {isWinner ? '+10 Points!' : 'Better luck next time!'}
                 </div>
-                {!currentSeason.active && currentSeason.timeUntilStart > 0 && (
+                {currentSeason.isPreseason && (
                   <div className="text-yellow-400 text-sm">
-                    ⚠️ Practice Mode - Points won't count towards leaderboard
+                    ⚠️ Preseason Mode - Points won't count towards official leaderboard
                   </div>
                 )}
                 <div className="text-gray-300">
