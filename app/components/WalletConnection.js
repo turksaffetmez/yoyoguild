@@ -18,7 +18,6 @@ const WalletConnection = ({
 }) => {
   const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
 
-  // YOYO balance güncellemesi için effect
   useEffect(() => {
     setDisplayYoyoBalance(yoyoBalanceAmount);
   }, [yoyoBalanceAmount]);
@@ -52,7 +51,7 @@ const WalletConnection = ({
       };
     } else if (currentSeason.timeUntilStart > 0 || currentSeason.isPreseason) {
       return {
-        text: currentSeason.isPreseason ? "Preseason - Season starts in" : `Season ${currentSeason.seasonNumber} starts in`,
+        text: currentSeason.isPreseason ? "Season 1 starts in" : `Season ${currentSeason.seasonNumber} starts in`,
         time: formatTimeLeft(currentSeason.timeUntilStart),
         color: "text-yellow-400"
       };
@@ -75,7 +74,7 @@ const WalletConnection = ({
           <button
             onClick={isMobile ? onShowWalletOptions : onConnect}
             disabled={isLoading}
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <div className="flex items-center space-x-2">
@@ -114,7 +113,6 @@ const WalletConnection = ({
             </div>
           </div>
 
-          {/* DETAYLAR DOĞRUDAN GÖSTERİLİYOR - SHOW/HIDE KALDIRILDI */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-600">
             <div className="bg-slate-900/50 p-4 rounded-xl">
               <div className="text-slate-400 text-sm">Total Points</div>
@@ -141,13 +139,14 @@ const WalletConnection = ({
             </div>
           </div>
 
-  <div className="flex items-center space-x-2 text-slate-300">
-  <span>{currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}</span>
-  <span>•</span>
-  <span className={seasonStatus.color}>
-    {seasonStatus.text}: {seasonStatus.time}
-  </span>
-</div>
+          <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
+            <div className="flex items-center space-x-2 text-slate-300">
+              <span>{currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}</span>
+              <span>•</span>
+              <span className={seasonStatus.color}>
+                {seasonStatus.text}: {seasonStatus.time}
+              </span>
+            </div>
             
             <div className="flex items-center space-x-2">
               <div className={`px-3 py-1 rounded-full ${
