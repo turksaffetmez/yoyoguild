@@ -55,7 +55,7 @@ export default function Home() {
     isLoading: false
   });
 
-  // YOYO balance kontrolü - Contract üzerinden
+  // YOYO balance kontrolü
   const checkYoyoBalance = useCallback(async (address) => {
     if (!provider || !address) return 0;
     try {
@@ -82,7 +82,6 @@ export default function Home() {
       setGamesPlayedToday(Number(gamesToday));
       setDailyLimit(Number(limit));
       
-      // YOYO balance'ı güncelle
       const yoyoBalance = await checkYoyoBalance(address);
       setYoyoBalanceAmount(yoyoBalance);
     } catch (error) {
@@ -109,13 +108,12 @@ export default function Home() {
     }
   }, [contract]);
 
-  // Liderlik tablosunu getir ve SIRALA (Frontend'de - Gas tasarrufu)
+  // Liderlik tablosunu getir
   const updateLeaderboard = useCallback(async () => {
     if (!contract) return;
     try {
       const [addresses, points] = await contract.getCurrentSeasonLeaderboard();
       
-      // Frontend'de sıralama yap (Gas tasarrufu)
       const leaderboardData = addresses
         .map((address, index) => ({
           rank: index + 1,
@@ -123,10 +121,10 @@ export default function Home() {
           points: Number(points[index])
         }))
         .filter(player => player.points > 0)
-        .sort((a, b) => b.points - a.points) // Büyükten küçüğe sırala
+        .sort((a, b) => b.points - a.points)
         .map((player, index) => ({
           ...player,
-          rank: index + 1 // Sıralamayı güncelle
+          rank: index + 1
         }));
       
       setLeaderboard(leaderboardData);
@@ -169,7 +167,7 @@ export default function Home() {
     }
   }, [updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
 
-  // Disconnect fonksiyonu - TAMAMEN DÜZELTİLMİŞ
+  // Disconnect fonksiyonu
   const disconnectWallet = useCallback(() => {
     if (window.ethereum && window.ethereum.removeListener) {
       window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
@@ -227,7 +225,7 @@ export default function Home() {
     }
   }, [handleAccountsChanged, handleChainChanged, connectWallet]);
 
-  // Oyunu başlat - YENİ SİSTEM (Contract YOYO kontrolü yapacak)
+  // Oyunu başlat
   const startGame = async (selectedIndex) => {
     if (!walletConnected || !contract || isLoading) return;
     if (gameState.gamePhase !== "idle") return;
@@ -247,19 +245,15 @@ export default function Home() {
     try {
       setIsLoading(true);
       
-      // Frontend'de kazananı belirle (sadece görsel için)
       const winChance = yoyoBalanceAmount > 0 ? 60 : 50;
       const isWinner = Math.floor(Math.random() * 100) < winChance;
       const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
       
-      // Contract'a işlem gönder - YOYO kontrolü contract'ta yapılacak
       const tx = await contract.playGame(isWinner);
       await tx.wait();
       
-      // Başarılıysa animasyonları göster
       setGameState(prev => ({ ...prev, winnerIndex, gamePhase: "result" }));
       
-      // Bilgileri güncelle
       await updatePlayerInfo(userAddress);
       await updateLeaderboard();
       
@@ -332,7 +326,7 @@ export default function Home() {
   const remainingGames = dailyLimit - gamesPlayedToday;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex flex-col items-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
       {showWalletOptions && (
         <MobileWalletSelector 
           onConnect={connectMobileWallet}
@@ -340,20 +334,23 @@ export default function Home() {
         />
       )}
       
-      <div className="w-full max-w-6xl bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl shadow-2xl overflow-hidden border-2 border-purple-500/20">
-        <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 text-white py-6 px-6 text-center relative overflow-hidden">
+      <div className="w-full max-w-6xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-3xl shadow-2xl overflow-hidden border border-purple-500/30 backdrop-blur-sm">
+        <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 text-white py-8 px-6 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
-          <div className="flex items-center justify-center space-x-4 mb-2">
-            <Image src="/images/yoyo.png" alt="YoYo Guild" width={60} height={60} className="rounded-full" />
+          <div className="flex items-center justify-center space-x-4 mb-2 relative z-10">
+            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
+              <span className="text-3xl">⚔️</span>
+            </div>
             <div>
-              <h1 className="text-4xl font-bold">YoYo Guild Battle v1</h1>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                YoYo Guild Battle
+              </h1>
               <p className="text-lg opacity-90">Season {currentSeason.seasonNumber || 1}</p>
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent"></div>
         </header>
         
-        <nav className="bg-gradient-to-r from-gray-800 to-gray-700 p-3 border-b border-gray-600">
+        <nav className="bg-slate-800/80 p-4 border-b border-slate-700/50 backdrop-blur-sm">
           <div className="flex flex-wrap justify-center gap-3">
             {["home", "play", "leaderboard"].map((tab) => (
               <button 
@@ -361,8 +358,8 @@ export default function Home() {
                 onClick={() => setActiveTab(tab)} 
                 className={`px-6 py-3 rounded-xl transition-all duration-300 font-semibold ${
                   activeTab === tab 
-                    ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-105" 
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
+                    ? "btn-primary" 
+                    : "btn-secondary"
                 }`}
               >
                 {tab === "home" ? "🏠 Home" : tab === "play" ? "⚔️ Arena" : "🏆 Leaderboard"}
@@ -436,15 +433,14 @@ export default function Home() {
           </div>
         </div>
         
-        <footer className="bg-gradient-to-r from-gray-900 to-gray-800 text-gray-400 py-4 text-center border-t border-gray-700">
+        <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
           <p>YoYo Guild Battle v1 | Base Mainnet | Season {currentSeason.seasonNumber || 1}</p>
         </footer>
       </div>
 
-      {/* Global Loading */}
       {isLoading && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-2xl p-6 flex items-center space-x-4">
+          <div className="bg-slate-800 rounded-2xl p-6 flex items-center space-x-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
             <span className="text-white">Processing...</span>
           </div>
