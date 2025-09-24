@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const Leaderboard = ({ leaderboard, preseasonLeaderboard, currentSeason }) => {
+const Leaderboard = ({ leaderboard, currentSeason }) => {
   const [selectedSeason, setSelectedSeason] = useState(currentSeason.isPreseason ? 0 : currentSeason.seasonNumber);
 
   const formatAddress = (address) => {
@@ -21,7 +21,7 @@ const Leaderboard = ({ leaderboard, preseasonLeaderboard, currentSeason }) => {
   }
 
   // Gösterilecek liderlik verisini seç
-  const displayLeaderboard = selectedSeason === 0 ? preseasonLeaderboard : leaderboard;
+  const displayLeaderboard = selectedSeason === 0 ? [] : leaderboard;
 
   return (
     <div className="space-y-6">

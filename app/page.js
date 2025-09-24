@@ -146,17 +146,25 @@ export default function Home() {
     }
   }, [calculateCurrentSeason]);
 
-  // Liderlik tablosunu getir
+  // Liderlik tablosunu getir - DÜZELTİLDİ
   const updateLeaderboard = useCallback(async () => {
     if (!contract) return;
     try {
-      const [addresses, points] = await contract.getCurrentSeasonLeaderboard();
+      const season = currentSeason.active ? currentSeason.seasonNumber : 0;
+      const [addresses, points] = await contract.getSeasonLeaderboard(season);
+      
+      console.log("Leaderboard raw data:", { addresses, points, season });
+      
+      if (!addresses || addresses.length === 0) {
+        setLeaderboard([]);
+        return;
+      }
       
       const leaderboardData = addresses
         .map((address, index) => ({
           rank: index + 1,
           address: address,
-          points: Number(points[index])
+          points: Number(points[index] || 0)
         }))
         .filter(player => player.points > 0)
         .sort((a, b) => b.points - a.points)
@@ -166,11 +174,13 @@ export default function Home() {
           rank: index + 1
         }));
       
+      console.log("Processed leaderboard:", leaderboardData);
       setLeaderboard(leaderboardData);
     } catch (error) {
       console.error("Failed to update leaderboard:", error);
+      setLeaderboard([]);
     }
-  }, [contract]);
+  }, [contract, currentSeason]);
 
   // Cüzdan bağlantısı
   const connectWallet = useCallback(async () => {
@@ -221,11 +231,14 @@ export default function Home() {
     }
   }, [checkYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
 
-  // Oyunu başlat
+  // Oyunu başlat - TAMAMEN DÜZELTİLDİ
   const startGame = async (selectedIndex) => {
     if (!walletConnected || !contract || isLoading) return;
     if (gameState.gamePhase !== "idle") return;
-    if (gamesPlayedToday >= dailyLimit) return;
+    if (gamesPlayedToday >= dailyLimit) {
+      alert("Daily game limit reached! Come back tomorrow.");
+      return;
+    }
     
     const seasonInfo = calculateCurrentSeason();
     
@@ -243,24 +256,51 @@ export default function Home() {
     try {
       setIsLoading(true);
       
-      // Frontend'de kazananı belirle (basit versiyon)
-      const winChance = yoyoBalanceAmount > 0 ? 60 : 50;
-      const isWinner = Math.floor(Math.random() * 100) < winChance;
-      const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
+      // Önce mevcut oyuncu bilgilerini al
+      const currentInfo = await contract.getPlayerInfo(userAddress);
+      console.log("Before battle - Player info:", currentInfo);
       
-      // Contract'a işlem gönder
+      // Contract'a işlem gönder - PARAMETRESİZ
       const tx = await contract.playGame();
-      await tx.wait();
+      console.log("Transaction sent:", tx);
+      
+      // Transaction'ın onaylanmasını bekle
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+      
+      // Contract'ın kazananı belirlemesini bekle ve sonucu al
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Yeni oyuncu bilgilerini al
+      const newInfo = await contract.getPlayerInfo(userAddress);
+      console.log("After battle - Player info:", newInfo);
+      
+      // Kazananı belirle (puan artışına göre)
+      const pointsBefore = Number(currentInfo[0]);
+      const pointsAfter = Number(newInfo[0]);
+      const isWinner = pointsAfter > pointsBefore;
+      const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
       
       setGameState(prev => ({ ...prev, winnerIndex, gamePhase: "result" }));
       
+      // Oyuncu bilgilerini güncelle
       await updatePlayerInfo(userAddress);
       await updateLeaderboard();
       
     } catch (err) {
       console.error("Game transaction failed:", err);
       setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
-      setConnectionError("Transaction failed: " + err.message);
+      
+      let errorMessage = "Transaction failed: ";
+      if (err.reason) {
+        errorMessage += err.reason;
+      } else if (err.data?.message) {
+        errorMessage += err.data.message;
+      } else {
+        errorMessage += err.message;
+      }
+      
+      setConnectionError(errorMessage);
     } finally {
       setIsLoading(false);
     }
