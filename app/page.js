@@ -7,7 +7,6 @@ import GameBoard from "./components/GameBoard";
 import Leaderboard from "./components/Leaderboard";
 import HomeContent from "./components/HomeContent";
 import MobileWalletSelector from "./components/MobileWalletSelector";
-import Image from "next/image";
 
 export default function Home() {
   const [walletConnected, setWalletConnected] = useState(false);
@@ -26,6 +25,12 @@ export default function Home() {
   const [seasonTimeLeft, setSeasonTimeLeft] = useState(0);
   const [currentSeason, setCurrentSeason] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState("");
+
+  // DEBUG: isLoading değiştiğinde logla
+  useEffect(() => {
+    console.log("isLoading state changed:", isLoading);
+  }, [isLoading]);
 
   const [gameState, setGameState] = useState({
     selectedImage: null,
@@ -133,42 +138,155 @@ export default function Home() {
     }
   }, [contract]);
 
-  // Cüzdan bağlantısı
+  // DÜZELTİLMİŞ: Basitleştirilmiş cüzdan bağlantısı
   const connectWallet = useCallback(async () => {
-    if (window.ethereum) {
-      try {
-        setIsLoading(true);
-        const newProvider = new ethers.BrowserProvider(window.ethereum);
-        setProvider(newProvider);
-        
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        
-        const signer = await newProvider.getSigner();
-        const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-        
-        setContract(contractInstance);
-        const address = await signer.getAddress();
-        setUserAddress(address);
-        setWalletConnected(true);
-        
-        await updatePlayerInfo(address);
-        await updateSeasonInfo();
-        await updateLeaderboard();
-        
-      } catch (err) {
-        console.error("Failed to connect wallet:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
+    console.log("connectWallet called");
+    
+    if (typeof window.ethereum === 'undefined') {
+      setConnectionError("MetaMask not installed!");
       if (isMobile) {
         setShowWalletOptions(true);
       }
+      return;
+    }
+
+    try {
+      console.log("Starting wallet connection...");
+      setIsLoading(true);
+      setConnectionError("");
+
+      // Hesap isteği
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      console.log("Accounts received:", accounts);
+
+      if (accounts.length === 0) {
+        throw new Error("No accounts found");
+      }
+
+      // Provider oluştur
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+      
+      // Signer al
+      const signer = await newProvider.getSigner();
+      const address = await signer.getAddress();
+      console.log("Signer address:", address);
+      
+      // Contract instance oluştur
+      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+      
+      // State'leri güncelle
+      setContract(contractInstance);
+      setUserAddress(address);
+      setWalletConnected(true);
+      
+      // Verileri güncelle (await kullanmadan)
+      updatePlayerInfo(address).catch(console.error);
+      updateSeasonInfo().catch(console.error);
+      updateLeaderboard().catch(console.error);
+      
+      console.log("Wallet connected successfully");
+      
+    } catch (err) {
+      console.error("Failed to connect wallet:", err);
+      setConnectionError(err.message || "Failed to connect wallet");
+    } finally {
+      console.log("Setting isLoading to false");
+      setIsLoading(false);
     }
   }, [updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
 
-  // Disconnect fonksiyonu
+  // DÜZELTİLMİŞ: Otomatik bağlantı kontrolü
+  const checkWalletConnection = useCallback(async () => {
+    console.log("checkWalletConnection called");
+    
+    if (typeof window.ethereum === 'undefined') {
+      console.log("MetaMask not installed");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+      
+      // Mevcut hesapları kontrol et
+      const accounts = await window.ethereum.request({
+        method: 'eth_accounts'
+      });
+
+      console.log("Auto-connect accounts:", accounts);
+
+      if (accounts.length > 0) {
+        // Eğer hesap varsa bağlan
+        const signer = await newProvider.getSigner();
+        const address = await signer.getAddress();
+        const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+        
+        setContract(contractInstance);
+        setUserAddress(address);
+        setWalletConnected(true);
+        
+        // Verileri güncelle (await kullanmadan)
+        updatePlayerInfo(address).catch(console.error);
+        updateSeasonInfo().catch(console.error);
+        updateLeaderboard().catch(console.error);
+        
+        console.log("Auto-connected successfully");
+      }
+
+      // Event listener'ları ekle
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+      
+    } catch (err) {
+      console.error("Auto-connection error:", err);
+    } finally {
+      console.log("Auto-connect isLoading false");
+      setIsLoading(false);
+    }
+  }, [updatePlayerInfo, updateSeasonInfo, updateLeaderboard]);
+
+  // DÜZELTİLMİŞ: Accounts changed handler
+  const handleAccountsChanged = useCallback(async (accounts) => {
+    console.log("Accounts changed:", accounts);
+    
+    if (accounts.length === 0) {
+      disconnectWallet();
+    } else {
+      try {
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await newProvider.getSigner();
+        const address = accounts[0];
+        const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+        
+        setContract(contractInstance);
+        setUserAddress(address);
+        setWalletConnected(true);
+        
+        updatePlayerInfo(address).catch(console.error);
+        updateLeaderboard().catch(console.error);
+        
+      } catch (error) {
+        console.error("Error handling account change:", error);
+        disconnectWallet();
+      }
+    }
+  }, []);
+
+  const handleChainChanged = useCallback((chainId) => {
+    console.log("Chain changed:", chainId);
+    window.location.reload();
+  }, []);
+
+  // DÜZELTİLMİŞ: Disconnect fonksiyonu
   const disconnectWallet = useCallback(() => {
+    console.log("Disconnecting wallet...");
+    
     if (window.ethereum && window.ethereum.removeListener) {
       window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
       window.ethereum.removeListener('chainChanged', handleChainChanged);
@@ -183,6 +301,9 @@ export default function Home() {
     setYoyoBalanceAmount(0);
     setShowWalletOptions(false);
     setLeaderboard([]);
+    setConnectionError("");
+    setIsLoading(false); // BU ÇOK ÖNEMLİ: isLoading'i false yap
+    
     setGameState(prev => ({ 
       ...prev, 
       gamePhase: "idle", 
@@ -190,40 +311,9 @@ export default function Home() {
       winnerIndex: null,
       isLoading: false 
     }));
-  }, []);
-
-  const handleAccountsChanged = useCallback(async (accounts) => {
-    if (accounts.length === 0) {
-      disconnectWallet();
-    } else if (accounts[0] !== userAddress) {
-      setUserAddress(accounts[0]);
-      await updatePlayerInfo(accounts[0]);
-    }
-  }, [userAddress, disconnectWallet, updatePlayerInfo]);
-
-  const handleChainChanged = useCallback(() => {
-    window.location.reload();
-  }, []);
-
-  const checkWalletConnection = useCallback(async () => {
-    if (window.ethereum) {
-      try {
-        const newProvider = new ethers.BrowserProvider(window.ethereum);
-        setProvider(newProvider);
-        
-        window.ethereum.on('accountsChanged', handleAccountsChanged);
-        window.ethereum.on('chainChanged', handleChainChanged);
-        
-        const accounts = await newProvider.send("eth_accounts", []);
-        
-        if (accounts.length > 0) {
-          await connectWallet();
-        }
-      } catch (err) {
-        console.error("Auto-connection error:", err);
-      }
-    }
-  }, [handleAccountsChanged, handleChainChanged, connectWallet]);
+    
+    console.log("Wallet disconnected");
+  }, [handleAccountsChanged, handleChainChanged]);
 
   // Oyunu başlat
   const startGame = async (selectedIndex) => {
@@ -260,36 +350,20 @@ export default function Home() {
     } catch (err) {
       console.error("Game transaction failed:", err);
       setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
+      setConnectionError("Transaction failed: " + err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
   const resetGame = useCallback(() => {
-    setGameState(prev => {
-      const newImages = [...prev.images];
-      if (prev.winnerIndex !== null) {
-        const loserIndex = prev.winnerIndex === 0 ? 1 : 0;
-        const currentIds = [prev.images[0].id, prev.images[1].id];
-        const availableIds = Array.from({length: 19}, (_, i) => i + 1).filter(id => !currentIds.includes(id));
-        if (availableIds.length > 0) {
-          const randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
-          newImages[loserIndex] = {
-            id: randomId,
-            url: `/images/tevans${randomId}.png`,
-            name: `Guilder #${randomId}`
-          };
-        }
-      }
-      return {
-        ...prev,
-        selectedImage: null,
-        winnerIndex: null,
-        gamePhase: "idle",
-        isLoading: false,
-        images: newImages
-      };
-    });
+    setGameState(prev => ({
+      ...prev,
+      selectedImage: null,
+      winnerIndex: null,
+      gamePhase: "idle",
+      isLoading: false
+    }));
   }, []);
 
   const startNewGame = useCallback(() => {
@@ -320,8 +394,19 @@ export default function Home() {
   useEffect(() => {
     const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     setIsMobile(mobile);
+    
     checkWalletConnection();
   }, [checkWalletConnection]);
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      if (window.ethereum && window.ethereum.removeListener) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
+  }, [handleAccountsChanged, handleChainChanged]);
 
   const remainingGames = dailyLimit - gamesPlayedToday;
 
@@ -377,6 +462,18 @@ export default function Home() {
         </nav>
         
         <div className="p-6">
+          {connectionError && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 mb-4">
+              <p className="text-red-400 text-center">{connectionError}</p>
+              <button 
+                onClick={() => setConnectionError("")}
+                className="text-red-300 text-sm mt-2 hover:text-white"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+          
           <WalletConnection
             walletConnected={walletConnected}
             userAddress={userAddress}
@@ -438,11 +535,18 @@ export default function Home() {
         </footer>
       </div>
 
+      {/* DÜZELTİLMİŞ: Loading ekranı - sadece gerçekten loading durumunda göster */}
       {isLoading && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-2xl p-6 flex items-center space-x-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
             <span className="text-white">Processing...</span>
+            <button 
+              onClick={() => setIsLoading(false)}
+              className="ml-4 text-red-400 hover:text-red-300 text-sm"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
