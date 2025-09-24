@@ -5,18 +5,34 @@ export default function WalletConnection({
   walletConnected,
   userAddress,
   points,
+  seasonPoints,
   yoyoBalance,
   onDisconnect,
   onConnect,
   isMobile,
   onShowWalletOptions,
-  remainingGames
+  remainingGames,
+  dailyLimit,
+  seasonTimeLeft
 }) {
   const [isCopied, setIsCopied] = useState(false);
+  const [timeLeft, setTimeLeft] = useState("");
 
   const formatAddress = (address) => {
     if (!address) return "Not Connected";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const formatTimeLeft = (seconds) => {
+    if (!seconds || seconds === 0) return "Season ended";
+    
+    const days = Math.floor(seconds / (24 * 3600));
+    const hours = Math.floor((seconds % (24 * 3600)) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
   };
 
   const copyAddress = async () => {
@@ -26,6 +42,16 @@ export default function WalletConnection({
       setTimeout(() => setIsCopied(false), 2000);
     }
   };
+
+  useEffect(() => {
+    setTimeLeft(formatTimeLeft(seasonTimeLeft));
+    
+    const timer = setInterval(() => {
+      setTimeLeft(formatTimeLeft(seasonTimeLeft));
+    }, 60000);
+    
+    return () => clearInterval(timer);
+  }, [seasonTimeLeft]);
 
   return (
     <div className="bg-gradient-to-r from-gray-800/80 to-gray-900/80 rounded-3xl p-6 shadow-2xl border-2 border-purple-500/20 mb-8 backdrop-blur-sm">
@@ -66,10 +92,16 @@ export default function WalletConnection({
           )}
         </div>
 
-        {/* Points */}
+        {/* Total Points */}
         <div className="text-center">
-          <div className="text-sm text-gray-400">POINTS</div>
+          <div className="text-sm text-gray-400">TOTAL POINTS</div>
           <div className="font-bold text-blue-400 text-2xl">{points.toLocaleString()}</div>
+        </div>
+
+        {/* Season Points */}
+        <div className="text-center">
+          <div className="text-sm text-gray-400">SEASON POINTS</div>
+          <div className="font-bold text-purple-400 text-2xl">{seasonPoints.toLocaleString()}</div>
         </div>
 
         {/* YOYO Balance */}
@@ -81,7 +113,13 @@ export default function WalletConnection({
         {/* Daily Games */}
         <div className="text-center">
           <div className="text-sm text-gray-400">DAILY GAMES</div>
-          <div className="font-bold text-orange-400 text-2xl">{remainingGames}<span className="text-sm text-gray-400">/5</span></div>
+          <div className="font-bold text-orange-400 text-2xl">{remainingGames}<span className="text-sm text-gray-400">/{dailyLimit}</span></div>
+        </div>
+
+        {/* Season Timer */}
+        <div className="text-center">
+          <div className="text-sm text-gray-400">SEASON ENDS</div>
+          <div className="font-bold text-yellow-400 text-xl">{timeLeft}</div>
         </div>
 
         {/* Action Button */}
@@ -116,13 +154,13 @@ export default function WalletConnection({
 
       {/* Daily Progress */}
       <div className="mt-3 flex justify-between text-xs text-gray-400">
-        <span>Daily Progress</span>
-        <span>{5 - remainingGames} of 5 games played</span>
+        <span>Daily Progress ({dailyLimit - remainingGames}/{dailyLimit})</span>
+        <span>Season Points: {seasonPoints.toLocaleString()}</span>
       </div>
       <div className="w-full bg-gray-700 rounded-full h-1">
         <div 
           className="bg-gradient-to-r from-orange-500 to-yellow-500 h-1 rounded-full transition-all duration-500"
-          style={{ width: `${((5 - remainingGames) / 5) * 100}%` }}
+          style={{ width: `${((dailyLimit - remainingGames) / dailyLimit) * 100}%` }}
         ></div>
       </div>
     </div>

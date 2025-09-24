@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-export default function Leaderboard({ leaderboard }) {
+export default function Leaderboard({ leaderboard, currentSeason }) {
   const [sortBy, setSortBy] = useState("points");
   const [sortOrder, setSortOrder] = useState("desc");
 
@@ -33,14 +33,30 @@ export default function Leaderboard({ leaderboard }) {
     }
   };
 
+  const formatTimeLeft = (seconds) => {
+    if (!seconds || seconds === 0) return "Season ended";
+    
+    const days = Math.floor(seconds / (24 * 3600));
+    const hours = Math.floor((seconds % (24 * 3600)) / 3600);
+    
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h`;
+    return "Less than 1h";
+  };
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="text-center mb-8">
         <h2 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent mb-3">
-          🏆 Guilder Leaderboard
+          🏆 Season {currentSeason.seasonNumber || 1} Leaderboard
         </h2>
-        <p className="text-gray-300 text-lg">Top warriors ranked by battle prowess</p>
+        <p className="text-gray-300 text-lg">
+          {currentSeason.active ? 
+            `Season ends in: ${formatTimeLeft(currentSeason.duration - (Math.floor(Date.now() / 1000) - currentSeason.startTime))}` : 
+            "Season has concluded"
+          }
+        </p>
       </div>
 
       {/* Sorting Controls */}
@@ -123,7 +139,7 @@ export default function Leaderboard({ leaderboard }) {
                 <div className="text-2xl font-bold text-white">
                   {player.points.toLocaleString()}
                 </div>
-                <div className="text-gray-400 text-sm">points</div>
+                <div className="text-gray-400 text-sm">YOYO Points</div>
               </div>
               
               {/* Status */}
@@ -133,7 +149,7 @@ export default function Leaderboard({ leaderboard }) {
                     ? "bg-green-500/20 text-green-400 border border-green-500/30" 
                     : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
                 }`}>
-                  {player.rank <= 3 ? "Elite" : "Active"}
+                  {player.rank <= 3 ? "Elite" : "Warrior"}
                 </div>
               </div>
             </div>
@@ -170,9 +186,28 @@ export default function Leaderboard({ leaderboard }) {
         </div>
       </div>
 
+      {/* Season Info */}
+      <div className="mt-8 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-2xl p-6 border border-purple-500/30">
+        <h4 className="text-xl font-bold text-white mb-3">Season Information</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <p className="text-gray-400">Season Number: <span className="text-white font-semibold">{currentSeason.seasonNumber || 1}</span></p>
+            <p className="text-gray-400">Status: <span className={`font-semibold ${currentSeason.active ? 'text-green-400' : 'text-red-400'}`}>
+              {currentSeason.active ? 'Active' : 'Ended'}
+            </span></p>
+          </div>
+          <div>
+            <p className="text-gray-400">Duration: <span className="text-white font-semibold">
+              {currentSeason.duration ? `${Math.floor(currentSeason.duration / (24 * 3600))} days` : '7 days'}
+            </span></p>
+            <p className="text-gray-400">Players: <span className="text-white font-semibold">{leaderboard.length}</span></p>
+          </div>
+        </div>
+      </div>
+
       {/* Footer Info */}
       <div className="mt-8 text-center text-gray-500 text-sm">
-        <p>Leaderboard updates after each battle. All data is stored securely on the blockchain.</p>
+        <p>Leaderboard updates after each battle. Points are stored on Base blockchain.</p>
         <p className="mt-1">Compete daily to climb the ranks and earn legendary status!</p>
       </div>
     </div>

@@ -1,47 +1,36 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Image from "next/image";
 
 export default function GameBoard({ 
   walletConnected, 
   gameState, 
   yoyoBalance, 
-  points, 
+  points,
+  seasonPoints,
   onStartGame, 
   onConnectWallet,
   isMobile,
   onShowWalletOptions,
   onStartNewGame,
   onResetGame,
-  remainingGames
+  remainingGames,
+  dailyLimit,
+  seasonTimeLeft
 }) {
-  const [attackAnimation, setAttackAnimation] = useState(false);
-  const [showWinner, setShowWinner] = useState(false);
-  const [loserDisappearing, setLoserDisappearing] = useState(false);
-
+  // Oyun fazı değişikliklerini takip et
   useEffect(() => {
     if (gameState.gamePhase === "result") {
+      // Sonuç gösterildikten 5 saniye sonra otomatik reset
       const timer = setTimeout(() => {
         onResetGame();
       }, 5000);
+      
       return () => clearTimeout(timer);
     }
+  }, [gameState.gamePhase, onResetGame]);
 
-    if (gameState.gamePhase === "fighting") {
-      setAttackAnimation(true);
-      const timer = setTimeout(() => setAttackAnimation(false), 2000);
-      return () => clearTimeout(timer);
-    }
-
-    if (gameState.gamePhase === "result" && gameState.winnerIndex !== null) {
-      setShowWinner(true);
-      const timer = setTimeout(() => {
-        setLoserDisappearing(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [gameState.gamePhase, gameState.winnerIndex, onResetGame]);
-
+  // Karakter seçim butonu
   const CharacterButton = ({ index, character }) => (
     <button
       onClick={() => onStartGame(index)}
@@ -60,7 +49,7 @@ export default function GameBoard({
           : gameState.winnerIndex !== null && gameState.winnerIndex !== index 
           ? "border-red-500 bg-red-500/20" 
           : "border-purple-500/50 bg-gray-800/50"
-      } transition-all duration-500 ${loserDisappearing && gameState.winnerIndex !== index ? "opacity-0 scale-50" : ""}`}>
+      } transition-all duration-500`}>
         
         <Image 
           src={character.url} 
@@ -80,7 +69,7 @@ export default function GameBoard({
         )}
 
         {/* Winner crown */}
-        {showWinner && gameState.winnerIndex === index && (
+        {gameState.winnerIndex === index && gameState.gamePhase === "result" && (
           <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 text-3xl animate-bounce">
             👑
           </div>
@@ -89,14 +78,12 @@ export default function GameBoard({
     </button>
   );
 
-  const AttackAnimation = () => (
+  const FightAnimation = () => (
     <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/80 rounded-3xl">
       <div className="text-center text-white">
         {/* Character movement animation */}
         <div className="flex justify-center items-center space-x-4 mb-8">
-          <div className={`transform transition-all duration-1000 ${
-            attackAnimation ? "translate-x-20" : "translate-x-0"
-          }`}>
+          <div className="transform transition-all duration-1000 animate-bounce">
             <Image 
               src={gameState.images[0].url} 
               alt={gameState.images[0].name}
@@ -108,9 +95,7 @@ export default function GameBoard({
           
           <div className="text-6xl animate-ping">⚡</div>
           
-          <div className={`transform transition-all duration-1000 ${
-            attackAnimation ? "-translate-x-20" : "translate-x-0"
-          }`}>
+          <div className="transform transition-all duration-1000 animate-bounce" style={{animationDelay: '0.5s'}}>
             <Image 
               src={gameState.images[1].url} 
               alt={gameState.images[1].name}
@@ -122,36 +107,50 @@ export default function GameBoard({
         </div>
 
         <div className="text-4xl font-bold mb-4 animate-pulse">CLASH! ⚔️</div>
-        <div className="text-xl text-gray-300">Guilders are battling fiercely...</div>
+        <div className="text-xl text-gray-300">Processing blockchain transaction...</div>
         
         {/* Impact effects */}
         <div className="absolute inset-0 flex justify-center items-center">
           <div className="w-64 h-64 border-4 border-orange-500/50 rounded-full animate-ping"></div>
-          <div className="w-48 h-48 border-4 border-red-500/50 rounded-full animate-ping" style={{animationDelay: '0.5s'}}></div>
         </div>
       </div>
     </div>
   );
 
+  const formatTimeLeft = (seconds) => {
+    if (!seconds || seconds === 0) return "Season ended";
+    
+    const days = Math.floor(seconds / (24 * 3600));
+    const hours = Math.floor((seconds % (24 * 3600)) / 3600);
+    
+    if (days > 0) return `${days}d ${hours}h left`;
+    if (hours > 0) return `${hours}h left`;
+    return "Less than 1h left";
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       {/* Premium Stats Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
         <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-2xl p-5 text-center border border-blue-500/30 backdrop-blur-sm">
-          <div className="text-3xl font-bold text-white mb-1">{points}</div>
+          <div className="text-3xl font-bold text-white mb-1">{points.toLocaleString()}</div>
           <div className="text-blue-300 text-sm font-semibold">TOTAL POINTS</div>
+        </div>
+        <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/30 rounded-2xl p-5 text-center border border-purple-500/30 backdrop-blur-sm">
+          <div className="text-3xl font-bold text-white mb-1">{seasonPoints.toLocaleString()}</div>
+          <div className="text-purple-300 text-sm font-semibold">SEASON POINTS</div>
         </div>
         <div className="bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-2xl p-5 text-center border border-green-500/30 backdrop-blur-sm">
           <div className="text-3xl font-bold text-white mb-1">{yoyoBalance.toFixed(2)}</div>
           <div className="text-green-300 text-sm font-semibold">YOYO BALANCE</div>
         </div>
-        <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/30 rounded-2xl p-5 text-center border border-purple-500/30 backdrop-blur-sm">
-          <div className="text-3xl font-bold text-white mb-1">{yoyoBalance > 0 ? "60%" : "50%"}</div>
-          <div className="text-purple-300 text-sm font-semibold">WIN CHANCE</div>
-        </div>
         <div className="bg-gradient-to-br from-orange-500/20 to-orange-600/30 rounded-2xl p-5 text-center border border-orange-500/30 backdrop-blur-sm">
-          <div className="text-3xl font-bold text-white mb-1">{remainingGames}/5</div>
+          <div className="text-3xl font-bold text-white mb-1">{remainingGames}/{dailyLimit}</div>
           <div className="text-orange-300 text-sm font-semibold">DAILY GAMES</div>
+        </div>
+        <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/30 rounded-2xl p-5 text-center border border-yellow-500/30 backdrop-blur-sm">
+          <div className="text-2xl font-bold text-white mb-1">{formatTimeLeft(seasonTimeLeft)}</div>
+          <div className="text-yellow-300 text-sm font-semibold">SEASON END</div>
         </div>
       </div>
 
@@ -186,22 +185,36 @@ export default function GameBoard({
           <div className="text-center text-white p-8 relative z-10">
             <div className="text-8xl mb-6 animate-pulse">⏰</div>
             <h3 className="text-3xl font-bold mb-4">Daily Limit Reached</h3>
-            <p className="text-gray-300 mb-2 text-lg">You've completed today's 5 battles</p>
+            <p className="text-gray-300 mb-2 text-lg">You've completed today's {dailyLimit} battles</p>
             <p className="text-yellow-300 text-lg">Return tomorrow for more epic battles!</p>
           </div>
         )}
 
+        {/* Season Ended */}
+        {walletConnected && seasonTimeLeft === 0 && (
+          <div className="text-center text-white p-8 relative z-10">
+            <div className="text-8xl mb-6">🏆</div>
+            <h3 className="text-3xl font-bold mb-4">Season Ended</h3>
+            <p className="text-gray-300 mb-2 text-lg">Current season has concluded</p>
+            <p className="text-yellow-300 text-lg">Wait for the next season to begin!</p>
+          </div>
+        )}
+
         {/* Ready to Battle */}
-        {walletConnected && remainingGames > 0 && gameState.gamePhase === "idle" && (
+        {walletConnected && remainingGames > 0 && seasonTimeLeft > 0 && gameState.gamePhase === "idle" && (
           <div className="text-center text-white relative z-10">
             <div className="text-6xl mb-6 animate-pulse">🎮</div>
             <h3 className="text-3xl font-bold mb-4">Ready for Battle!</h3>
             <p className="text-gray-300 text-lg mb-8">Choose your Guilder and begin the fight</p>
+            <div className="bg-white/10 rounded-2xl p-6 backdrop-blur-sm border border-white/20">
+              <p className="text-yellow-300 mb-2">🎯 Win with YOYO: 500 points | Win without: 250 points</p>
+              <p className="text-gray-300">💀 Lose: 10 points</p>
+            </div>
           </div>
         )}
 
         {/* Character Selection */}
-        {walletConnected && remainingGames > 0 && (gameState.gamePhase === "idle" || gameState.gamePhase === "selecting") && (
+        {walletConnected && remainingGames > 0 && seasonTimeLeft > 0 && (gameState.gamePhase === "idle" || gameState.gamePhase === "selecting") && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 w-full max-w-4xl relative z-10">
             <CharacterButton index={0} character={gameState.images[0]} />
             <div className="flex items-center justify-center">
@@ -213,7 +226,7 @@ export default function GameBoard({
 
         {/* Fight Animation */}
         {walletConnected && gameState.gamePhase === "fighting" && (
-          <AttackAnimation />
+          <FightAnimation />
         )}
 
         {/* Result Screen */}
@@ -234,7 +247,7 @@ export default function GameBoard({
                 gameState.winnerIndex === 0 
                   ? "border-green-500 bg-green-500/20 scale-110" 
                   : "border-red-500 bg-red-500/20 opacity-60"
-              } ${loserDisappearing && gameState.winnerIndex !== 0 ? "opacity-0 scale-50" : ""}`}>
+              }`}>
                 <Image 
                   src={gameState.images[0].url} 
                   alt={gameState.images[0].name}
@@ -251,7 +264,7 @@ export default function GameBoard({
                 gameState.winnerIndex === 1 
                   ? "border-green-500 bg-green-500/20 scale-110" 
                   : "border-red-500 bg-red-500/20 opacity-60"
-              } ${loserDisappearing && gameState.winnerIndex !== 1 ? "opacity-0 scale-50" : ""}`}>
+              }`}>
                 <Image 
                   src={gameState.images[1].url} 
                   alt={gameState.images[1].name}
@@ -307,9 +320,10 @@ export default function GameBoard({
           </div>
           <div>
             <ul className="space-y-2">
-              <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Win: +100 points | Lose: +10 points</li>
-              <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Loser gets replaced automatically</li>
-              <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Maximum 5 battles per day</li>
+              <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Win with YOYO: 500 points</li>
+              <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Win without YOYO: 250 points</li>
+              <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Lose: 10 points</li>
+              <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Maximum {dailyLimit} battles per day</li>
             </ul>
           </div>
         </div>

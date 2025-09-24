@@ -62,7 +62,7 @@ export default function MobileWalletSelector({ onConnect, onClose }) {
               className={`w-full flex items-center p-5 rounded-2xl transition-all duration-300 border-2 ${
                 selectedWallet === wallet.id
                   ? `border-green-500 bg-green-500/10 scale-105`
-                  : `border-gray-600 bg-gray-700/50 hover:border-${wallet.color.split('-')[1]}-500 hover:scale-102`
+                  : `border-gray-600 bg-gray-700/50 hover:border-purple-500 hover:scale-102`
               } ${selectedWallet ? 'opacity-70' : 'hover:shadow-lg'}`}
             >
               <span className={`text-4xl mr-4 ${selectedWallet === wallet.id ? 'animate-bounce' : ''}`}>
@@ -106,7 +106,7 @@ export default function MobileWalletSelector({ onConnect, onClose }) {
           <div className="mt-6 p-4 bg-blue-500/10 rounded-xl border border-blue-500/30">
             <h4 className="text-blue-400 font-semibold mb-2">💡 Pro Tip</h4>
             <p className="text-blue-300 text-sm">
-              Make sure your wallet app is installed and you're on the Base Sepolia network for optimal experience.
+              Make sure your wallet is set to <strong>Base Mainnet</strong> for optimal experience.
             </p>
           </div>
         )}

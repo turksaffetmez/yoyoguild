@@ -2,23 +2,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { contractAddress, abi } from "./utils/contract";
+import { checkYoyoBalance, getYoyoBalance } from "./utils/yoyoToken";
 import WalletConnection from "./components/WalletConnection";
 import GameBoard from "./components/GameBoard";
 import Leaderboard from "./components/Leaderboard";
 import HomeContent from "./components/HomeContent";
 import MobileWalletSelector from "./components/MobileWalletSelector";
 
-const YOYO_COIN_ADDRESS = "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1";
-const YOYO_COIN_ABI = [
-  "function balanceOf(address owner) view returns (uint256)",
-  "function decimals() view returns (uint8)"
-];
-
 export default function Home() {
   const [walletConnected, setWalletConnected] = useState(false);
   const [userAddress, setUserAddress] = useState("");
   const [contract, setContract] = useState(null);
   const [points, setPoints] = useState(0);
+  const [seasonPoints, setSeasonPoints] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
   const [transactionInfo, setTransactionInfo] = useState("");
   const [provider, setProvider] = useState(null);
@@ -28,8 +24,11 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
   const [showWalletOptions, setShowWalletOptions] = useState(false);
   const [gamesPlayedToday, setGamesPlayedToday] = useState(0);
-  const [lastPlayDate, setLastPlayDate] = useState("");
-  
+  const [dailyLimit, setDailyLimit] = useState(20);
+  const [seasonTimeLeft, setSeasonTimeLeft] = useState(0);
+  const [currentSeason, setCurrentSeason] = useState({});
+
+  // Oyun state'leri
   const [gameState, setGameState] = useState({
     selectedImage: null,
     winnerIndex: null,
@@ -55,69 +54,71 @@ export default function Home() {
       { id: 18, url: "/images/tevans18.png", name: "Guilder #18" },
       { id: 19, url: "/images/tevans19.png", name: "Guilder #19" }
     ],
-    isLoading: false,
-    attackPosition: 0
+    isLoading: false
   });
 
-  const checkDailyLimit = useCallback(() => {
-    const today = new Date().toDateString();
-    if (lastPlayDate !== today) {
-      setGamesPlayedToday(0);
-      setLastPlayDate(today);
-      return 5;
-    }
-    return 5 - gamesPlayedToday;
-  }, [lastPlayDate, gamesPlayedToday]);
-
-  const disconnectWallet = useCallback(() => {
-    if (window.ethereum && window.ethereum.removeListener) {
-      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-      window.ethereum.removeListener('chainChanged', handleChainChanged);
-    }
-    
-    setWalletConnected(false);
-    setUserAddress("");
-    setContract(null);
-    setPoints(0);
-    setProvider(null);
-    setTransactionInfo("");
-    setYoyoBalance(0);
-    setShowWalletOptions(false);
-    setGameState(prev => ({ ...prev, gamePhase: "idle", selectedImage: null, winnerIndex: null }));
-  }, []);
-
-  const handleAccountsChanged = useCallback(async (accounts) => {
-    if (accounts.length === 0) {
-      disconnectWallet();
-      setStatusMessage("Wallet disconnected.");
-    } else if (accounts[0] !== userAddress) {
-      setUserAddress(accounts[0]);
-      setStatusMessage("Account changed.");
-      await checkYoyoBalance(accounts[0]);
-      setTimeout(() => setStatusMessage(""), 3000);
-    }
-  }, [userAddress, disconnectWallet]);
-
-  const handleChainChanged = useCallback(() => {
-    window.location.reload();
-  }, []);
-
-  const checkYoyoBalance = useCallback(async (address) => {
-    if (!window.ethereum) return;
-    
+  // YOYO balance kontrolü
+  const updateYoyoBalance = useCallback(async (address) => {
+    if (!provider || !address) return;
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const yoyoContract = new ethers.Contract(YOYO_COIN_ADDRESS, YOYO_COIN_ABI, provider);
-      
-      const balance = await yoyoContract.balanceOf(address);
-      const formattedBalance = Number(ethers.formatUnits(balance, 18));
-      setYoyoBalance(formattedBalance);
-    } catch (err) {
-      console.error("Failed to get YOYO balance:", err);
-      setYoyoBalance(0);
+      const balance = await getYoyoBalance(address, provider);
+      setYoyoBalance(balance);
+    } catch (error) {
+      console.error("Failed to update YOYO balance:", error);
     }
-  }, []);
+  }, [provider]);
 
+  // Oyuncu bilgilerini getir
+  const updatePlayerInfo = useCallback(async (address) => {
+    if (!contract || !address) return;
+    try {
+      const [totalPoints, currentSeasonPoints, gamesToday, limit] = await contract.getPlayerInfo(address);
+      setPoints(Number(totalPoints));
+      setSeasonPoints(Number(currentSeasonPoints));
+      setGamesPlayedToday(Number(gamesToday));
+      setDailyLimit(Number(limit));
+    } catch (error) {
+      console.error("Failed to update player info:", error);
+    }
+  }, [contract]);
+
+  // Sezon bilgilerini getir
+  const updateSeasonInfo = useCallback(async () => {
+    if (!contract) return;
+    try {
+      const timeLeft = await contract.getSeasonTimeLeft();
+      setSeasonTimeLeft(Number(timeLeft));
+      
+      const season = await contract.currentSeason();
+      setCurrentSeason({
+        startTime: Number(season.startTime),
+        duration: Number(season.duration),
+        seasonNumber: Number(season.seasonNumber),
+        active: season.active
+      });
+    } catch (error) {
+      console.error("Failed to update season info:", error);
+    }
+  }, [contract]);
+
+  // Liderlik tablosunu getir
+  const updateLeaderboard = useCallback(async () => {
+    if (!contract) return;
+    try {
+      const [addresses, points] = await contract.getCurrentLeaderboard();
+      const leaderboardData = addresses.map((address, index) => ({
+        rank: index + 1,
+        address: address,
+        points: Number(points[index])
+      })).filter(player => player.points > 0);
+      
+      setLeaderboard(leaderboardData);
+    } catch (error) {
+      console.error("Failed to update leaderboard:", error);
+    }
+  }, [contract]);
+
+  // Cüzdan bağlantısı
   const connectWallet = useCallback(async () => {
     if (window.ethereum) {
       try {
@@ -136,8 +137,11 @@ export default function Home() {
         setUserAddress(address);
         setWalletConnected(true);
         
-        await checkYoyoBalance(address);
-        await getPointsFromBlockchain(contractInstance, address);
+        // Tüm bilgileri güncelle
+        await updateYoyoBalance(address);
+        await updatePlayerInfo(address);
+        await updateSeasonInfo();
+        await updateLeaderboard();
         
         setStatusMessage("Wallet connected successfully!");
         setTimeout(() => setStatusMessage(""), 3000);
@@ -152,7 +156,42 @@ export default function Home() {
         setStatusMessage("Please install a Web3 wallet (MetaMask, Coinbase Wallet, etc.)!");
       }
     }
-  }, [checkYoyoBalance, isMobile, contractAddress, abi]);
+  }, [updateYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
+
+  const disconnectWallet = useCallback(() => {
+    if (window.ethereum && window.ethereum.removeListener) {
+      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      window.ethereum.removeListener('chainChanged', handleChainChanged);
+    }
+    
+    setWalletConnected(false);
+    setUserAddress("");
+    setContract(null);
+    setPoints(0);
+    setSeasonPoints(0);
+    setProvider(null);
+    setTransactionInfo("");
+    setYoyoBalance(0);
+    setShowWalletOptions(false);
+    setGameState(prev => ({ ...prev, gamePhase: "idle", selectedImage: null, winnerIndex: null }));
+  }, []);
+
+  const handleAccountsChanged = useCallback(async (accounts) => {
+    if (accounts.length === 0) {
+      disconnectWallet();
+      setStatusMessage("Wallet disconnected.");
+    } else if (accounts[0] !== userAddress) {
+      setUserAddress(accounts[0]);
+      setStatusMessage("Account changed.");
+      await updateYoyoBalance(accounts[0]);
+      await updatePlayerInfo(accounts[0]);
+      setTimeout(() => setStatusMessage(""), 3000);
+    }
+  }, [userAddress, disconnectWallet, updateYoyoBalance, updatePlayerInfo]);
+
+  const handleChainChanged = useCallback(() => {
+    window.location.reload();
+  }, []);
 
   const checkWalletConnection = useCallback(async () => {
     if (window.ethereum) {
@@ -174,142 +213,96 @@ export default function Home() {
     }
   }, [handleAccountsChanged, handleChainChanged, connectWallet]);
 
-  const loadLeaderboard = useCallback(async () => {
-    try {
-      if (!window.ethereum) {
-        setLeaderboard([
-          { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
-          { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
-          { rank: 3, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", points: 7650 },
-        ]);
-        return;
-      }
-      
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const contractInstance = new ethers.Contract(contractAddress, abi, provider);
-      
-      const sampleAddresses = [
-        "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-        "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
-        "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        userAddress
-      ].filter(addr => addr);
-      
-      const leaderboardData = [];
-      
-      for (const address of sampleAddresses) {
-        try {
-          const userPoints = await contractInstance.getPoints(address);
-          const pointsValue = parseInt(userPoints.toString());
-          if (pointsValue > 0) {
-            leaderboardData.push({ address, points: pointsValue });
-          }
-        } catch (err) {
-          console.error(`Failed to get points for address ${address}:`, err);
-        }
-      }
-      
-      leaderboardData.sort((a, b) => b.points - a.points);
-      const top10 = leaderboardData.slice(0, 10);
-      
-      const rankedLeaderboard = top10.map((player, index) => ({
-        rank: index + 1,
-        address: player.address,
-        points: player.points
-      }));
-      
-      setLeaderboard(rankedLeaderboard);
-    } catch (err) {
-      console.error("Failed to load leaderboard:", err);
-      setLeaderboard([
-        { rank: 1, address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", points: 12500 },
-        { rank: 2, address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", points: 9800 },
-        { rank: 3, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", points: 7650 },
-      ]);
-    }
-  }, [userAddress]);
-
-  useEffect(() => {
-    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    setIsMobile(mobile);
-    checkWalletConnection();
-    loadLeaderboard();
-    checkDailyLimit();
-  }, [checkWalletConnection, loadLeaderboard, checkDailyLimit]);
-
-  async function getPointsFromBlockchain(contractInstance, address) {
-    if (!contractInstance) return;
-    
-    try {
-      const userPoints = await contractInstance.getPoints(address);
-      setPoints(parseInt(userPoints.toString()));
-    } catch (err) {
-      console.error("Failed to get points:", err);
-      setPoints(0);
-    }
-  }
-
-  async function addPointsToBlockchain(amount) {
-    if (!contract) {
+  // Oyunu başlat - YENİ SİSTEM
+  const startGame = async (selectedIndex) => {
+    if (!walletConnected || !contract) {
       setStatusMessage("Please connect wallet first!");
-      return false;
+      return;
     }
     
-    const remainingGames = checkDailyLimit();
-    if (remainingGames <= 0) {
-      setStatusMessage("❌ Daily limit reached! Maximum 5 games per day.");
-      return false;
+    if (gameState.gamePhase !== "idle") return;
+    
+    if (gamesPlayedToday >= dailyLimit) {
+      setStatusMessage("❌ Daily limit reached! Maximum 20 games per day.");
+      return;
     }
+    
+    // Oyunu başlat
+    setGameState(prev => ({ 
+      ...prev, 
+      isLoading: true, 
+      selectedImage: selectedIndex, 
+      gamePhase: "selecting",
+      winnerIndex: null
+    }));
+    
+    // Seçim animasyonu
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setGameState(prev => ({ ...prev, gamePhase: "fighting" }));
     
     try {
-      setStatusMessage("Processing blockchain transaction...");
+      // 1. Önce frontend'de kazananı belirle
+      const winChance = yoyoBalance > 0 ? 60 : 50;
+      const isWinner = Math.floor(Math.random() * 100) < winChance;
+      const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
       
-      const signer = await provider.getSigner();
-      const updatedContract = contract.connect(signer);
+      // 2. YOYO kontrolü
+      const hasYoyo = yoyoBalance > 0;
       
-      const tx = await updatedContract.addPoints(await signer.getAddress(), amount);
+      // 3. Contract'a işlem gönder - GERÇEK SONUÇ BURADA
+      setStatusMessage("🔄 Processing blockchain transaction...");
       
+      const tx = await contract.playGame(isWinner, hasYoyo);
       setTransactionInfo(`Transaction sent: ${tx.hash}`);
       
+      // İşlemin onaylanmasını bekle
       const receipt = await tx.wait();
+      setTransactionInfo(prev => prev + `\nConfirmed! Block: ${receipt.blockNumber}`);
       
-      setStatusMessage(`Transaction confirmed! ${amount} points added.`);
-      setTransactionInfo(prev => prev + `\nTransaction confirmed. Block: ${receipt.blockNumber}`);
+      // 4. Başarılıysa animasyonları göster
+      setGameState(prev => ({ ...prev, winnerIndex, gamePhase: "result" }));
       
-      await getPointsFromBlockchain(updatedContract, await signer.getAddress());
-      await loadLeaderboard();
+      // 5. Bilgileri güncelle
+      await updatePlayerInfo(userAddress);
+      await updateLeaderboard();
       
-      setGamesPlayedToday(prev => prev + 1);
-      
-      setTimeout(() => setStatusMessage(""), 3000);
-      
-      return true;
-    } catch (err) {
-      console.error("Error:", err);
-      
-      if (err.code === 4001 || err.code === 'ACTION_REJECTED' || err.message?.includes('user rejected') || err.message?.includes('denied transaction')) {
-        setStatusMessage("❌ Transaction rejected. Please confirm the transaction in your wallet.");
-      } else if (err.message?.includes('insufficient funds')) {
-        setStatusMessage("💸 Insufficient gas fee. Please add ETH to your wallet.");
-      } else if (err.message?.includes('network')) {
-        setStatusMessage("🌐 Network error. Please check your connection.");
+      // 6. Sonuç mesajı
+      const pointsEarned = isWinner ? (hasYoyo ? 500 : 250) : 10;
+      if (isWinner) {
+        setStatusMessage(`🎉 You won! +${pointsEarned} YOYO Points 🥳`);
       } else {
-        setStatusMessage("⚠️ Transaction failed: " + (err.message || "Unknown error"));
+        setStatusMessage(`😢 You lost! +${pointsEarned} YOYO Points`);
+      }
+      
+      setTimeout(() => setStatusMessage(""), 5000);
+      
+    } catch (err) {
+      console.error("Game transaction failed:", err);
+      
+      if (err.code === 4001 || err.message?.includes('user rejected')) {
+        setStatusMessage("❌ Transaction rejected. Please try again.");
+      } else if (err.message?.includes('Daily limit reached')) {
+        setStatusMessage("❌ Daily limit reached! Maximum 20 games per day.");
+      } else if (err.message?.includes('Season ended')) {
+        setStatusMessage("❌ Current season has ended. Wait for new season.");
+      } else {
+        setStatusMessage("⚠️ Transaction failed. Please try again.");
       }
       
       setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
-      
-      return false;
     }
-  }
+  };
 
+  // Reset game function
   const resetGame = useCallback(() => {
     setGameState(prev => {
       const newImages = [...prev.images];
       
+      // Only change the losing character
       if (prev.winnerIndex !== null) {
         const loserIndex = prev.winnerIndex === 0 ? 1 : 0;
         
+        // New random character excluding current ones
         const currentIds = [prev.images[0].id, prev.images[1].id];
         const availableIds = Array.from({length: 19}, (_, i) => i + 1)
           .filter(id => !currentIds.includes(id));
@@ -330,79 +323,19 @@ export default function Home() {
         winnerIndex: null,
         gamePhase: "idle",
         isLoading: false,
-        images: newImages,
-        attackPosition: 0
+        images: newImages
       };
     });
-    
-    setStatusMessage("");
   }, []);
 
-  const startGame = async (selectedIndex) => {
-    if (!walletConnected) {
-      setStatusMessage("Please connect wallet first!");
-      return;
-    }
-    
-    const remainingGames = checkDailyLimit();
-    if (remainingGames <= 0) {
-      setStatusMessage("❌ Daily limit reached! Maximum 5 games per day.");
-      return;
-    }
-    
-    if (gameState.gamePhase !== "idle") return;
-    
-    setGameState(prev => ({ 
-      ...prev, 
-      isLoading: true, 
-      selectedImage: selectedIndex, 
-      gamePhase: "selecting",
-      winnerIndex: null
-    }));
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setGameState(prev => ({ ...prev, gamePhase: "fighting" }));
-    
-    try {
-      const winChance = yoyoBalance > 0 ? 60 : 50;
-      const isWinner = Math.floor(Math.random() * 100) < winChance;
-      const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
-      const earnedPoints = isWinner ? 100 : 10;
-      
-      // Attack animation
-      for (let i = 0; i <= 100; i += 20) {
-        setGameState(prev => ({ ...prev, attackPosition: i }));
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
-      const success = await addPointsToBlockchain(earnedPoints);
-      
-      if (success) {
-        setGameState(prev => ({ ...prev, winnerIndex, gamePhase: "result" }));
-        setPoints(prevPoints => prevPoints + earnedPoints);
-        
-        if (isWinner) {
-          setStatusMessage(`🎉 Congratulations! You won! +100 points 🥳`);
-        } else {
-          setStatusMessage(`😢 Unfortunately you lost. +10 points 😔`);
-        }
-        
-      } else {
-        setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
-      }
-    } catch (error) {
-      console.error("Error during game:", error);
-      setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
-      setStatusMessage("❌ An error occurred during the game. Please try again.");
-    }
-  };
-
+  // Yeni oyun başlatma
   const startNewGame = useCallback(() => {
     if (gameState.gamePhase === "result") {
       resetGame();
     }
   }, [gameState.gamePhase, resetGame]);
 
+  // Mobil cüzdan bağlantısı
   const connectMobileWallet = useCallback((walletType) => {
     const currentUrl = encodeURIComponent(window.location.href);
     let walletUrl = '';
@@ -425,7 +358,13 @@ export default function Home() {
     setTimeout(() => checkWalletConnection(), 3000);
   }, [checkWalletConnection]);
 
-  const remainingGames = checkDailyLimit();
+  useEffect(() => {
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    setIsMobile(mobile);
+    checkWalletConnection();
+  }, [checkWalletConnection]);
+
+  const remainingGames = dailyLimit - gamesPlayedToday;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex flex-col items-center p-4">
@@ -440,7 +379,7 @@ export default function Home() {
         <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 text-white py-8 px-6 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
           <h1 className="text-5xl font-bold mb-3 relative z-10">⚔️ YoYo Guild</h1>
-          <p className="text-xl opacity-90 relative z-10">Blockchain Battle Arena</p>
+          <p className="text-xl opacity-90 relative z-10">Blockchain Battle Arena - Season {currentSeason.seasonNumber || 1}</p>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent"></div>
         </header>
         
@@ -475,22 +414,34 @@ export default function Home() {
             walletConnected={walletConnected}
             userAddress={userAddress}
             points={points}
+            seasonPoints={seasonPoints}
             yoyoBalance={yoyoBalance}
             onDisconnect={disconnectWallet}
             onConnect={connectWallet}
             isMobile={isMobile}
             onShowWalletOptions={() => setShowWalletOptions(true)}
             remainingGames={remainingGames}
+            dailyLimit={dailyLimit}
+            seasonTimeLeft={seasonTimeLeft}
           />
           
           <div className="min-h-[500px]">
-            {activeTab === "home" && <HomeContent walletConnected={walletConnected} yoyoBalance={yoyoBalance} remainingGames={remainingGames} />}
+            {activeTab === "home" && (
+              <HomeContent 
+                walletConnected={walletConnected} 
+                yoyoBalance={yoyoBalance} 
+                remainingGames={remainingGames}
+                seasonTimeLeft={seasonTimeLeft}
+                currentSeason={currentSeason}
+              />
+            )}
             {activeTab === "play" && (
               <GameBoard
                 walletConnected={walletConnected}
                 gameState={gameState}
                 yoyoBalance={yoyoBalance}
                 points={points}
+                seasonPoints={seasonPoints}
                 onStartGame={startGame}
                 onConnectWallet={connectWallet}
                 isMobile={isMobile}
@@ -498,18 +449,25 @@ export default function Home() {
                 onStartNewGame={startNewGame}
                 onResetGame={resetGame}
                 remainingGames={remainingGames}
+                dailyLimit={dailyLimit}
+                seasonTimeLeft={seasonTimeLeft}
               />
             )}
-            {activeTab === "leaderboard" && <Leaderboard leaderboard={leaderboard} />}
+            {activeTab === "leaderboard" && (
+              <Leaderboard 
+                leaderboard={leaderboard} 
+                currentSeason={currentSeason}
+              />
+            )}
           </div>
 
           {statusMessage && (
             <div className={`mt-6 p-4 rounded-xl text-center border-2 backdrop-blur-sm ${
-              statusMessage.includes("Congratulations") || statusMessage.includes("successfully") 
+              statusMessage.includes("won") || statusMessage.includes("successfully") 
                 ? "bg-green-500/10 border-green-500/30 text-green-300" 
-                : statusMessage.includes("Unfortunately") || statusMessage.includes("rejected") 
+                : statusMessage.includes("lost") || statusMessage.includes("rejected") 
                 ? "bg-red-500/10 border-red-500/30 text-red-300"
-                : statusMessage.includes("connecting") || statusMessage.includes("Processing") 
+                : statusMessage.includes("Processing") 
                 ? "bg-blue-500/10 border-blue-500/30 text-blue-300"
                 : "bg-yellow-500/10 border-yellow-500/30 text-yellow-300"
             }`}>
@@ -526,7 +484,7 @@ export default function Home() {
         </div>
         
         <footer className="bg-gradient-to-r from-gray-900 to-gray-800 text-gray-400 py-4 text-center border-t border-gray-700">
-          <p>YoYo Guild - Elite Blockchain Battling | Base Sepolia Network</p>
+          <p>YoYo Guild - Elite Blockchain Battling | Base Mainnet | Season {currentSeason.seasonNumber || 1}</p>
         </footer>
       </div>
     </div>
