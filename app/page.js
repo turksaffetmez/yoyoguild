@@ -18,7 +18,6 @@ export default function Home() {
   const [provider, setProvider] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
   const [leaderboard, setLeaderboard] = useState([]);
-  const [preseasonLeaderboard, setPreseasonLeaderboard] = useState([]);
   const [yoyoBalanceAmount, setYoyoBalanceAmount] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [showWalletOptions, setShowWalletOptions] = useState(false);
@@ -28,11 +27,10 @@ export default function Home() {
   const [currentSeason, setCurrentSeason] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [connectionError, setConnectionError] = useState("");
-  const [initialized, setInitialized] = useState(false);
 
   // Sezon 1 başlangıç zamanı: 25 Eylül 2025 12:00 UTC
   const SEASON1_START_TIME = new Date("2025-09-25T12:00:00Z").getTime();
-  const SEASON_DURATION = 7 * 24 * 60 * 60 * 1000; // 1 HAFTA (7 gün)
+  const SEASON_DURATION = 7 * 24 * 60 * 60 * 1000; // 1 hafta
 
   const [gameState, setGameState] = useState({
     selectedImage: null,
@@ -62,14 +60,13 @@ export default function Home() {
     isLoading: false
   });
 
-  // Mevcut sezonu hesapla - DÜZELTİLDİ
+  // Mevcut sezonu hesapla
   const calculateCurrentSeason = useCallback(() => {
     const now = Date.now();
     
-    // Sezon 1 başlangıcından önce mi?
     if (now < SEASON1_START_TIME) {
       return {
-        seasonNumber: 0, // preseason
+        seasonNumber: 0,
         startTime: SEASON1_START_TIME,
         duration: SEASON_DURATION,
         active: false,
@@ -79,7 +76,6 @@ export default function Home() {
       };
     }
     
-    // Hangi sezondayız?
     const timeSinceSeason1 = now - SEASON1_START_TIME;
     const seasonsPassed = Math.floor(timeSinceSeason1 / SEASON_DURATION);
     const currentSeasonNumber = seasonsPassed + 1;
@@ -114,15 +110,14 @@ export default function Home() {
         balanceProvider
       );
       const balance = await yoyoContract.balanceOf(address);
-      const balanceNumber = Number(ethers.formatUnits(balance, 18));
-      return balanceNumber;
+      return Number(ethers.formatUnits(balance, 18));
     } catch (error) {
       console.error("YOYO balance check failed:", error);
       return 0;
     }
   }, [provider]);
 
-  // Oyuncu bilgilerini getir - PRESEASON DÜZELTİLDİ
+  // Oyuncu bilgilerini getir
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     try {
@@ -139,7 +134,7 @@ export default function Home() {
     }
   }, [contract, checkYoyoBalance]);
 
-  // Sezon bilgilerini güncelle - DÜZELTİLDİ
+  // Sezon bilgilerini güncelle
   const updateSeasonInfo = useCallback(() => {
     const seasonInfo = calculateCurrentSeason();
     setCurrentSeason(seasonInfo);
@@ -151,18 +146,11 @@ export default function Home() {
     }
   }, [calculateCurrentSeason]);
 
-  // Liderlik tablosunu getir - PRESEASON DÜZELTİLDİ
+  // Liderlik tablosunu getir
   const updateLeaderboard = useCallback(async () => {
     if (!contract) return;
     try {
-      const seasonInfo = calculateCurrentSeason();
-      
-      // PRESEASON için season 0'ı sorgula
-      const targetSeason = seasonInfo.isPreseason ? 0 : seasonInfo.seasonNumber;
-      console.log("Fetching leaderboard for season:", targetSeason);
-      
-      const [addresses, points] = await contract.getSeasonLeaderboard(targetSeason);
-      console.log("Raw leaderboard data:", addresses, points);
+      const [addresses, points] = await contract.getCurrentSeasonLeaderboard();
       
       const leaderboardData = addresses
         .map((address, index) => ({
@@ -178,91 +166,13 @@ export default function Home() {
           rank: index + 1
         }));
       
-      console.log("Processed leaderboard:", leaderboardData);
-      
-      if (seasonInfo.isPreseason) {
-        setPreseasonLeaderboard(leaderboardData);
-        setLeaderboard([]);
-      } else {
-        setLeaderboard(leaderboardData);
-        setPreseasonLeaderboard([]);
-      }
+      setLeaderboard(leaderboardData);
     } catch (error) {
       console.error("Failed to update leaderboard:", error);
     }
-  }, [contract, calculateCurrentSeason]);
-
-  // Preseason liderlik tablosunu ayrıca getir
-  const updatePreseasonLeaderboard = useCallback(async () => {
-    if (!contract) return;
-    try {
-      console.log("Updating preseason leaderboard...");
-      const [addresses, points] = await contract.getSeasonLeaderboard(0);
-      
-      const leaderboardData = addresses
-        .map((address, index) => ({
-          rank: index + 1,
-          address: address,
-          points: Number(points[index])
-        }))
-        .filter(player => player.points > 0)
-        .sort((a, b) => b.points - a.points)
-        .slice(0, 100)
-        .map((player, index) => ({
-          ...player,
-          rank: index + 1
-        }));
-      
-      console.log("Preseason leaderboard updated:", leaderboardData);
-      setPreseasonLeaderboard(leaderboardData);
-    } catch (error) {
-      console.error("Failed to update preseason leaderboard:", error);
-    }
   }, [contract]);
 
-  // Accounts changed handler
-  const handleAccountsChanged = useCallback((accounts) => {
-    if (accounts.length === 0) {
-      disconnectWallet();
-    } else {
-      checkWalletConnection();
-    }
-  }, []);
-
-  const handleChainChanged = useCallback((chainId) => {
-    window.location.reload();
-  }, []);
-
-  // Disconnect fonksiyonu
-  const disconnectWallet = useCallback(() => {
-    if (window.ethereum && window.ethereum.removeListener) {
-      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-      window.ethereum.removeListener('chainChanged', handleChainChanged);
-    }
-    
-    setWalletConnected(false);
-    setUserAddress("");
-    setContract(null);
-    setPoints(0);
-    setSeasonPoints(0);
-    setProvider(null);
-    setYoyoBalanceAmount(0);
-    setShowWalletOptions(false);
-    setLeaderboard([]);
-    setPreseasonLeaderboard([]);
-    setConnectionError("");
-    setIsLoading(false);
-    
-    setGameState(prev => ({ 
-      ...prev, 
-      gamePhase: "idle", 
-      selectedImage: null, 
-      winnerIndex: null,
-      isLoading: false 
-    }));
-  }, [handleAccountsChanged, handleChainChanged]);
-
-  // Cüzdan bağlantısı - PRESEASON DÜZELTİLDİ
+  // Cüzdan bağlantısı
   const connectWallet = useCallback(async () => {
     if (typeof window.ethereum === 'undefined') {
       setConnectionError("MetaMask not installed!");
@@ -301,10 +211,7 @@ export default function Home() {
       
       await updatePlayerInfo(address);
       updateSeasonInfo();
-      
-      // Hem normal hem preseason liderliği güncelle
       await updateLeaderboard();
-      await updatePreseasonLeaderboard();
       
     } catch (err) {
       console.error("Failed to connect wallet:", err);
@@ -312,59 +219,9 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [checkYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, updatePreseasonLeaderboard, isMobile]);
+  }, [checkYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
 
-  // Otomatik bağlantı kontrolü - PRESEASON DÜZELTİLDİ
-  const checkWalletConnection = useCallback(async () => {
-    if (initialized) return;
-    
-    if (typeof window.ethereum === 'undefined') {
-      setInitialized(true);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      
-      const newProvider = new ethers.BrowserProvider(window.ethereum);
-      setProvider(newProvider);
-      
-      const accounts = await window.ethereum.request({
-        method: 'eth_accounts'
-      });
-
-      if (accounts.length > 0) {
-        const signer = await newProvider.getSigner();
-        const address = await signer.getAddress();
-        const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-        
-        setContract(contractInstance);
-        setUserAddress(address);
-        setWalletConnected(true);
-        
-        const yoyoBalance = await checkYoyoBalance(address);
-        setYoyoBalanceAmount(yoyoBalance);
-        
-        await updatePlayerInfo(address);
-        updateSeasonInfo();
-        
-        // Hem normal hem preseason liderliği güncelle
-        await updateLeaderboard();
-        await updatePreseasonLeaderboard();
-      }
-
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-      
-    } catch (err) {
-      console.error("Auto-connection error:", err);
-    } finally {
-      setIsLoading(false);
-      setInitialized(true);
-    }
-  }, [initialized, checkYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, updatePreseasonLeaderboard, handleAccountsChanged, handleChainChanged]);
-
-  // Oyunu başlat - BLOCKCHAIN ÜZERİNDE HESAPLANACAK
+  // Oyunu başlat
   const startGame = async (selectedIndex) => {
     if (!walletConnected || !contract || isLoading) return;
     if (gameState.gamePhase !== "idle") return;
@@ -386,24 +243,19 @@ export default function Home() {
     try {
       setIsLoading(true);
       
-      // Contract'ta oyunu başlat - SONUÇ BLOCKCHAIN'DE HESAPLANACAK
-      const tx = await contract.playGame();
-      await tx.wait();
-      
-      // Sonuç için biraz bekle ve bilgileri güncelle
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Kazanma animasyonu göster (gerçek sonuç contract'tan gelecek)
+      // Frontend'de kazananı belirle (basit versiyon)
       const winChance = yoyoBalanceAmount > 0 ? 60 : 50;
       const isWinner = Math.floor(Math.random() * 100) < winChance;
       const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
       
+      // Contract'a işlem gönder
+      const tx = await contract.playGame(isWinner);
+      await tx.wait();
+      
       setGameState(prev => ({ ...prev, winnerIndex, gamePhase: "result" }));
       
-      // Bilgileri güncelle
       await updatePlayerInfo(userAddress);
       await updateLeaderboard();
-      await updatePreseasonLeaderboard();
       
     } catch (err) {
       console.error("Game transaction failed:", err);
@@ -414,7 +266,6 @@ export default function Home() {
     }
   };
 
-  // Kaybeden karakteri değiştir
   const resetGame = useCallback(() => {
     setGameState(prev => {
       const newImages = [...prev.images];
@@ -464,51 +315,46 @@ export default function Home() {
     }
     window.open(walletUrl, '_blank');
     setShowWalletOptions(false);
-    setTimeout(() => checkWalletConnection(), 3000);
-  }, [checkWalletConnection]);
+  }, []);
 
-  // Sezon zamanlayıcısı
-  useEffect(() => {
-    updateSeasonInfo();
-    
-    const interval = setInterval(() => {
-      updateSeasonInfo();
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, [updateSeasonInfo]);
-
-  // Liderlik tablosunu düzenli güncelle
-  useEffect(() => {
-    if (walletConnected && contract) {
-      const leaderboardInterval = setInterval(() => {
-        updateLeaderboard();
-        updatePreseasonLeaderboard();
-      }, 10000); // Her 10 saniyede bir güncelle
-      
-      return () => clearInterval(leaderboardInterval);
-    }
-  }, [walletConnected, contract, updateLeaderboard, updatePreseasonLeaderboard]);
-
-  // İlk yükleme
   useEffect(() => {
     const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     setIsMobile(mobile);
     
-    if (!initialized) {
-      checkWalletConnection();
-    }
-  }, []);
+    const checkWalletConnection = async () => {
+      if (typeof window.ethereum === 'undefined') return;
+      
+      try {
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(newProvider);
+        
+        const accounts = await window.ethereum.request({
+          method: 'eth_accounts'
+        });
 
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      if (window.ethereum && window.ethereum.removeListener) {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        if (accounts.length > 0) {
+          const signer = await newProvider.getSigner();
+          const address = await signer.getAddress();
+          const contractInstance = new ethers.Contract(contractAddress, abi, signer);
+          
+          setContract(contractInstance);
+          setUserAddress(address);
+          setWalletConnected(true);
+          
+          const yoyoBalance = await checkYoyoBalance(address);
+          setYoyoBalanceAmount(yoyoBalance);
+          
+          await updatePlayerInfo(address);
+          updateSeasonInfo();
+          await updateLeaderboard();
+        }
+      } catch (err) {
+        console.error("Auto-connection error:", err);
       }
     };
-  }, [handleAccountsChanged, handleChainChanged]);
+    
+    checkWalletConnection();
+  }, []);
 
   const remainingGames = dailyLimit - gamesPlayedToday;
 
@@ -528,7 +374,6 @@ export default function Home() {
             <Image src="/images/yoyo.png" alt="YoYo Guild" width={60} height={60} className="rounded-full" />
             <div>
               <h1 className="text-4xl font-bold">YoYo Guild Battle v1</h1>
-              {/* PRESEASON YAZISI KALDIRILDI */}
             </div>
           </div>
         </header>
@@ -541,8 +386,8 @@ export default function Home() {
                 onClick={() => setActiveTab(tab)} 
                 className={`px-6 py-3 rounded-xl transition-all duration-300 font-semibold ${
                   activeTab === tab 
-                    ? "btn-primary" 
-                    : "btn-secondary"
+                    ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-105" 
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
                 }`}
               >
                 {tab === "home" ? "🏠 Home" : tab === "play" ? "⚔️ Arena" : "🏆 Leaderboard"}
@@ -578,7 +423,14 @@ export default function Home() {
             points={points}
             seasonPoints={seasonPoints}
             yoyoBalanceAmount={yoyoBalanceAmount}
-            onDisconnect={disconnectWallet}
+            onDisconnect={() => {
+              setWalletConnected(false);
+              setUserAddress("");
+              setContract(null);
+              setPoints(0);
+              setSeasonPoints(0);
+              setYoyoBalanceAmount(0);
+            }}
             onConnect={connectWallet}
             isMobile={isMobile}
             onShowWalletOptions={() => setShowWalletOptions(true)}
@@ -621,8 +473,7 @@ export default function Home() {
             )}
             {activeTab === "leaderboard" && (
               <Leaderboard 
-                leaderboard={leaderboard}
-                preseasonLeaderboard={preseasonLeaderboard}
+                leaderboard={leaderboard} 
                 currentSeason={currentSeason}
               />
             )}
