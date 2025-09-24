@@ -50,6 +50,10 @@ const GameBoard = ({
       return;
     }
     
+    if (!currentSeason.active && currentSeason.timeUntilStart > 0) {
+      alert("Season has not started yet! Battles will not count towards leaderboard.");
+    }
+    
     setCountdown(3);
     onStartGame(selectedIndex);
   };
@@ -63,34 +67,57 @@ const GameBoard = ({
       case "idle":
         return (
           <div className="text-center space-y-6">
-            <h2 className="text-3xl font-bold text-white mb-2">Choose Your Guilder</h2>
+            <h2 className="text-3xl font-bold text-white mb-2">Choose Your Tevan</h2>
             <p className="text-gray-300 mb-6">
-              Select a Guilder to battle with. Win rate: <span className="text-yellow-400">{getWinChance()}%</span>
+              Select a Tevan to battle with. Win rate: <span className="text-yellow-400">{getWinChance()}%</span>
               {yoyoBalanceAmount > 0 && <span className="text-green-400 ml-2">(+10% YOYO Boost!)</span>}
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {gameState.images.slice(0, 2).map((image, index) => (
-                <div key={image.id} className="text-center">
-                  <div 
-                    className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
-                      gameState.selectedImage === index ? 'border-yellow-400 scale-105' : 'border-gray-600'
-                    }`}
-                    onClick={() => handleGameStart(index)}
-                  >
-                    <div className="w-32 h-32 mx-auto mb-4 relative">
-                      <Image
-                        src={image.url}
-                        alt={image.name}
-                        fill
-                        className="rounded-xl object-cover"
-                      />
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">{image.name}</h3>
-                    <div className="text-sm text-gray-400">Win Chance: {getWinChance()}%</div>
+            <div className="flex justify-center items-center space-x-8 max-w-4xl mx-auto">
+              {/* Sol Tevan */}
+              <div className="text-center">
+                <div 
+                  className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
+                    gameState.selectedImage === 0 ? 'border-yellow-400 scale-105' : 'border-gray-600'
+                  }`}
+                  onClick={() => handleGameStart(0)}
+                >
+                  <div className="w-32 h-32 mx-auto mb-4 relative">
+                    <Image
+                      src={gameState.images[0].url}
+                      alt={gameState.images[0].name}
+                      fill
+                      className="rounded-xl object-cover"
+                    />
                   </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{gameState.images[0].name}</h3>
+                  <div className="text-sm text-gray-400">Win Chance: {getWinChance()}%</div>
                 </div>
-              ))}
+              </div>
+
+              {/* VS Yazısı */}
+              <div className="text-4xl font-bold text-red-500 animate-pulse">VS</div>
+
+              {/* Sağ Tevan - Sola dönük */}
+              <div className="text-center">
+                <div 
+                  className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
+                    gameState.selectedImage === 1 ? 'border-yellow-400 scale-105' : 'border-gray-600'
+                  }`}
+                  onClick={() => handleGameStart(1)}
+                >
+                  <div className="w-32 h-32 mx-auto mb-4 relative">
+                    <Image
+                      src={gameState.images[1].url}
+                      alt={gameState.images[1].name}
+                      fill
+                      className="rounded-xl object-cover scale-x-[-1]" // Sola dönük
+                    />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{gameState.images[1].name}</h3>
+                  <div className="text-sm text-gray-400">Win Chance: {getWinChance()}%</div>
+                </div>
+              </div>
             </div>
 
             <div className="bg-gray-800/50 rounded-xl p-4 max-w-md mx-auto">
@@ -107,6 +134,12 @@ const GameBoard = ({
                     {yoyoBalanceAmount > 0 ? "Active (+10%)" : "Not Active"}
                   </span>
                 </div>
+                {!currentSeason.active && currentSeason.timeUntilStart > 0 && (
+                  <div className="flex justify-between text-yellow-400">
+                    <span>Season Status:</span>
+                    <span>Starts Soon (Practice Mode)</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -116,7 +149,7 @@ const GameBoard = ({
         return (
           <div className="text-center space-y-8">
             <h2 className="text-4xl font-bold text-yellow-400 animate-pulse">Preparing Battle...</h2>
-            <div className="flex justify-center space-x-8">
+            <div className="flex justify-center items-center space-x-8">
               {gameState.images.slice(0, 2).map((image, index) => (
                 <div key={image.id} className={`transform transition-all duration-500 ${
                   gameState.selectedImage === index ? 'scale-110' : 'scale-90 opacity-60'
@@ -127,13 +160,14 @@ const GameBoard = ({
                         src={image.url}
                         alt={image.name}
                         fill
-                        className="rounded-xl object-cover"
+                        className={`rounded-xl object-cover ${index === 1 ? 'scale-x-[-1]' : ''}`}
                       />
                     </div>
                     <h3 className="text-xl font-bold text-white">{image.name}</h3>
                   </div>
                 </div>
               ))}
+              <div className="text-4xl font-bold text-red-500">VS</div>
             </div>
           </div>
         );
@@ -145,7 +179,7 @@ const GameBoard = ({
               {countdown > 0 ? `Battle starts in ${countdown}...` : 'BATTLE!'}
             </h2>
             
-            <div className={`flex justify-center space-x-8 transition-all duration-300 ${
+            <div className={`flex justify-center items-center space-x-8 transition-all duration-300 ${
               fightAnimation ? 'scale-110' : 'scale-100'
             }`}>
               {gameState.images.slice(0, 2).map((image, index) => (
@@ -158,13 +192,14 @@ const GameBoard = ({
                         src={image.url}
                         alt={image.name}
                         fill
-                        className="rounded-xl object-cover"
+                        className={`rounded-xl object-cover ${index === 1 ? 'scale-x-[-1]' : ''}`}
                       />
                     </div>
                     <h3 className="text-xl font-bold text-white">{image.name}</h3>
                   </div>
                 </div>
               ))}
+              <div className="text-4xl font-bold text-red-500">VS</div>
             </div>
 
             {fightAnimation && (
@@ -181,7 +216,7 @@ const GameBoard = ({
               {isWinner ? 'VICTORY! 🎉' : 'DEFEAT! 💀'}
             </div>
             
-            <div className="flex justify-center space-x-8">
+            <div className="flex justify-center items-center space-x-8">
               {gameState.images.slice(0, 2).map((image, index) => (
                 <div key={image.id} className={`transform transition-all duration-500 ${
                   index === gameState.winnerIndex ? 'scale-110 border-green-400' : 'scale-90 border-red-400 opacity-70'
@@ -194,7 +229,7 @@ const GameBoard = ({
                         src={image.url}
                         alt={image.name}
                         fill
-                        className="rounded-xl object-cover"
+                        className={`rounded-xl object-cover ${index === 1 ? 'scale-x-[-1]' : ''}`}
                       />
                     </div>
                     <h3 className="text-xl font-bold text-white">{image.name}</h3>
@@ -204,6 +239,7 @@ const GameBoard = ({
                   </div>
                 </div>
               ))}
+              <div className="text-4xl font-bold text-red-500">VS</div>
             </div>
 
             <div className="bg-gray-800/50 rounded-xl p-6 max-w-md mx-auto">
@@ -211,6 +247,11 @@ const GameBoard = ({
                 <div className="text-2xl font-bold text-yellow-400">
                   {isWinner ? '+10 Points!' : 'Better luck next time!'}
                 </div>
+                {!currentSeason.active && currentSeason.timeUntilStart > 0 && (
+                  <div className="text-yellow-400 text-sm">
+                    ⚠️ Practice Mode - Points won't count towards leaderboard
+                  </div>
+                )}
                 <div className="text-gray-300">
                   Total Points: <span className="text-white font-bold">{points}</span>
                 </div>
@@ -228,7 +269,7 @@ const GameBoard = ({
             <button
               onClick={onStartNewGame}
               disabled={remainingGames <= 0}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {remainingGames > 0 ? 'Battle Again!' : 'Daily Limit Reached'}
             </button>
@@ -243,11 +284,11 @@ const GameBoard = ({
   if (!walletConnected) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-3xl font-bold text-white mb-4">⚔️ Guild Battle Arena</h2>
+        <h2 className="text-3xl font-bold text-white mb-4">⚔️ Battle Arena</h2>
         <p className="text-gray-300 mb-8">Connect your wallet to start battling!</p>
         <button
           onClick={isMobile ? onShowWalletOptions : onConnectWallet}
-          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105"
+          className="btn-primary"
         >
           Connect Wallet to Play
         </button>

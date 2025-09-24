@@ -7,6 +7,7 @@ import GameBoard from "./components/GameBoard";
 import Leaderboard from "./components/Leaderboard";
 import HomeContent from "./components/HomeContent";
 import MobileWalletSelector from "./components/MobileWalletSelector";
+import Image from "next/image";
 
 export default function Home() {
   const [walletConnected, setWalletConnected] = useState(false);
@@ -26,37 +27,72 @@ export default function Home() {
   const [currentSeason, setCurrentSeason] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [connectionError, setConnectionError] = useState("");
-  const [initialized, setInitialized] = useState(false); // YENİ: Initialization kontrolü
+  const [initialized, setInitialized] = useState(false);
+
+  // Sezon 1 başlangıç zamanı: 25 Eylül 2025 12:00 UTC
+  const SEASON1_START_TIME = new Date("2025-09-25T12:00:00Z").getTime();
+  const SEASON_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 gün milisaniye cinsinden
 
   const [gameState, setGameState] = useState({
     selectedImage: null,
     winnerIndex: null,
     gamePhase: "idle",
     images: [
-      { id: 1, url: "/images/tevans1.png", name: "Guilder #1" },
-      { id: 2, url: "/images/tevans2.png", name: "Guilder #2" },
-      { id: 3, url: "/images/tevans3.png", name: "Guilder #3" },
-      { id: 4, url: "/images/tevans4.png", name: "Guilder #4" },
-      { id: 5, url: "/images/tevans5.png", name: "Guilder #5" },
-      { id: 6, url: "/images/tevans6.png", name: "Guilder #6" },
-      { id: 7, url: "/images/tevans7.png", name: "Guilder #7" },
-      { id: 8, url: "/images/tevans8.png", name: "Guilder #8" },
-      { id: 9, url: "/images/tevans9.png", name: "Guilder #9" },
-      { id: 10, url: "/images/tevans10.png", name: "Guilder #10" },
-      { id: 11, url: "/images/tevans11.png", name: "Guilder #11" },
-      { id: 12, url: "/images/tevans12.png", name: "Guilder #12" },
-      { id: 13, url: "/images/tevans13.png", name: "Guilder #13" },
-      { id: 14, url: "/images/tevans14.png", name: "Guilder #14" },
-      { id: 15, url: "/images/tevans15.png", name: "Guilder #15" },
-      { id: 16, url: "/images/tevans16.png", name: "Guilder #16" },
-      { id: 17, url: "/images/tevans17.png", name: "Guilder #17" },
-      { id: 18, url: "/images/tevans18.png", name: "Guilder #18" },
-      { id: 19, url: "/images/tevans19.png", name: "Guilder #19" }
+      { id: 1, url: "/images/tevans1.png", name: "Tevan #1" },
+      { id: 2, url: "/images/tevans2.png", name: "Tevan #2" },
+      { id: 3, url: "/images/tevans3.png", name: "Tevan #3" },
+      { id: 4, url: "/images/tevans4.png", name: "Tevan #4" },
+      { id: 5, url: "/images/tevans5.png", name: "Tevan #5" },
+      { id: 6, url: "/images/tevans6.png", name: "Tevan #6" },
+      { id: 7, url: "/images/tevans7.png", name: "Tevan #7" },
+      { id: 8, url: "/images/tevans8.png", name: "Tevan #8" },
+      { id: 9, url: "/images/tevans9.png", name: "Tevan #9" },
+      { id: 10, url: "/images/tevans10.png", name: "Tevan #10" },
+      { id: 11, url: "/images/tevans11.png", name: "Tevan #11" },
+      { id: 12, url: "/images/tevans12.png", name: "Tevan #12" },
+      { id: 13, url: "/images/tevans13.png", name: "Tevan #13" },
+      { id: 14, url: "/images/tevans14.png", name: "Tevan #14" },
+      { id: 15, url: "/images/tevans15.png", name: "Tevan #15" },
+      { id: 16, url: "/images/tevans16.png", name: "Tevan #16" },
+      { id: 17, url: "/images/tevans17.png", name: "Tevan #17" },
+      { id: 18, url: "/images/tevans18.png", name: "Tevan #18" },
+      { id: 19, url: "/images/tevans19.png", name: "Tevan #19" }
     ],
     isLoading: false
   });
 
-  // YOYO balance kontrolü - useCallback ile sabitle
+  // Mevcut sezonu hesapla
+  const calculateCurrentSeason = useCallback(() => {
+    const now = Date.now();
+    const timeSinceStart = now - SEASON1_START_TIME;
+    
+    if (timeSinceStart < 0) {
+      // Sezon henüz başlamadı
+      return {
+        seasonNumber: 1,
+        startTime: SEASON1_START_TIME,
+        duration: SEASON_DURATION,
+        active: false,
+        timeUntilStart: Math.abs(timeSinceStart)
+      };
+    }
+    
+    const seasonsPassed = Math.floor(timeSinceStart / SEASON_DURATION);
+    const currentSeasonNumber = seasonsPassed + 1;
+    const currentSeasonStart = SEASON1_START_TIME + (seasonsPassed * SEASON_DURATION);
+    const timeUntilEnd = currentSeasonStart + SEASON_DURATION - now;
+    
+    return {
+      seasonNumber: currentSeasonNumber,
+      startTime: currentSeasonStart,
+      duration: SEASON_DURATION,
+      active: timeUntilEnd > 0,
+      timeUntilEnd: Math.max(0, timeUntilEnd),
+      timeUntilStart: 0
+    };
+  }, []);
+
+  // YOYO balance kontrolü
   const checkYoyoBalance = useCallback(async (address) => {
     if (!provider || !address) return 0;
     try {
@@ -66,14 +102,16 @@ export default function Home() {
         provider
       );
       const balance = await yoyoContract.balanceOf(address);
-      return Number(ethers.formatUnits(balance, 18));
+      const balanceNumber = Number(ethers.formatUnits(balance, 18));
+      console.log("YOYO Balance:", balanceNumber);
+      return balanceNumber;
     } catch (error) {
       console.error("YOYO balance check failed:", error);
       return 0;
     }
   }, [provider]);
 
-  // Oyuncu bilgilerini getir - useCallback ile sabitle
+  // Oyuncu bilgilerini getir
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     try {
@@ -90,30 +128,24 @@ export default function Home() {
     }
   }, [contract, checkYoyoBalance]);
 
-  // Sezon bilgilerini getir - useCallback ile sabitle
-  const updateSeasonInfo = useCallback(async () => {
-    if (!contract) return;
-    try {
-      const timeLeft = await contract.getSeasonTimeLeft();
-      setSeasonTimeLeft(Number(timeLeft));
-      
-      const season = await contract.currentSeason();
-      setCurrentSeason({
-        startTime: Number(season.startTime),
-        duration: Number(season.duration),
-        seasonNumber: Number(season.seasonNumber),
-        active: season.active
-      });
-    } catch (error) {
-      console.error("Failed to update season info:", error);
+  // Sezon bilgilerini güncelle
+  const updateSeasonInfo = useCallback(() => {
+    const seasonInfo = calculateCurrentSeason();
+    setCurrentSeason(seasonInfo);
+    
+    if (seasonInfo.active) {
+      setSeasonTimeLeft(seasonInfo.timeUntilEnd);
+    } else {
+      setSeasonTimeLeft(seasonInfo.timeUntilStart);
     }
-  }, [contract]);
+  }, [calculateCurrentSeason]);
 
-  // Liderlik tablosunu getir - useCallback ile sabitle
+  // Liderlik tablosunu getir
   const updateLeaderboard = useCallback(async () => {
     if (!contract) return;
     try {
-      const [addresses, points] = await contract.getCurrentSeasonLeaderboard();
+      const seasonInfo = calculateCurrentSeason();
+      const [addresses, points] = await contract.getSeasonLeaderboard(seasonInfo.seasonNumber);
       
       const leaderboardData = addresses
         .map((address, index) => ({
@@ -123,6 +155,7 @@ export default function Home() {
         }))
         .filter(player => player.points > 0)
         .sort((a, b) => b.points - a.points)
+        .slice(0, 100) // İlk 100 oyuncu
         .map((player, index) => ({
           ...player,
           rank: index + 1
@@ -132,16 +165,15 @@ export default function Home() {
     } catch (error) {
       console.error("Failed to update leaderboard:", error);
     }
-  }, [contract]);
+  }, [contract, calculateCurrentSeason]);
 
-  // DÜZELTİLMİŞ: Accounts changed handler - useCallback ile sabitle
+  // Accounts changed handler
   const handleAccountsChanged = useCallback((accounts) => {
     console.log("Accounts changed:", accounts);
     
     if (accounts.length === 0) {
       disconnectWallet();
     } else {
-      // Yeniden bağlanmak için checkWalletConnection'ı çağır
       checkWalletConnection();
     }
   }, []);
@@ -151,7 +183,7 @@ export default function Home() {
     window.location.reload();
   }, []);
 
-  // DÜZELTİLMİŞ: Disconnect fonksiyonu - useCallback ile sabitle
+  // Disconnect fonksiyonu
   const disconnectWallet = useCallback(() => {
     console.log("Disconnecting wallet...");
     
@@ -181,7 +213,7 @@ export default function Home() {
     }));
   }, [handleAccountsChanged, handleChainChanged]);
 
-  // DÜZELTİLMİŞ: Cüzdan bağlantısı - useCallback ile sabitle
+  // Cüzdan bağlantısı
   const connectWallet = useCallback(async () => {
     console.log("connectWallet called");
     
@@ -217,9 +249,13 @@ export default function Home() {
       setUserAddress(address);
       setWalletConnected(true);
       
-      // Verileri güncelle
+      // YOYO balance'ı hemen kontrol et
+      const yoyoBalance = await checkYoyoBalance(address);
+      setYoyoBalanceAmount(yoyoBalance);
+      
+      // Diğer verileri güncelle
       await updatePlayerInfo(address);
-      await updateSeasonInfo();
+      updateSeasonInfo();
       await updateLeaderboard();
       
     } catch (err) {
@@ -228,19 +264,13 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
+  }, [checkYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
 
-  // DÜZELTİLMİŞ: Otomatik bağlantı kontrolü - useCallback ile sabitle
+  // Otomatik bağlantı kontrolü
   const checkWalletConnection = useCallback(async () => {
-    console.log("checkWalletConnection called - initialized:", initialized);
-    
-    if (initialized) {
-      console.log("Already initialized, skipping...");
-      return;
-    }
+    if (initialized) return;
     
     if (typeof window.ethereum === 'undefined') {
-      console.log("MetaMask not installed");
       setInitialized(true);
       return;
     }
@@ -255,8 +285,6 @@ export default function Home() {
         method: 'eth_accounts'
       });
 
-      console.log("Auto-connect accounts:", accounts);
-
       if (accounts.length > 0) {
         const signer = await newProvider.getSigner();
         const address = await signer.getAddress();
@@ -266,12 +294,15 @@ export default function Home() {
         setUserAddress(address);
         setWalletConnected(true);
         
+        // YOYO balance'ı hemen kontrol et
+        const yoyoBalance = await checkYoyoBalance(address);
+        setYoyoBalanceAmount(yoyoBalance);
+        
         await updatePlayerInfo(address);
-        await updateSeasonInfo();
+        updateSeasonInfo();
         await updateLeaderboard();
       }
 
-      // Event listener'ları ekle (sadece bir kere)
       window.ethereum.on('accountsChanged', handleAccountsChanged);
       window.ethereum.on('chainChanged', handleChainChanged);
       
@@ -279,16 +310,21 @@ export default function Home() {
       console.error("Auto-connection error:", err);
     } finally {
       setIsLoading(false);
-      setInitialized(true); // Initialization tamamlandı
-      console.log("Wallet connection check completed");
+      setInitialized(true);
     }
-  }, [initialized, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, handleAccountsChanged, handleChainChanged]);
+  }, [initialized, checkYoyoBalance, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, handleAccountsChanged, handleChainChanged]);
 
   // Oyunu başlat
   const startGame = async (selectedIndex) => {
     if (!walletConnected || !contract || isLoading) return;
     if (gameState.gamePhase !== "idle") return;
     if (gamesPlayedToday >= dailyLimit) return;
+    
+    const seasonInfo = calculateCurrentSeason();
+    if (!seasonInfo.active && seasonInfo.timeUntilStart > 0) {
+      setConnectionError("Season has not started yet!");
+      return;
+    }
     
     setGameState(prev => ({ 
       ...prev, 
@@ -325,14 +361,32 @@ export default function Home() {
     }
   };
 
+  // Kaybeden karakteri değiştir
   const resetGame = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      selectedImage: null,
-      winnerIndex: null,
-      gamePhase: "idle",
-      isLoading: false
-    }));
+    setGameState(prev => {
+      const newImages = [...prev.images];
+      if (prev.winnerIndex !== null) {
+        const loserIndex = prev.winnerIndex === 0 ? 1 : 0;
+        const currentIds = [prev.images[0].id, prev.images[1].id];
+        const availableIds = Array.from({length: 19}, (_, i) => i + 1).filter(id => !currentIds.includes(id));
+        if (availableIds.length > 0) {
+          const randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
+          newImages[loserIndex] = {
+            id: randomId,
+            url: `/images/tevans${randomId}.png`,
+            name: `Tevan #${randomId}`
+          };
+        }
+      }
+      return {
+        ...prev,
+        selectedImage: null,
+        winnerIndex: null,
+        gamePhase: "idle",
+        isLoading: false,
+        images: newImages
+      };
+    });
   }, []);
 
   const startNewGame = useCallback(() => {
@@ -360,18 +414,28 @@ export default function Home() {
     setTimeout(() => checkWalletConnection(), 3000);
   }, [checkWalletConnection]);
 
-  // DÜZELTİLMİŞ: useEffect - sadece component mount olduğunda çalışsın
+  // Sezon zamanlayıcısı
+  useEffect(() => {
+    updateSeasonInfo();
+    
+    const interval = setInterval(() => {
+      updateSeasonInfo();
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [updateSeasonInfo]);
+
+  // İlk yükleme
   useEffect(() => {
     const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     setIsMobile(mobile);
     
-    // Sadece bir kere çalışacak
     if (!initialized) {
       checkWalletConnection();
     }
-  }, []); // Boş dependency array - sadece mount'ta çalışır
+  }, []);
 
-  // Cleanup effect
+  // Cleanup
   useEffect(() => {
     return () => {
       if (window.ethereum && window.ethereum.removeListener) {
@@ -396,14 +460,12 @@ export default function Home() {
         <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 text-white py-8 px-6 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
           <div className="flex items-center justify-center space-x-4 mb-2 relative z-10">
-            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-              <span className="text-3xl">⚔️</span>
-            </div>
+            <Image src="/images/yoyo.png" alt="YoYo Guild" width={60} height={60} className="rounded-full" />
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
-                YoYo Guild Battle
-              </h1>
-              <p className="text-lg opacity-90">Season {currentSeason.seasonNumber || 1}</p>
+              <h1 className="text-4xl font-bold">YoYo Guild Battle v1</h1>
+              <p className="text-lg opacity-90">
+                {currentSeason.active ? `Season ${currentSeason.seasonNumber}` : 'Starting Soon'}
+              </p>
             </div>
           </div>
         </header>
@@ -504,7 +566,7 @@ export default function Home() {
         </div>
         
         <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
-          <p>YoYo Guild Battle v1 | Base Mainnet | Season {currentSeason.seasonNumber || 1}</p>
+          <p>YoYo Guild Battle v1 | Base Mainnet | {currentSeason.active ? `Season ${currentSeason.seasonNumber}` : 'Starting Soon'}</p>
         </footer>
       </div>
 

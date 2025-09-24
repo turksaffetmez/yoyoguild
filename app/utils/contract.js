@@ -14,7 +14,8 @@ export const abi = [
       {"indexed": true, "internalType": "address", "name": "player", "type": "address"},
       {"indexed": false, "internalType": "bool", "name": "won", "type": "bool"},
       {"indexed": false, "internalType": "uint256", "name": "points", "type": "uint256"},
-      {"indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256"}
+      {"indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "season", "type": "uint256"}
     ],
     "name": "GamePlayed",
     "type": "event"
@@ -32,8 +33,8 @@ export const abi = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "getCurrentSeasonLeaderboard",
+    "inputs": [{"internalType": "uint256", "name": "season", "type": "uint256"}],
+    "name": "getSeasonLeaderboard",
     "outputs": [
       {"internalType": "address[]", "name": "", "type": "address[]"},
       {"internalType": "uint256[]", "name": "", "type": "uint256[]"}
@@ -43,7 +44,7 @@ export const abi = [
   },
   {
     "inputs": [],
-    "name": "getSeasonTimeLeft",
+    "name": "getCurrentSeasonTimeLeft",
     "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
     "stateMutability": "view",
     "type": "function"
@@ -66,6 +67,13 @@ export const abi = [
     "name": "playGame",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "yoyoToken",
+    "outputs": [{"internalType": "contract IERC20", "name": "", "type": "address"}],
+    "stateMutability": "view",
     "type": "function"
   }
 ];
