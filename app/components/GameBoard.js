@@ -17,23 +17,20 @@ const GameBoard = ({
   dailyLimit,
   seasonTimeLeft,
   currentSeason,
-  isLoading
+  isLoading,
+  pointValues
 }) => {
   const [countdown, setCountdown] = useState(0);
   const [fightAnimation, setFightAnimation] = useState(false);
 
   useEffect(() => {
-    let interval;
-    if (gameState.gamePhase === "fighting" && countdown > 0) {
-      interval = setInterval(() => {
-        setCountdown(prev => prev - 1);
-      }, 1000);
-    } else if (gameState.gamePhase === "fighting" && countdown === 0) {
+    if (gameState.gamePhase === "fighting" && gameState.countdown > 0) {
+      setCountdown(gameState.countdown);
+    } else if (gameState.gamePhase === "fighting" && (!gameState.countdown || gameState.countdown === 0)) {
       setFightAnimation(true);
       setTimeout(() => setFightAnimation(false), 2000);
     }
-    return () => clearInterval(interval);
-  }, [gameState.gamePhase, countdown]);
+  }, [gameState.gamePhase, gameState.countdown]);
 
   const handleGameStart = (selectedIndex) => {
     if (!walletConnected) {
@@ -54,12 +51,19 @@ const GameBoard = ({
       alert("Preseason Mode - Battles will not count towards official leaderboard");
     }
     
-    setCountdown(3);
     onStartGame(selectedIndex);
   };
 
   const getWinChance = () => {
     return yoyoBalanceAmount > 0 ? 60 : 50;
+  };
+
+  const getPointsInfo = () => {
+    if (yoyoBalanceAmount > 0) {
+      return `Win: ${pointValues.winYoyo} points | Lose: ${pointValues.lose} points`;
+    } else {
+      return `Win: ${pointValues.winNormal} points | Lose: ${pointValues.lose} points`;
+    }
   };
 
   const renderGamePhase = () => {
@@ -68,15 +72,18 @@ const GameBoard = ({
         return (
           <div className="text-center space-y-6">
             <h2 className="text-3xl font-bold text-white mb-2">Choose Your Tevan</h2>
-            <p className="text-gray-300 mb-6">
-              Select a Tevan to battle with. Win rate: <span className="text-yellow-400">{getWinChance()}%</span>
+            <p className="text-gray-300 mb-2">
+              Win rate: <span className="text-yellow-400">{getWinChance()}%</span>
               {yoyoBalanceAmount > 0 && <span className="text-green-400 ml-2">(+10% YOYO Boost!)</span>}
             </p>
+            <p className="text-green-400 font-semibold mb-4">
+              {getPointsInfo()}
+            </p>
             
-            {/* MOBİL UYUMlu FLEX YAPISI */}
-            <div className={`flex ${isMobile ? 'flex-col space-y-8' : 'flex-row space-x-8'} justify-center items-center max-w-4xl mx-auto`}>
+            {/* MOBİL UYUMlu FLEX YAPISI - VS ORTADA SABİT */}
+            <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} justify-center items-center max-w-4xl mx-auto relative`}>
               {/* Sol Tevan */}
-              <div className="text-center">
+              <div className={`text-center ${isMobile ? 'mb-8' : 'mr-8'}`}>
                 <div 
                   className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 ${isMobile ? 'w-full' : 'p-6'} border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
                     gameState.selectedImage === 0 ? 'border-yellow-400 scale-105' : 'border-gray-600'
@@ -96,13 +103,13 @@ const GameBoard = ({
                 </div>
               </div>
 
-              {/* VS Yazısı - Mobilde dikey, desktop'ta yatay */}
-              <div className={`font-bold text-red-500 animate-pulse ${isMobile ? 'text-3xl' : 'text-4xl'}`}>
+              {/* VS Yazısı - SABİT ORTADA */}
+              <div className={`font-bold text-red-500 animate-pulse absolute ${isMobile ? 'text-3xl top-1/2' : 'text-4xl left-1/2'} transform -translate-x-1/2 -translate-y-1/2 z-10 bg-gray-900/80 rounded-full ${isMobile ? 'w-16 h-16' : 'w-20 h-20'} flex items-center justify-center border-4 border-red-500`}>
                 VS
               </div>
 
               {/* Sağ Tevan - Sola dönük */}
-              <div className="text-center">
+              <div className={`text-center ${isMobile ? 'mt-8' : 'ml-8'}`}>
                 <div 
                   className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 ${isMobile ? 'w-full' : 'p-6'} border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
                     gameState.selectedImage === 1 ? 'border-yellow-400 scale-105' : 'border-gray-600'
@@ -152,11 +159,11 @@ const GameBoard = ({
         return (
           <div className="text-center space-y-8">
             <h2 className="text-4xl font-bold text-yellow-400 animate-pulse">Preparing Battle...</h2>
-            <div className={`flex ${isMobile ? 'flex-col space-y-8' : 'flex-row space-x-8'} justify-center items-center`}>
+            <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} justify-center items-center relative`}>
               {gameState.images.slice(0, 2).map((image, index) => (
                 <div key={image.id} className={`transform transition-all duration-500 ${
                   gameState.selectedImage === index ? 'scale-110' : 'scale-90 opacity-60'
-                }`}>
+                } ${isMobile ? 'mb-8' : index === 0 ? 'mr-8' : 'ml-8'}`}>
                   <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 border-4 border-yellow-400">
                     <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                       <Image
@@ -170,7 +177,9 @@ const GameBoard = ({
                   </div>
                 </div>
               ))}
-              <div className={`font-bold text-red-500 ${isMobile ? 'text-3xl' : 'text-4xl'}`}>VS</div>
+              <div className={`font-bold text-red-500 animate-pulse absolute ${isMobile ? 'text-3xl top-1/2' : 'text-4xl left-1/2'} transform -translate-x-1/2 -translate-y-1/2 z-10 bg-gray-900/80 rounded-full ${isMobile ? 'w-16 h-16' : 'w-20 h-20'} flex items-center justify-center border-4 border-red-500`}>
+                VS
+              </div>
             </div>
           </div>
         );
@@ -179,16 +188,16 @@ const GameBoard = ({
         return (
           <div className="text-center space-y-8">
             <h2 className="text-4xl font-bold text-red-400 animate-pulse">
-              {countdown > 0 ? `Battle starts in ${countdown}...` : 'BATTLE!'}
+              {gameState.countdown > 0 ? `Battle starts in ${gameState.countdown}...` : 'BATTLE!'}
             </h2>
             
-            <div className={`flex ${isMobile ? 'flex-col space-y-8' : 'flex-row space-x-8'} justify-center items-center transition-all duration-300 ${
+            <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} justify-center items-center relative transition-all duration-300 ${
               fightAnimation ? 'scale-110' : 'scale-100'
             }`}>
               {gameState.images.slice(0, 2).map((image, index) => (
                 <div key={image.id} className={`transform transition-all duration-500 ${
                   fightAnimation && index === gameState.selectedImage ? 'animate-bounce' : ''
-                }`}>
+                } ${isMobile ? 'mb-8' : index === 0 ? 'mr-8' : 'ml-8'}`}>
                   <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 border-4 border-red-500">
                     <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                       <Image
@@ -202,7 +211,9 @@ const GameBoard = ({
                   </div>
                 </div>
               ))}
-              <div className={`font-bold text-red-500 ${isMobile ? 'text-3xl' : 'text-4xl'}`}>VS</div>
+              <div className={`font-bold text-red-500 animate-pulse absolute ${isMobile ? 'text-3xl top-1/2' : 'text-4xl left-1/2'} transform -translate-x-1/2 -translate-y-1/2 z-10 bg-gray-900/80 rounded-full ${isMobile ? 'w-16 h-16' : 'w-20 h-20'} flex items-center justify-center border-4 border-red-500`}>
+                VS
+              </div>
             </div>
 
             {fightAnimation && (
@@ -212,18 +223,20 @@ const GameBoard = ({
         );
 
       case "result":
-        const isWinner = gameState.winnerIndex === gameState.selectedImage;
+        const isWinner = gameState.isWinner;
+        const pointsEarned = gameState.pointsEarned || 0;
+        
         return (
           <div className="text-center space-y-8">
             <div className={`text-4xl font-bold ${isWinner ? 'text-green-400' : 'text-red-400'} animate-bounce`}>
               {isWinner ? 'VICTORY! 🎉' : 'DEFEAT! 💀'}
             </div>
             
-            <div className={`flex ${isMobile ? 'flex-col space-y-8' : 'flex-row space-x-8'} justify-center items-center`}>
+            <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} justify-center items-center relative`}>
               {gameState.images.slice(0, 2).map((image, index) => (
                 <div key={image.id} className={`transform transition-all duration-500 ${
                   index === gameState.winnerIndex ? 'scale-110 border-green-400' : 'scale-90 border-red-400 opacity-70'
-                }`}>
+                } ${isMobile ? 'mb-8' : index === 0 ? 'mr-8' : 'ml-8'}`}>
                   <div className={`bg-gradient-to-br rounded-2xl p-4 border-4 ${
                     index === gameState.winnerIndex ? 'from-green-900/50 to-emerald-900/50' : 'from-red-900/50 to-rose-900/50'
                   }`}>
@@ -242,13 +255,19 @@ const GameBoard = ({
                   </div>
                 </div>
               ))}
-              <div className={`font-bold text-red-500 ${isMobile ? 'text-3xl' : 'text-4xl'}`}>VS</div>
+              <div className={`font-bold text-red-500 absolute ${isMobile ? 'text-3xl top-1/2' : 'text-4xl left-1/2'} transform -translate-x-1/2 -translate-y-1/2 z-10 bg-gray-900/80 rounded-full ${isMobile ? 'w-16 h-16' : 'w-20 h-20'} flex items-center justify-center border-4 border-red-500`}>
+                VS
+              </div>
             </div>
 
             <div className="bg-gray-800/50 rounded-xl p-6 max-w-md mx-auto">
               <div className="space-y-3">
                 <div className="text-2xl font-bold text-yellow-400">
-                  {isWinner ? '+10 Points!' : 'Better luck next time!'}
+                  {isWinner ? 
+                    (yoyoBalanceAmount > 0 ? 
+                      `+${pointValues.winYoyo} Points! 🎯` : 
+                      `+${pointValues.winNormal} Points!`) 
+                    : `+${pointValues.lose} Points`}
                 </div>
                 {currentSeason.isPreseason && (
                   <div className="text-yellow-400 text-sm">

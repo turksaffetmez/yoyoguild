@@ -14,7 +14,8 @@ const WalletConnection = ({
   dailyLimit,
   seasonTimeLeft,
   currentSeason,
-  isLoading
+  isLoading,
+  pointValues
 }) => {
   const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
 
@@ -136,6 +137,16 @@ const WalletConnection = ({
               <div className="text-2xl font-bold text-blue-400">
                 {remainingGames}/{dailyLimit}
               </div>
+            </div>
+          </div>
+
+          {/* Yeni Puan Sistemi Bilgisi */}
+          <div className="bg-slate-900/30 rounded-xl p-3 border border-slate-600">
+            <div className="text-center text-sm text-gray-300">
+              <span className="font-semibold text-green-400">Point System: </span>
+              <span>Win {pointValues.winNormal} points | </span>
+              <span className="text-yellow-400">Win with YOYO {pointValues.winYoyo} points | </span>
+              <span className="text-red-400">Lose {pointValues.lose} points</span>
             </div>
           </div>
 

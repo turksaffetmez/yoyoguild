@@ -5,7 +5,8 @@ const HomeContent = ({
   yoyoBalanceAmount, 
   remainingGames, 
   seasonTimeLeft, 
-  currentSeason 
+  currentSeason,
+  pointValues 
 }) => {
   const formatTimeLeft = (milliseconds) => {
     if (milliseconds <= 0) return "00:00:00";
@@ -31,7 +32,7 @@ const HomeContent = ({
       };
     } else if (currentSeason.timeUntilStart > 0) {
       return {
-        text: `Season ${currentSeason.nextSeasonNumber} starts in`, // DÜZELTİLDİ
+        text: `Season ${currentSeason.nextSeasonNumber} starts in`,
         time: formatTimeLeft(currentSeason.timeUntilStart),
         color: "text-yellow-400"
       };
@@ -65,6 +66,25 @@ const HomeContent = ({
           </p>
         </div>
         
+        {/* Yeni Puan Sistemi Bilgisi */}
+        <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-2xl p-4 mt-6 border border-purple-500/30 max-w-2xl mx-auto">
+          <h3 className="text-xl font-bold text-white mb-2">🎯 New Point System</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="text-center">
+              <div className="text-green-400 font-bold text-lg">{pointValues.winNormal} Points</div>
+              <div className="text-gray-300">Normal Win</div>
+            </div>
+            <div className="text-center">
+              <div className="text-yellow-400 font-bold text-lg">{pointValues.winYoyo} Points</div>
+              <div className="text-gray-300">Win with YOYO</div>
+            </div>
+            <div className="text-center">
+              <div className="text-red-400 font-bold text-lg">{pointValues.lose} Points</div>
+              <div className="text-gray-300">Lose</div>
+            </div>
+          </div>
+        </div>
+
         {/* Social Links */}
         <div className="flex justify-center space-x-6 mt-6">
           <a href="https://www.yoyoguild.com/" target="_blank" rel="noopener noreferrer" 
@@ -85,7 +105,7 @@ const HomeContent = ({
         </div>
       </div>
 
-      {/* Season Timer - DÜZELTİLDİ */}
+      {/* Season Timer */}
       <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl p-6 border border-purple-500/30 text-center">
         <div className="text-2xl font-bold text-white mb-2">{seasonStatus.text}</div>
         <div className={`text-4xl font-mono font-bold ${seasonStatus.color} mb-4`}>
@@ -171,8 +191,6 @@ const HomeContent = ({
           </div>
         </div>
       </div>
-
-      {/* "Ready to Battle" SECTION REMOVED */}
     </div>
   );
 };

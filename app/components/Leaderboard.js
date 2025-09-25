@@ -1,17 +1,17 @@
 import { useState } from 'react';
 
 const Leaderboard = ({ leaderboard, currentSeason }) => {
-  const [selectedSeason, setSelectedSeason] = useState(currentSeason.isPreseason ? 0 : currentSeason.seasonNumber);
+  // Sadece sezon 1-4 arası, preseason yok
+  const [selectedSeason, setSelectedSeason] = useState(
+    currentSeason.active && !currentSeason.isPreseason ? currentSeason.seasonNumber : 1
+  );
 
   const formatAddress = (address) => {
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
   };
 
-  // Sezon seçenekleri - preseason + 4 sezon
-  const seasonOptions = [
-    { value: 0, label: 'Preseason' }
-  ];
-  
+  // Sezon seçenekleri - sadece sezon 1-4
+  const seasonOptions = [];
   const maxSeason = Math.max(4, currentSeason.seasonNumber || 1);
   for (let i = 1; i <= maxSeason; i++) {
     seasonOptions.push({
@@ -21,7 +21,7 @@ const Leaderboard = ({ leaderboard, currentSeason }) => {
   }
 
   // Gösterilecek liderlik verisini seç
-  const displayLeaderboard = selectedSeason === 0 ? [] : leaderboard;
+  const displayLeaderboard = leaderboard;
 
   return (
     <div className="space-y-6">
@@ -52,17 +52,14 @@ const Leaderboard = ({ leaderboard, currentSeason }) => {
         </div>
 
         <p className="text-gray-300">
-          {selectedSeason === 0 
-            ? "Preseason Leaderboard - Testing Phase" 
-            : `Season ${selectedSeason} Leaderboard`
-          }
+          {`Season ${selectedSeason} Leaderboard`}
         </p>
       </div>
 
-      {selectedSeason === 0 && (
+      {currentSeason.isPreseason && (
         <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 text-center">
           <p className="text-yellow-400 text-sm">
-            ⚠️ Preseason battles are for testing purposes only. Points will not count towards official rewards.
+            ⚠️ Preseason Mode - Leaderboard will be available when Season 1 starts
           </p>
         </div>
       )}
@@ -71,14 +68,14 @@ const Leaderboard = ({ leaderboard, currentSeason }) => {
         <div className="text-center py-12">
           <div className="text-6xl mb-4">🏆</div>
           <h3 className="text-xl text-gray-400">
-            {selectedSeason === 0
-              ? "No preseason battles played yet"
+            {currentSeason.isPreseason 
+              ? "Season 1 starts soon!" 
               : `No data available for Season ${selectedSeason}`
             }
           </h3>
           <p className="text-gray-500">
-            {selectedSeason === 0
-              ? "Be the first to test the preseason battles!"
+            {currentSeason.isPreseason
+              ? "Official competition starts with Season 1"
               : "Be the first to battle and claim the top spot!"
             }
           </p>
@@ -114,10 +111,7 @@ const Leaderboard = ({ leaderboard, currentSeason }) => {
 
       <div className="bg-gray-800/50 rounded-xl p-4 text-center">
         <p className="text-gray-400 text-sm">
-          {selectedSeason === 0
-            ? "Preseason leaderboard shows test battles. Official competition starts with Season 1."
-            : "Leaderboard updates after each battle. Top players at the end of the season win special rewards!"
-          }
+          Leaderboard updates after each battle. Top players at the end of the season win special rewards!
         </p>
       </div>
     </div>

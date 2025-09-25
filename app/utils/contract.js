@@ -1,4 +1,4 @@
-export const contractAddress = "0x61350f3c0e6f2b7909c5096ba0b303fdea079a81";
+export const contractAddress = "0x014d62b4d1bb617c36ccac745cb0aba7b1a089be";
 
 export const abi = [
   {
@@ -64,7 +64,33 @@ export const abi = [
   },
   {
     "inputs": [],
-    "name": "WIN_POINTS",
+    "name": "LOSE_POINTS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "WIN_POINTS_NORMAL",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "WIN_POINTS_YOYO",
     "outputs": [
       {
         "internalType": "uint256",
@@ -241,6 +267,29 @@ export const abi = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "getPointValues",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -348,4 +397,4 @@ export const abi = [
     "stateMutability": "view",
     "type": "function"
   }
-]
+];
