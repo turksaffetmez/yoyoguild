@@ -140,7 +140,6 @@ const WalletConnection = ({
             </div>
           </div>
 
-          {/* Yeni Puan Sistemi Bilgisi */}
           <div className="bg-slate-900/30 rounded-xl p-3 border border-slate-600">
             <div className="text-center text-sm text-gray-300">
               <span className="font-semibold text-green-400">Point System: </span>

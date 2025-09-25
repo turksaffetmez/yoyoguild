@@ -51,9 +51,9 @@ const HomeContent = ({
     <div className="space-y-8">
       <div className="text-center">
         <div className="flex justify-center mb-6">
-          <Image src="/images/yoyo.png" alt="YoYo Guild" width={80} height={80} className="rounded-full" />
+          <Image src="/images/yoyo.png" alt="YoYo Guild" width={100} height={100} className="rounded-full" />
         </div>
-        <h2 className="text-4xl font-bold text-white mb-4">Welcome to YoYo Guild Battle v1</h2>
+        <h2 className="text-4xl font-bold text-white mb-4">Welcome to YoYo Guild Battle</h2>
         <div className="text-lg text-gray-300 max-w-4xl mx-auto space-y-4">
           <p>
             YoYo Guild is an elite community that brings together skilled players in the Tevaera universe. 
@@ -66,7 +66,6 @@ const HomeContent = ({
           </p>
         </div>
         
-        {/* Yeni Puan Sistemi Bilgisi */}
         <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-2xl p-4 mt-6 border border-purple-500/30 max-w-2xl mx-auto">
           <h3 className="text-xl font-bold text-white mb-2">🎯 New Point System</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -85,7 +84,6 @@ const HomeContent = ({
           </div>
         </div>
 
-        {/* Social Links */}
         <div className="flex justify-center space-x-6 mt-6">
           <a href="https://www.yoyoguild.com/" target="_blank" rel="noopener noreferrer" 
              className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors">
@@ -105,7 +103,6 @@ const HomeContent = ({
         </div>
       </div>
 
-      {/* Season Timer */}
       <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl p-6 border border-purple-500/30 text-center">
         <div className="text-2xl font-bold text-white mb-2">{seasonStatus.text}</div>
         <div className={`text-4xl font-mono font-bold ${seasonStatus.color} mb-4`}>

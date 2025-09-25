@@ -33,9 +33,8 @@ export default function Home() {
     lose: 10
   });
 
-  // Sezon 1 başlangıç zamanı: 25 Eylül 2025 12:00 UTC
   const SEASON1_START_TIME = new Date("2025-09-25T12:00:00Z").getTime();
-  const SEASON_DURATION = 7 * 24 * 60 * 60 * 1000; // 1 hafta
+  const SEASON_DURATION = 7 * 24 * 60 * 60 * 1000;
 
   const [gameState, setGameState] = useState({
     selectedImage: null,
@@ -65,7 +64,6 @@ export default function Home() {
     isLoading: false
   });
 
-  // Mevcut sezonu hesapla
   const calculateCurrentSeason = useCallback(() => {
     const now = Date.now();
     
@@ -99,7 +97,6 @@ export default function Home() {
     };
   }, []);
 
-  // YOYO balance kontrolü
   const checkYoyoBalance = useCallback(async (address) => {
     if (!address) return 0;
     try {
@@ -122,7 +119,6 @@ export default function Home() {
     }
   }, [provider]);
 
-  // Puan değerlerini getir
   const getPointValues = useCallback(async () => {
     if (!contract) return;
     try {
@@ -137,7 +133,6 @@ export default function Home() {
     }
   }, [contract]);
 
-  // Oyuncu bilgilerini getir
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     try {
@@ -154,7 +149,6 @@ export default function Home() {
     }
   }, [contract, checkYoyoBalance]);
 
-  // Sezon bilgilerini güncelle
   const updateSeasonInfo = useCallback(() => {
     const seasonInfo = calculateCurrentSeason();
     setCurrentSeason(seasonInfo);
@@ -166,31 +160,14 @@ export default function Home() {
     }
   }, [calculateCurrentSeason]);
 
-  // Liderlik tablosunu getir
   const updateLeaderboard = useCallback(async () => {
     if (!contract) return;
     try {
-      let seasonToQuery;
-      
-      if (currentSeason.isPreseason) {
-        seasonToQuery = 0;
-      } else {
-        seasonToQuery = currentSeason.active ? currentSeason.seasonNumber : 0;
-      }
-      
-      console.log("Querying leaderboard for season:", seasonToQuery);
+      let seasonToQuery = currentSeason.active ? currentSeason.seasonNumber : 0;
       
       const [addresses, points] = await contract.getSeasonLeaderboard(seasonToQuery);
       
-      console.log("Leaderboard raw data:", { 
-        season: seasonToQuery, 
-        addresses, 
-        points,
-        addressesLength: addresses?.length 
-      });
-      
       if (!addresses || addresses.length === 0) {
-        console.log("No leaderboard data found for season:", seasonToQuery);
         setLeaderboard([]);
         return;
       }
@@ -209,7 +186,6 @@ export default function Home() {
           rank: index + 1
         }));
       
-      console.log("Processed leaderboard:", leaderboardData);
       setLeaderboard(leaderboardData);
     } catch (error) {
       console.error("Failed to update leaderboard:", error);
@@ -217,7 +193,6 @@ export default function Home() {
     }
   }, [contract, currentSeason]);
 
-  // Cüzdan bağlantısı
   const connectWallet = useCallback(async () => {
     if (typeof window.ethereum === 'undefined') {
       setConnectionError("MetaMask not installed!");
@@ -267,25 +242,19 @@ export default function Home() {
     }
   }, [checkYoyoBalance, getPointValues, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
 
-  // Oyunu başlat
   const startGame = async (selectedIndex) => {
     if (!walletConnected || !contract || isLoading) return;
     if (gameState.gamePhase !== "idle") return;
     
     try {
-      // ÖNCE contract'tan güncel oyuncu bilgilerini al
       const currentInfo = await contract.getPlayerInfo(userAddress);
       const dailyGamesPlayed = Number(currentInfo[2]);
       const dailyLimit = Number(currentInfo[3]);
-      
-      console.log("Daily games check:", { dailyGamesPlayed, dailyLimit });
       
       if (dailyGamesPlayed >= dailyLimit) {
         alert(`Daily limit reached! Played: ${dailyGamesPlayed}/${dailyLimit}`);
         return;
       }
-      
-      const seasonInfo = calculateCurrentSeason();
       
       setGameState(prev => ({ 
         ...prev, 
@@ -299,48 +268,45 @@ export default function Home() {
       
       setIsLoading(true);
       
-      // Contract'a işlem gönder - PARAMETRESİZ
       const tx = await contract.playGame();
-      console.log("Transaction sent:", tx);
-      
-      // GERİ SAYIM TRANSACTION ONAYINDAN SONRA BAŞLASIN
       setGameState(prev => ({ ...prev, gamePhase: "fighting" }));
       
-      // Transaction'ın onaylanmasını bekle
       const receipt = await tx.wait();
-      console.log("Transaction confirmed:", receipt);
       
       if (receipt.status === 0) {
         throw new Error("Transaction reverted");
       }
       
-      // Transaction başarılı, 3 saniye geri sayım
+      // ✅ EVENT DİNLEME - FIXED
+      let isWinner = false;
+      let pointsEarned = 0;
+      
+      const gamePlayedEvent = receipt.logs.find(log => {
+        try {
+          const parsedLog = contract.interface.parseLog(log);
+          return parsedLog && parsedLog.name === "GamePlayed";
+        } catch {
+          return false;
+        }
+      });
+      
+      if (gamePlayedEvent) {
+        const parsedLog = contract.interface.parseLog(gamePlayedEvent);
+        isWinner = parsedLog.args.won;
+        pointsEarned = Number(parsedLog.args.points);
+        console.log("Contract event result:", { isWinner, pointsEarned });
+      }
+      
       for (let i = 3; i > 0; i--) {
         setGameState(prev => ({ ...prev, countdown: i }));
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      // Yeni oyuncu bilgilerini al
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const newInfo = await contract.getPlayerInfo(userAddress);
-      console.log("After battle - Player info:", newInfo);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      await updatePlayerInfo(userAddress);
+      await updateLeaderboard();
       
-      // Kazananı belirle (puan artışına göre)
-      const pointsBefore = Number(currentInfo[0]);
-      const pointsAfter = Number(newInfo[0]);
-      const seasonPointsBefore = Number(currentInfo[1]);
-      const seasonPointsAfter = Number(newInfo[1]);
-      
-      const isWinner = pointsAfter > pointsBefore;
-      const pointsEarned = pointsAfter - pointsBefore;
       const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
-      
-      console.log("Battle result:", {
-        pointsBefore, pointsAfter, pointsEarned,
-        seasonPointsBefore, seasonPointsAfter,
-        isWinner, winnerIndex,
-        hasYoyo: yoyoBalanceAmount > 0
-      });
       
       setGameState(prev => ({ 
         ...prev, 
@@ -350,14 +316,6 @@ export default function Home() {
         isWinner: isWinner
       }));
       
-      // State'leri güncelle
-      setPoints(pointsAfter);
-      setSeasonPoints(seasonPointsAfter);
-      setGamesPlayedToday(Number(newInfo[2]));
-      
-      // Leaderboard'u güncelle
-      await updateLeaderboard();
-      
     } catch (err) {
       console.error("Game transaction failed:", err);
       setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
@@ -366,16 +324,13 @@ export default function Home() {
       if (err.reason) {
         errorMessage += err.reason;
       } else if (err.message.includes("revert")) {
-        errorMessage += "Daily limit reached or contract error";
-      } else if (err.data?.message) {
-        errorMessage += err.data.message;
+        errorMessage += "Daily limit reached";
       } else {
         errorMessage += err.message;
       }
       
       setConnectionError(errorMessage);
       
-      // Hata durumunda oyuncu bilgilerini yenile
       if (userAddress) {
         await updatePlayerInfo(userAddress);
       }
@@ -419,6 +374,23 @@ export default function Home() {
       resetGame();
     }
   }, [gameState.gamePhase, resetGame]);
+
+  const disconnectWallet = useCallback(() => {
+    setWalletConnected(false);
+    setUserAddress("");
+    setContract(null);
+    setPoints(0);
+    setSeasonPoints(0);
+    setYoyoBalanceAmount(0);
+    setGamesPlayedToday(0);
+    setLeaderboard([]);
+    setGameState(prev => ({
+      ...prev,
+      gamePhase: "idle",
+      selectedImage: null,
+      winnerIndex: null
+    }));
+  }, []);
 
   const connectMobileWallet = useCallback((walletType) => {
     const currentUrl = encodeURIComponent(window.location.href);
@@ -490,12 +462,13 @@ export default function Home() {
       )}
       
       <div className="w-full max-w-6xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-3xl shadow-2xl overflow-hidden border border-purple-500/30 backdrop-blur-sm">
-        <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 text-white py-8 px-6 text-center relative overflow-hidden">
+        <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 text-white py-6 px-6 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
-          <div className="flex items-center justify-center space-x-4 mb-2 relative z-10">
-            <Image src="/images/yoyo.png" alt="YoYo Guild" width={60} height={60} className="rounded-full" />
+          <div className="flex items-center justify-center space-x-4 relative z-10">
+            <Image src="/images/yoyo.png" alt="YoYo Guild" width={80} height={80} className="rounded-full" />
             <div>
-              <h1 className="text-4xl font-bold">YoYo Guild Battle v1</h1>
+              <h1 className="text-4xl font-bold">YoYo Guild Battle</h1>
+              <p className="text-sm opacity-90 mt-1">Season 1 Starting Soon</p>
             </div>
           </div>
         </header>
@@ -545,14 +518,7 @@ export default function Home() {
             points={points}
             seasonPoints={seasonPoints}
             yoyoBalanceAmount={yoyoBalanceAmount}
-            onDisconnect={() => {
-              setWalletConnected(false);
-              setUserAddress("");
-              setContract(null);
-              setPoints(0);
-              setSeasonPoints(0);
-              setYoyoBalanceAmount(0);
-            }}
+            onDisconnect={disconnectWallet}
             onConnect={connectWallet}
             isMobile={isMobile}
             onShowWalletOptions={() => setShowWalletOptions(true)}
@@ -606,7 +572,7 @@ export default function Home() {
         </div>
         
         <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
-          <p>YoYo Guild Battle v1 | Base Mainnet | {currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}</p>
+          <p>YoYo Guild Battle | Base Mainnet | {currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}</p>
         </footer>
       </div>
 

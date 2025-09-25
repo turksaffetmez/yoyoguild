@@ -38,7 +38,6 @@ a {
   text-decoration: none;
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -56,7 +55,6 @@ a {
   background: #4f46e5;
 }
 
-/* Animations */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
@@ -75,7 +73,6 @@ a {
   animation: glow 2s ease-in-out infinite;
 }
 
-/* Gradient Text */
 .gradient-text {
   background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
   -webkit-background-clip: text;
@@ -83,7 +80,6 @@ a {
   background-clip: text;
 }
 
-/* Custom Components */
 .btn-primary {
   @apply bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-lg;
 }

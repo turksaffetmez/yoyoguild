@@ -80,10 +80,8 @@ const GameBoard = ({
               {getPointsInfo()}
             </p>
             
-            {/* MOBİL UYUMlu FLEX YAPISI - VS ORTADA SABİT */}
             <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} justify-center items-center max-w-4xl mx-auto relative`}>
-              {/* Sol Tevan */}
-              <div className={`text-center ${isMobile ? 'mb-8' : 'mr-8'}`}>
+              <div className={`text-center ${isMobile ? 'mb-12' : 'mr-12'}`}>
                 <div 
                   className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 ${isMobile ? 'w-full' : 'p-6'} border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
                     gameState.selectedImage === 0 ? 'border-yellow-400 scale-105' : 'border-gray-600'
@@ -103,13 +101,11 @@ const GameBoard = ({
                 </div>
               </div>
 
-              {/* VS Yazısı - SABİT ORTADA */}
               <div className={`font-bold text-red-500 animate-pulse absolute ${isMobile ? 'text-3xl top-1/2' : 'text-4xl left-1/2'} transform -translate-x-1/2 -translate-y-1/2 z-10 bg-gray-900/80 rounded-full ${isMobile ? 'w-16 h-16' : 'w-20 h-20'} flex items-center justify-center border-4 border-red-500`}>
                 VS
               </div>
 
-              {/* Sağ Tevan - Sola dönük */}
-              <div className={`text-center ${isMobile ? 'mt-8' : 'ml-8'}`}>
+              <div className={`text-center ${isMobile ? 'mt-12' : 'ml-12'}`}>
                 <div 
                   className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 ${isMobile ? 'w-full' : 'p-6'} border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
                     gameState.selectedImage === 1 ? 'border-yellow-400 scale-105' : 'border-gray-600'
@@ -121,7 +117,7 @@ const GameBoard = ({
                       src={gameState.images[1].url}
                       alt={gameState.images[1].name}
                       fill
-                      className="rounded-xl object-cover scale-x-[-1]" // Sola dönük
+                      className="rounded-xl object-cover scale-x-[-1]"
                     />
                   </div>
                   <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white mb-2`}>{gameState.images[1].name}</h3>
@@ -163,7 +159,7 @@ const GameBoard = ({
               {gameState.images.slice(0, 2).map((image, index) => (
                 <div key={image.id} className={`transform transition-all duration-500 ${
                   gameState.selectedImage === index ? 'scale-110' : 'scale-90 opacity-60'
-                } ${isMobile ? 'mb-8' : index === 0 ? 'mr-8' : 'ml-8'}`}>
+                } ${isMobile ? 'mb-12' : index === 0 ? 'mr-12' : 'ml-12'}`}>
                   <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 border-4 border-yellow-400">
                     <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                       <Image
@@ -197,7 +193,7 @@ const GameBoard = ({
               {gameState.images.slice(0, 2).map((image, index) => (
                 <div key={image.id} className={`transform transition-all duration-500 ${
                   fightAnimation && index === gameState.selectedImage ? 'animate-bounce' : ''
-                } ${isMobile ? 'mb-8' : index === 0 ? 'mr-8' : 'ml-8'}`}>
+                } ${isMobile ? 'mb-12' : index === 0 ? 'mr-12' : 'ml-12'}`}>
                   <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 border-4 border-red-500">
                     <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                       <Image
@@ -236,7 +232,7 @@ const GameBoard = ({
               {gameState.images.slice(0, 2).map((image, index) => (
                 <div key={image.id} className={`transform transition-all duration-500 ${
                   index === gameState.winnerIndex ? 'scale-110 border-green-400' : 'scale-90 border-red-400 opacity-70'
-                } ${isMobile ? 'mb-8' : index === 0 ? 'mr-8' : 'ml-8'}`}>
+                } ${isMobile ? 'mb-12' : index === 0 ? 'mr-12' : 'ml-12'}`}>
                   <div className={`bg-gradient-to-br rounded-2xl p-4 border-4 ${
                     index === gameState.winnerIndex ? 'from-green-900/50 to-emerald-900/50' : 'from-red-900/50 to-rose-900/50'
                   }`}>
@@ -269,6 +265,11 @@ const GameBoard = ({
                       `+${pointValues.winNormal} Points!`) 
                     : `+${pointValues.lose} Points`}
                 </div>
+                
+                <div className="text-green-400 font-semibold">
+                  Points Earned: +{pointsEarned}
+                </div>
+                
                 {currentSeason.isPreseason && (
                   <div className="text-yellow-400 text-sm">
                     ⚠️ Preseason Mode - Points won't count towards official leaderboard
