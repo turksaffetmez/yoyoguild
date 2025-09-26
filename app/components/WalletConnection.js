@@ -4,7 +4,6 @@ const WalletConnection = ({
   walletConnected,
   userAddress,
   points,
-  seasonPoints,
   yoyoBalanceAmount,
   onDisconnect,
   onConnect,
@@ -12,8 +11,6 @@ const WalletConnection = ({
   onShowWalletOptions,
   remainingGames,
   dailyLimit,
-  seasonTimeLeft,
-  currentSeason,
   isLoading,
   pointValues
 }) => {
@@ -27,45 +24,6 @@ const WalletConnection = ({
     if (!address) return "";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
-
-  const formatTimeLeft = (milliseconds) => {
-    if (milliseconds <= 0) return "00:00:00";
-    
-    const seconds = Math.floor(milliseconds / 1000);
-    const days = Math.floor(seconds / (24 * 3600));
-    const hours = Math.floor((seconds % (24 * 3600)) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (days > 0) {
-      return `${days}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;
-    }
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getSeasonStatus = () => {
-    if (currentSeason.active) {
-      return {
-        text: `Season ${currentSeason.seasonNumber} ends in`,
-        time: formatTimeLeft(currentSeason.timeUntilEnd),
-        color: "text-green-400"
-      };
-    } else if (currentSeason.timeUntilStart > 0 || currentSeason.isPreseason) {
-      return {
-        text: currentSeason.isPreseason ? "Season 1 starts in" : `Season ${currentSeason.seasonNumber} starts in`,
-        time: formatTimeLeft(currentSeason.timeUntilStart),
-        color: "text-yellow-400"
-      };
-    } else {
-      return {
-        text: "Season Ended",
-        time: "00:00:00",
-        color: "text-red-400"
-      };
-    }
-  };
-
-  const seasonStatus = getSeasonStatus();
 
   return (
     <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 mb-6 border border-slate-600 shadow-lg">
@@ -121,8 +79,10 @@ const WalletConnection = ({
             </div>
             
             <div className="bg-slate-900/50 p-4 rounded-xl">
-              <div className="text-slate-400 text-sm">Season Points</div>
-              <div className="text-2xl font-bold text-green-400">{seasonPoints.toLocaleString()}</div>
+              <div className="text-slate-400 text-sm">Games Today</div>
+              <div className="text-2xl font-bold text-blue-400">
+                {remainingGames}/{dailyLimit}
+              </div>
             </div>
             
             <div className="bg-slate-900/50 p-4 rounded-xl">
@@ -133,9 +93,9 @@ const WalletConnection = ({
             </div>
             
             <div className="bg-slate-900/50 p-4 rounded-xl">
-              <div className="text-slate-400 text-sm">Games Today</div>
-              <div className="text-2xl font-bold text-blue-400">
-                {remainingGames}/{dailyLimit}
+              <div className="text-slate-400 text-sm">Win Rate</div>
+              <div className="text-2xl font-bold text-green-400">
+                {yoyoBalanceAmount > 0 ? '60%' : '50%'}
               </div>
             </div>
           </div>
@@ -151,10 +111,10 @@ const WalletConnection = ({
 
           <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
             <div className="flex items-center space-x-2 text-slate-300">
-              <span>{currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}</span>
+              <span>Total Points Leaderboard</span>
               <span>•</span>
-              <span className={seasonStatus.color}>
-                {seasonStatus.text}: {seasonStatus.time}
+              <span className="text-green-400">
+                Real-time Updates
               </span>
             </div>
             

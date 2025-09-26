@@ -6,7 +6,6 @@ const GameBoard = ({
   gameState,
   yoyoBalanceAmount,
   points,
-  seasonPoints,
   onStartGame,
   onConnectWallet,
   isMobile,
@@ -15,8 +14,6 @@ const GameBoard = ({
   onResetGame,
   remainingGames,
   dailyLimit,
-  seasonTimeLeft,
-  currentSeason,
   isLoading,
   pointValues
 }) => {
@@ -45,10 +42,6 @@ const GameBoard = ({
     if (remainingGames <= 0) {
       alert("Daily game limit reached! Come back tomorrow.");
       return;
-    }
-    
-    if (currentSeason.isPreseason) {
-      alert("Preseason Mode - Battles will not count towards official leaderboard");
     }
     
     onStartGame(selectedIndex);
@@ -140,12 +133,10 @@ const GameBoard = ({
                     {yoyoBalanceAmount > 0 ? "Active (+10%)" : "Not Active"}
                   </span>
                 </div>
-                {currentSeason.isPreseason && (
-                  <div className="flex justify-between text-yellow-400">
-                    <span>Season Status:</span>
-                    <span>Preseason (Practice Mode)</span>
-                  </div>
-                )}
+                <div className="flex justify-between text-blue-400">
+                  <span>Total Points:</span>
+                  <span>{points.toLocaleString()}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -270,16 +261,8 @@ const GameBoard = ({
                   Points Earned: +{pointsEarned}
                 </div>
                 
-                {currentSeason.isPreseason && (
-                  <div className="text-yellow-400 text-sm">
-                    ⚠️ Preseason Mode - Points won't count towards official leaderboard
-                  </div>
-                )}
                 <div className="text-gray-300">
-                  Total Points: <span className="text-white font-bold">{points}</span>
-                </div>
-                <div className="text-gray-300">
-                  Season Points: <span className="text-green-400 font-bold">{seasonPoints}</span>
+                  Total Points: <span className="text-white font-bold">{points.toLocaleString()}</span>
                 </div>
                 <div className="text-gray-300">
                   Remaining Games: <span className={remainingGames > 0 ? "text-green-400" : "text-red-400"}>

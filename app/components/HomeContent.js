@@ -3,50 +3,9 @@ import Image from 'next/image';
 const HomeContent = ({ 
   walletConnected, 
   yoyoBalanceAmount, 
-  remainingGames, 
-  seasonTimeLeft, 
-  currentSeason,
+  remainingGames,
   pointValues 
 }) => {
-  const formatTimeLeft = (milliseconds) => {
-    if (milliseconds <= 0) return "00:00:00";
-    
-    const seconds = Math.floor(milliseconds / 1000);
-    const days = Math.floor(seconds / (24 * 3600));
-    const hours = Math.floor((seconds % (24 * 3600)) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (days > 0) {
-      return `${days}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;
-    }
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getSeasonStatus = () => {
-    if (currentSeason.active) {
-      return {
-        text: `Season ${currentSeason.seasonNumber} ends in`,
-        time: formatTimeLeft(currentSeason.timeUntilEnd),
-        color: "text-green-400"
-      };
-    } else if (currentSeason.timeUntilStart > 0) {
-      return {
-        text: `Season ${currentSeason.nextSeasonNumber} starts in`,
-        time: formatTimeLeft(currentSeason.timeUntilStart),
-        color: "text-yellow-400"
-      };
-    } else {
-      return {
-        text: "Season Ended",
-        time: "00:00:00",
-        color: "text-red-400"
-      };
-    }
-  };
-
-  const seasonStatus = getSeasonStatus();
-
   return (
     <div className="space-y-8">
       <div className="text-center">
@@ -67,7 +26,7 @@ const HomeContent = ({
         </div>
         
         <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-2xl p-4 mt-6 border border-purple-500/30 max-w-2xl mx-auto">
-          <h3 className="text-xl font-bold text-white mb-2">🎯 New Point System</h3>
+          <h3 className="text-xl font-bold text-white mb-2">🎯 Point System</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div className="text-center">
               <div className="text-green-400 font-bold text-lg">{pointValues.winNormal} Points</div>
@@ -104,17 +63,12 @@ const HomeContent = ({
       </div>
 
       <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl p-6 border border-purple-500/30 text-center">
-        <div className="text-2xl font-bold text-white mb-2">{seasonStatus.text}</div>
-        <div className={`text-4xl font-mono font-bold ${seasonStatus.color} mb-4`}>
-          {seasonStatus.time}
+        <div className="text-2xl font-bold text-white mb-2">Global Leaderboard</div>
+        <div className="text-4xl font-mono font-bold text-green-400 mb-4">
+          Total Points
         </div>
         <div className="text-sm text-gray-400">
-          {currentSeason.isPreseason ? 
-            `Season 1 starts on September 25, 2025 12:00 UTC` :
-            currentSeason.active ?
-              `Season ${currentSeason.seasonNumber} ends in 1 week` :
-              `Next season starts soon`
-          }
+          Compete for the top spot in the all-time ranking!
         </div>
       </div>
 
@@ -142,11 +96,10 @@ const HomeContent = ({
         </div>
 
         <div className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 rounded-2xl p-6 border border-yellow-500/30">
-          <div className="text-4xl mb-4">⏰</div>
-          <h3 className="text-xl font-bold text-white mb-2">{currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}</h3>
+          <div className="text-4xl mb-4">🏆</div>
+          <h3 className="text-xl font-bold text-white mb-2">Global Ranking</h3>
           <p className="text-gray-300">
-            {currentSeason.isPreseason ? 'Testing Phase - Get ready!' : 
-             currentSeason.active ? 'Active - Compete for rewards!' : 'Starting soon - Get ready!'}
+            Compete for eternal glory in the all-time leaderboard!
           </p>
         </div>
       </div>
@@ -184,7 +137,23 @@ const HomeContent = ({
               4
             </div>
             <h4 className="font-bold text-white mb-2">Climb Leaderboard</h4>
-            <p className="text-gray-400 text-sm">Compete for top seasonal rewards</p>
+            <p className="text-gray-400 text-sm">Compete for top global ranking</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-br from-red-600/20 to-pink-600/20 rounded-2xl p-6 border border-red-500/30 text-center">
+        <h3 className="text-xl font-bold text-white mb-2">⚡ YOYO Boost Advantage</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <div className="text-green-400 font-bold">Without YOYO</div>
+            <div className="text-gray-300">50% Win Chance</div>
+            <div className="text-gray-300">{pointValues.winNormal} Points per Win</div>
+          </div>
+          <div>
+            <div className="text-yellow-400 font-bold">With YOYO</div>
+            <div className="text-gray-300">60% Win Chance (+10%)</div>
+            <div className="text-gray-300">{pointValues.winYoyo} Points per Win</div>
           </div>
         </div>
       </div>

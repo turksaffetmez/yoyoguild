@@ -14,7 +14,6 @@ export default function Home() {
   const [userAddress, setUserAddress] = useState("");
   const [contract, setContract] = useState(null);
   const [points, setPoints] = useState(0);
-  const [seasonPoints, setSeasonPoints] = useState(0);
   const [provider, setProvider] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
   const [leaderboard, setLeaderboard] = useState([]);
@@ -23,8 +22,6 @@ export default function Home() {
   const [showWalletOptions, setShowWalletOptions] = useState(false);
   const [gamesPlayedToday, setGamesPlayedToday] = useState(0);
   const [dailyLimit, setDailyLimit] = useState(20);
-  const [seasonTimeLeft, setSeasonTimeLeft] = useState(0);
-  const [currentSeason, setCurrentSeason] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [connectionError, setConnectionError] = useState("");
   const [pointValues, setPointValues] = useState({
@@ -32,9 +29,6 @@ export default function Home() {
     winYoyo: 500,
     lose: 10
   });
-
-  const SEASON1_START_TIME = new Date("2025-09-25T12:00:00Z").getTime();
-  const SEASON_DURATION = 7 * 24 * 60 * 60 * 1000;
 
   const [gameState, setGameState] = useState({
     selectedImage: null,
@@ -63,39 +57,6 @@ export default function Home() {
     ],
     isLoading: false
   });
-
-  const calculateCurrentSeason = useCallback(() => {
-    const now = Date.now();
-    
-    if (now < SEASON1_START_TIME) {
-      return {
-        seasonNumber: 0,
-        startTime: SEASON1_START_TIME,
-        duration: SEASON_DURATION,
-        active: false,
-        timeUntilStart: SEASON1_START_TIME - now,
-        isPreseason: true,
-        nextSeasonNumber: 1
-      };
-    }
-    
-    const timeSinceSeason1 = now - SEASON1_START_TIME;
-    const seasonsPassed = Math.floor(timeSinceSeason1 / SEASON_DURATION);
-    const currentSeasonNumber = seasonsPassed + 1;
-    const currentSeasonStart = SEASON1_START_TIME + (seasonsPassed * SEASON_DURATION);
-    const timeUntilEnd = currentSeasonStart + SEASON_DURATION - now;
-    
-    return {
-      seasonNumber: currentSeasonNumber,
-      startTime: currentSeasonStart,
-      duration: SEASON_DURATION,
-      active: timeUntilEnd > 0,
-      timeUntilEnd: Math.max(0, timeUntilEnd),
-      timeUntilStart: 0,
-      isPreseason: false,
-      nextSeasonNumber: currentSeasonNumber + 1
-    };
-  }, []);
 
   const checkYoyoBalance = useCallback(async (address) => {
     if (!address) return 0;
@@ -136,9 +97,8 @@ export default function Home() {
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     try {
-      const [totalPoints, currentSeasonPoints, gamesToday, limit, seasonNumber] = await contract.getPlayerInfo(address);
+      const [totalPoints, gamesToday, limit, hasYoyoBoost] = await contract.getPlayerInfo(address);
       setPoints(Number(totalPoints));
-      setSeasonPoints(Number(currentSeasonPoints));
       setGamesPlayedToday(Number(gamesToday));
       setDailyLimit(Number(limit));
       
@@ -149,23 +109,10 @@ export default function Home() {
     }
   }, [contract, checkYoyoBalance]);
 
-  const updateSeasonInfo = useCallback(() => {
-    const seasonInfo = calculateCurrentSeason();
-    setCurrentSeason(seasonInfo);
-    
-    if (seasonInfo.active) {
-      setSeasonTimeLeft(seasonInfo.timeUntilEnd);
-    } else {
-      setSeasonTimeLeft(seasonInfo.timeUntilStart);
-    }
-  }, [calculateCurrentSeason]);
-
   const updateLeaderboard = useCallback(async () => {
     if (!contract) return;
     try {
-      let seasonToQuery = currentSeason.active ? currentSeason.seasonNumber : 0;
-      
-      const [addresses, points] = await contract.getSeasonLeaderboard(seasonToQuery);
+      const [addresses, points] = await contract.getTopPlayers();
       
       if (!addresses || addresses.length === 0) {
         setLeaderboard([]);
@@ -179,19 +126,14 @@ export default function Home() {
           points: Number(points[index] || 0)
         }))
         .filter(player => player.points > 0)
-        .sort((a, b) => b.points - a.points)
-        .slice(0, 100)
-        .map((player, index) => ({
-          ...player,
-          rank: index + 1
-        }));
+        .slice(0, 100);
       
       setLeaderboard(leaderboardData);
     } catch (error) {
       console.error("Failed to update leaderboard:", error);
       setLeaderboard([]);
     }
-  }, [contract, currentSeason]);
+  }, [contract]);
 
   const connectWallet = useCallback(async () => {
     if (typeof window.ethereum === 'undefined') {
@@ -231,7 +173,6 @@ export default function Home() {
       
       await getPointValues();
       await updatePlayerInfo(address);
-      updateSeasonInfo();
       await updateLeaderboard();
       
     } catch (err) {
@@ -240,7 +181,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [checkYoyoBalance, getPointValues, updatePlayerInfo, updateSeasonInfo, updateLeaderboard, isMobile]);
+  }, [checkYoyoBalance, getPointValues, updatePlayerInfo, updateLeaderboard, isMobile]);
 
   const startGame = async (selectedIndex) => {
     if (!walletConnected || !contract || isLoading) return;
@@ -248,8 +189,8 @@ export default function Home() {
     
     try {
       const currentInfo = await contract.getPlayerInfo(userAddress);
-      const dailyGamesPlayed = Number(currentInfo[2]);
-      const dailyLimit = Number(currentInfo[3]);
+      const dailyGamesPlayed = Number(currentInfo[1]);
+      const dailyLimit = Number(currentInfo[2]);
       
       if (dailyGamesPlayed >= dailyLimit) {
         alert(`Daily limit reached! Played: ${dailyGamesPlayed}/${dailyLimit}`);
@@ -277,7 +218,7 @@ export default function Home() {
         throw new Error("Transaction reverted");
       }
       
-      // ✅ EVENT DİNLEME - FIXED
+      // Event dinleme
       let isWinner = false;
       let pointsEarned = 0;
       
@@ -294,7 +235,6 @@ export default function Home() {
         const parsedLog = contract.interface.parseLog(gamePlayedEvent);
         isWinner = parsedLog.args.won;
         pointsEarned = Number(parsedLog.args.points);
-        console.log("Contract event result:", { isWinner, pointsEarned });
       }
       
       for (let i = 3; i > 0; i--) {
@@ -380,7 +320,6 @@ export default function Home() {
     setUserAddress("");
     setContract(null);
     setPoints(0);
-    setSeasonPoints(0);
     setYoyoBalanceAmount(0);
     setGamesPlayedToday(0);
     setLeaderboard([]);
@@ -439,7 +378,6 @@ export default function Home() {
           
           await getPointValues();
           await updatePlayerInfo(address);
-          updateSeasonInfo();
           await updateLeaderboard();
         }
       } catch (err) {
@@ -468,7 +406,7 @@ export default function Home() {
             <Image src="/images/yoyo.png" alt="YoYo Guild" width={80} height={80} className="rounded-full" />
             <div>
               <h1 className="text-4xl font-bold">YoYo Guild Battle</h1>
-              <p className="text-sm opacity-90 mt-1">Season 1 Starting Soon</p>
+              <p className="text-sm opacity-90 mt-1">Blockchain Battle Arena</p>
             </div>
           </div>
         </header>
@@ -516,7 +454,6 @@ export default function Home() {
             walletConnected={walletConnected}
             userAddress={userAddress}
             points={points}
-            seasonPoints={seasonPoints}
             yoyoBalanceAmount={yoyoBalanceAmount}
             onDisconnect={disconnectWallet}
             onConnect={connectWallet}
@@ -524,8 +461,6 @@ export default function Home() {
             onShowWalletOptions={() => setShowWalletOptions(true)}
             remainingGames={remainingGames}
             dailyLimit={dailyLimit}
-            seasonTimeLeft={seasonTimeLeft}
-            currentSeason={currentSeason}
             isLoading={isLoading}
             pointValues={pointValues}
           />
@@ -536,8 +471,6 @@ export default function Home() {
                 walletConnected={walletConnected} 
                 yoyoBalanceAmount={yoyoBalanceAmount}
                 remainingGames={remainingGames}
-                seasonTimeLeft={seasonTimeLeft}
-                currentSeason={currentSeason}
                 pointValues={pointValues}
               />
             )}
@@ -547,7 +480,6 @@ export default function Home() {
                 gameState={gameState}
                 yoyoBalanceAmount={yoyoBalanceAmount}
                 points={points}
-                seasonPoints={seasonPoints}
                 onStartGame={startGame}
                 onConnectWallet={connectWallet}
                 isMobile={isMobile}
@@ -556,8 +488,6 @@ export default function Home() {
                 onResetGame={resetGame}
                 remainingGames={remainingGames}
                 dailyLimit={dailyLimit}
-                seasonTimeLeft={seasonTimeLeft}
-                currentSeason={currentSeason}
                 isLoading={isLoading}
                 pointValues={pointValues}
               />
@@ -565,14 +495,13 @@ export default function Home() {
             {activeTab === "leaderboard" && (
               <Leaderboard 
                 leaderboard={leaderboard} 
-                currentSeason={currentSeason}
               />
             )}
           </div>
         </div>
         
         <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
-          <p>YoYo Guild Battle | Base Mainnet | {currentSeason.isPreseason ? 'Preseason' : `Season ${currentSeason.seasonNumber}`}</p>
+          <p>YoYo Guild Battle | Base Mainnet | Total Points Leaderboard</p>
         </footer>
       </div>
 
