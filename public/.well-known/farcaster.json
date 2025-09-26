@@ -4,7 +4,7 @@
     "version": "1",
     "iconUrl": "https://yoyoguild.vercel.app/images/logo.png",
     "homeUrl": "https://yoyoguild.vercel.app",
-    "imageUrl": "https://yoyoguild.vercel.app/image.png",
+    "imageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "splashBackgroundColor": "#1E293B",
     "webhookUrl": "https://yoyoguild.vercel.app/api/webhook",
