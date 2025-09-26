@@ -1,19 +1,13 @@
 {
-  "name": "YoYo Guild Battle",
-  "description": "Blockchain-based Tevan NFT battle game on Base",
-  "icon": "https://yoyoguild.vercel.app/images/logo.png",
-  "splash": {
-    "image": "https://yoyoguild.vercel.app/images/logo.png",
-    "backgroundColor": "#8B5CF6"
-  },
-  "url": "https://yoyoguild.vercel.app",
-  "supported_clients": ["warpcast", "farcaster"],
-  "chains": [
-    {
-      "id": "base",
-      "name": "Base",
-      "rpc_url": "https://mainnet.base.org"
-    }
-  ],
-  "category": "games"
+  "frame": {
+    "name": "YoYo Guild Battle",
+    "version": "1",
+    "iconUrl": "https://yoyoguild.vercel.app/images/logo.png",
+    "homeUrl": "https://yoyoguild.vercel.app",
+    "primaryCategory": "games",
+    "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
+    "splashBackgroundColor": "#1E293B",
+    "description": "Blockchain NFT battle game on Base network",
+    "subtitle": "Battle with Tevan NFTs, earn $YoYo"
+  }
 }
