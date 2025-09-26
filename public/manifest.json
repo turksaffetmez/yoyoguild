@@ -1,9 +1,9 @@
 {
   "name": "YoYo Guild Battle",
   "description": "Blockchain-based Tevan NFT battle game on Base",
-  "icon": "https://yoyoguild.vercel.app/images/yoyo.png",
+  "icon": "https://yoyoguild.vercel.app/images/logo.png",
   "splash": {
-    "image": "https://yoyoguild.vercel.app/images/yoyo.png",
+    "image": "https://yoyoguild.vercel.app/images/logo.png",
     "backgroundColor": "#8B5CF6"
   },
   "url": "https://yoyoguild.vercel.app",
