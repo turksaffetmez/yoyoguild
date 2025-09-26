@@ -1,13 +1,19 @@
 {
-  "accountAssociation": {
-    "header": "eyJmaWQiOjk5Mjk1NiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDcxMTJlZEFDZjQyZTgwNTcyQmFEMWI5MGQ2MTRFYmVjMWNDNjY5NjUifQ"
-  },
   "frame": {
-    "version": "1.0",
-    "homeUrl": "https://yoyoguild.vercel.app",
-    "imageUrl": "https://yoyoguild.vercel.app/images/page.png",
-    "buttonTitle": "Play YoYo Battle",
+    "name": "YoYo Guild Battle",
+    "version": "1",
+    "iconUrl": "https://yoyoguild.vercel.app/images/logo.png",
+    "homeUrl": "https://yoyoguild.vercel.app/",
+    "imageUrl": "https://https://yoyoguild.vercel.app//image.png",
     "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
-    "splashBackgroundColor": "#1E293B"
+    "splashBackgroundColor": "#1E293B",
+    "primaryCategory": "games",
+    "subtitle": "Battle with Tevan NFTs, earn $YoYo",
+    "description": "Blockchain NFT battle game on Base"
+  },
+  "accountAssociation": {
+    "header": "eyJmaWQiOjk5Mjk1NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweEQ3NDk0NGY3MEU1MTE2RDZBMkU2NjQzN2U1OGQ0MTYxYUVBMTRBYjAifQ",
+    "payload": "eyJkb21haW4iOiJodHRwczovL3lveW9ndWlsZC52ZXJjZWwuYXBwLyJ9",
+    "signature": "NtZCPjfMJ6TK/83R9bWIXJySYpngoxLxEl8bfcD4jpoKivDwb0mcsXDtKb4NxZqmXQ0w83BT6/sQRwTuvX9TOxw="
   }
 }
