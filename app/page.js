@@ -405,7 +405,7 @@ export default function Home() {
           <div className="flex items-center justify-center space-x-4 relative z-10">
             <Image src="/images/yoyo.png" alt="YoYo Guild" width={80} height={80} className="rounded-full" />
             <div>
-              <h1 className="text-4xl font-bold">YoYo Guild Battle</h1>
+              <h1 className="text-4xl font-bold">YoYo Guild Battle V1</h1>
               <p className="text-sm opacity-90 mt-1">Blockchain Battle Arena</p>
             </div>
           </div>
@@ -501,7 +501,7 @@ export default function Home() {
         </div>
         
         <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
-          <p>YoYo Guild Battle | Base Mainnet | Total Points Leaderboard</p>
+          <p>YoYo Guild Battle V1| Base Mainnet</p>
         </footer>
       </div>
 

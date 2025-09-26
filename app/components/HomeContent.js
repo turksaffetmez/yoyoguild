@@ -62,48 +62,6 @@ const HomeContent = ({
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl p-6 border border-purple-500/30 text-center">
-        <div className="text-2xl font-bold text-white mb-2">Global Leaderboard</div>
-        <div className="text-4xl font-mono font-bold text-green-400 mb-4">
-          Total Points
-        </div>
-        <div className="text-sm text-gray-400">
-          Compete for the top spot in the all-time ranking!
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl p-6 border border-purple-500/30">
-          <div className="text-4xl mb-4">🎮</div>
-          <h3 className="text-xl font-bold text-white mb-2">Daily Battles</h3>
-          <p className="text-gray-300">
-            {walletConnected ? 
-              `Play ${remainingGames} out of 20 games remaining today` : 
-              'Connect wallet to see daily battles'
-            }
-          </p>
-        </div>
-
-        <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 rounded-2xl p-6 border border-green-500/30">
-          <div className="text-4xl mb-4">🎯</div>
-          <h3 className="text-xl font-bold text-white mb-2">YOYO Boost</h3>
-          <p className="text-gray-300">
-            {yoyoBalanceAmount > 0 ? 
-              `Active! ${yoyoBalanceAmount.toFixed(2)} YOYO (+10% win chance)` : 
-              'Not active - hold YOYO for boost'
-            }
-          </p>
-        </div>
-
-        <div className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 rounded-2xl p-6 border border-yellow-500/30">
-          <div className="text-4xl mb-4">🏆</div>
-          <h3 className="text-xl font-bold text-white mb-2">Global Ranking</h3>
-          <p className="text-gray-300">
-            Compete for eternal glory in the all-time leaderboard!
-          </p>
-        </div>
-      </div>
-
       <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700">
         <h3 className="text-2xl font-bold text-white mb-6 text-center">How to Play</h3>
         
@@ -138,22 +96,6 @@ const HomeContent = ({
             </div>
             <h4 className="font-bold text-white mb-2">Climb Leaderboard</h4>
             <p className="text-gray-400 text-sm">Compete for top global ranking</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-gradient-to-br from-red-600/20 to-pink-600/20 rounded-2xl p-6 border border-red-500/30 text-center">
-        <h3 className="text-xl font-bold text-white mb-2">⚡ YOYO Boost Advantage</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <div className="text-green-400 font-bold">Without YOYO</div>
-            <div className="text-gray-300">50% Win Chance</div>
-            <div className="text-gray-300">{pointValues.winNormal} Points per Win</div>
-          </div>
-          <div>
-            <div className="text-yellow-400 font-bold">With YOYO</div>
-            <div className="text-gray-300">60% Win Chance (+10%)</div>
-            <div className="text-gray-300">{pointValues.winYoyo} Points per Win</div>
           </div>
         </div>
       </div>

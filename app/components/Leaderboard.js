@@ -76,7 +76,28 @@ const Leaderboard = ({ leaderboard }) => {
 
       <div className="bg-gray-800/50 rounded-xl p-4 text-center">
         <p className="text-gray-400 text-sm">
-          Leaderboard updates in real-time. The player with the most total points wins eternal glory! 🏅
+          The leaderboard is updated in real time. The top 100 players receive $YoYo equivalent to the points they have collected! 🏅
+        </p>
+        <p className="text-gray-400 text-sm mt-2">
+          You will be notified via the{' '}
+          <a 
+            href="https://x.com/yoyoguild" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:text-blue-300 underline"
+          >
+            YoYo Guild X account
+          </a>{' '}
+          and{' '}
+          <a 
+            href="https://discord.gg/yoyoguild" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-purple-400 hover:text-purple-300 underline"
+          >
+            Discord channel
+          </a>{' '}
+          when the rewards are sent. 📢
         </p>
         <p className="text-green-400 text-xs mt-2">
           {leaderboard.length} players competing
