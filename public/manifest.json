@@ -4,10 +4,11 @@
     "version": "1",
     "iconUrl": "https://yoyoguild.vercel.app/images/logo.png",
     "homeUrl": "https://yoyoguild.vercel.app",
-    "primaryCategory": "games",
+    "imageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "splashBackgroundColor": "#1E293B",
-    "description": "Blockchain NFT battle game on Base network",
+    "description": "Blockchain NFT battle game on Base",
+    "primaryCategory": "games",
     "subtitle": "Battle with Tevan NFTs, earn $YoYo"
   }
 }

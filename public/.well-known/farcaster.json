@@ -1,9 +1,12 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEyMzQ1Njc4OSwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIn0="
+  },
   "frame": {
     "version": "1.0",
     "homeUrl": "https://yoyoguild.vercel.app",
     "imageUrl": "https://yoyoguild.vercel.app/images/page.png",
-    "buttonTitle": "Play YoYo Battle", 
+    "buttonTitle": "Play YoYo Battle",
     "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "splashBackgroundColor": "#1E293B"
   }
