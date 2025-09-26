@@ -91,3 +91,24 @@ a {
 .card {
   @apply bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl border border-gray-700/50 backdrop-blur-sm;
 }
+
+.farcaster-mini-app {
+  background: linear-gradient(135deg, #1E293B 0%, #334155 100%) !important;
+}
+
+.farcaster-mini-app .bg-gradient-to-br {
+  background: rgba(30, 41, 59, 0.95) !important;
+  backdrop-filter: blur(10px);
+}
+
+/* Mobile optimizasyon */
+@media (max-width: 768px) {
+  .farcaster-mini-app {
+    padding: 10px;
+  }
+  
+  .farcaster-mini-app .max-w-6xl {
+    max-width: 100%;
+    border-radius: 16px;
+  }
+}

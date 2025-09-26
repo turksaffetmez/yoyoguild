@@ -30,6 +30,7 @@ export default function Home() {
     winYoyo: 500,
     lose: 10
   });
+  const [isFarcasterMiniApp, setIsFarcasterMiniApp] = useState(false);
 
   const [gameState, setGameState] = useState({
     selectedImage: null,
@@ -58,6 +59,22 @@ export default function Home() {
     ],
     isLoading: false
   });
+
+  // Farcaster Mini App detection
+  useEffect(() => {
+    const checkFarcasterMiniApp = () => {
+      const isMiniApp = window.parent !== window;
+      setIsFarcasterMiniApp(isMiniApp);
+      
+      if (isMiniApp) {
+        console.log('Farcaster Mini App mode activated');
+        // Mini App için optimizasyonlar
+        document.documentElement.style.background = 'linear-gradient(135deg, #1E293B 0%, #334155 100%)';
+      }
+    };
+
+    checkFarcasterMiniApp();
+  }, []);
 
   const checkYoyoBalance = useCallback(async (address) => {
     if (!address) return 0;
@@ -136,8 +153,8 @@ export default function Home() {
     }
   }, [contract]);
 
-  const connectWallet = useCallback(async (walletType = 'standard') => {
-    if (typeof window.ethereum === 'undefined') {
+  const connectWallet = useCallback(async (walletType = 'standard', farcasterAddress = null) => {
+    if (typeof window.ethereum === 'undefined' && !farcasterAddress) {
       setConnectionError("Wallet not installed!");
       if (isMobile) {
         setShowWalletOptions(true);
@@ -149,19 +166,23 @@ export default function Home() {
       setIsLoading(true);
       setConnectionError("");
 
-      const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts'
-      });
+      let address = farcasterAddress;
+      
+      if (!farcasterAddress) {
+        const accounts = await window.ethereum.request({
+          method: 'eth_requestAccounts'
+        });
 
-      if (accounts.length === 0) {
-        throw new Error("No accounts found");
+        if (accounts.length === 0) {
+          throw new Error("No accounts found");
+        }
+        address = accounts[0];
       }
 
       const newProvider = new ethers.BrowserProvider(window.ethereum);
       setProvider(newProvider);
       
       const signer = await newProvider.getSigner();
-      const address = await signer.getAddress();
       
       const contractInstance = new ethers.Contract(contractAddress, abi, signer);
       
@@ -176,13 +197,18 @@ export default function Home() {
       await updatePlayerInfo(address);
       await updateLeaderboard();
       
+      // Mini App'te başarı mesajı
+      if (isFarcasterMiniApp) {
+        window.parent.postMessage({ type: 'WALLET_CONNECTED', address }, '*');
+      }
+      
     } catch (err) {
       console.error("Failed to connect wallet:", err);
       setConnectionError(err.message || "Failed to connect wallet");
     } finally {
       setIsLoading(false);
     }
-  }, [checkYoyoBalance, getPointValues, updatePlayerInfo, updateLeaderboard, isMobile]);
+  }, [checkYoyoBalance, getPointValues, updatePlayerInfo, updateLeaderboard, isMobile, isFarcasterMiniApp]);
 
   const startGame = async (selectedIndex) => {
     if (!walletConnected || !contract || isLoading) return;
@@ -255,6 +281,15 @@ export default function Home() {
         pointsEarned: pointsEarned,
         isWinner: isWinner
       }));
+      
+      // Mini App'te game sonucu
+      if (isFarcasterMiniApp) {
+        window.parent.postMessage({ 
+          type: 'GAME_RESULT', 
+          won: isWinner, 
+          points: pointsEarned 
+        }, '*');
+      }
       
     } catch (err) {
       console.error("Game transaction failed:", err);
@@ -391,7 +426,7 @@ export default function Home() {
   const remainingGames = dailyLimit - gamesPlayedToday;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
+    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4 ${isFarcasterMiniApp ? 'farcaster-mini-app' : ''}`}>
       {showWalletOptions && (
         <MobileWalletSelector 
           onConnect={connectMobileWallet}
@@ -406,7 +441,9 @@ export default function Home() {
             <Image src="/images/yoyo.png" alt="YoYo Guild" width={80} height={80} className="rounded-full" />
             <div>
               <h1 className="text-4xl font-bold">YoYo Guild Battle</h1>
-              <p className="text-sm opacity-90 mt-1">Farcaster Mini App Ready</p>
+              <p className="text-sm opacity-90 mt-1">
+                {isFarcasterMiniApp ? "Farcaster Mini App" : "Blockchain Battle Arena"}
+              </p>
             </div>
           </div>
         </header>
@@ -503,7 +540,7 @@ export default function Home() {
         </div>
         
         <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
-          <p>YoYo Guild Battle | Base Mainnet | Farcaster Mini App</p>
+          <p>YoYo Guild Battle | Base Mainnet | {isFarcasterMiniApp ? 'Farcaster Mini App' : 'Web App'}</p>
         </footer>
       </div>
 

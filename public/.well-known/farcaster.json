@@ -1,0 +1,10 @@
+{
+  "frame": {
+    "version": "1.0",
+    "homeUrl": "https://yoyoguild.vercel.app",
+    "imageUrl": "https://yoyoguild.vercel.app/images/page.png",
+    "buttonTitle": "Play YoYo Battle", 
+    "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
+    "splashBackgroundColor": "#1E293B"
+  }
+}
