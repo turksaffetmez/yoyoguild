@@ -7,7 +7,6 @@
     "imageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "splashBackgroundColor": "#1E293B",
-    "webhookUrl": "https://yoyoguild.vercel.app/api/webhook",
     "primaryCategory": "games",
     "description": "Blockchain NFT battle game on Base",
     "subtitle": "Battle with Tevan NFTs, earn $YoYo"
