@@ -7,6 +7,7 @@ import GameBoard from "./components/GameBoard";
 import Leaderboard from "./components/Leaderboard";
 import HomeContent from "./components/HomeContent";
 import MobileWalletSelector from "./components/MobileWalletSelector";
+import FarcasterWallet from "./components/FarcasterWallet";
 import Image from "next/image";
 
 export default function Home() {
@@ -135,9 +136,9 @@ export default function Home() {
     }
   }, [contract]);
 
-  const connectWallet = useCallback(async () => {
+  const connectWallet = useCallback(async (walletType = 'standard') => {
     if (typeof window.ethereum === 'undefined') {
-      setConnectionError("MetaMask not installed!");
+      setConnectionError("Wallet not installed!");
       if (isMobile) {
         setShowWalletOptions(true);
       }
@@ -218,7 +219,6 @@ export default function Home() {
         throw new Error("Transaction reverted");
       }
       
-      // Event dinleme
       let isWinner = false;
       let pointsEarned = 0;
       
@@ -405,8 +405,8 @@ export default function Home() {
           <div className="flex items-center justify-center space-x-4 relative z-10">
             <Image src="/images/yoyo.png" alt="YoYo Guild" width={80} height={80} className="rounded-full" />
             <div>
-              <h1 className="text-4xl font-bold">YoYo Guild Battle V1</h1>
-              <p className="text-sm opacity-90 mt-1">Blockchain Battle Arena</p>
+              <h1 className="text-4xl font-bold">YoYo Guild Battle</h1>
+              <p className="text-sm opacity-90 mt-1">Farcaster Mini App Ready</p>
             </div>
           </div>
         </header>
@@ -449,6 +449,8 @@ export default function Home() {
               </button>
             </div>
           )}
+          
+          <FarcasterWallet onConnect={connectWallet} />
           
           <WalletConnection
             walletConnected={walletConnected}
@@ -501,7 +503,7 @@ export default function Home() {
         </div>
         
         <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
-          <p>YoYo Guild Battle V1| Base Mainnet</p>
+          <p>YoYo Guild Battle | Base Mainnet | Farcaster Mini App</p>
         </footer>
       </div>
 
