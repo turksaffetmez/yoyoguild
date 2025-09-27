@@ -1,3 +1,28 @@
+// Farcaster Mini App detection
+useEffect(() => {
+  if (!isClient) return;
+  
+  // Farcaster Mini App detection
+  const isFarcaster = 
+    window.ethereum?.isFarcaster ||
+    navigator.userAgent.includes('Warpcast') ||
+    window.location.href.includes('warpcast') ||
+    document.referrer.includes('warpcast') ||
+    window.parent !== window;
+  
+  setIsFarcasterMiniApp(isFarcaster);
+  
+  // Farcaster SDK yükleme
+  if (isFarcaster && typeof window !== 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/@farcaster/auth-kit@latest';
+    script.onload = () => {
+      console.log('Farcaster Auth Kit loaded');
+    };
+    document.head.appendChild(script);
+  }
+}, [isClient]);
+
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";

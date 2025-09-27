@@ -11,5 +11,15 @@
     "buttonTitle": "Play Game",
     "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "splashBackgroundColor": "#000000"
+  },
+  "miniApp": {
+    "version": "1.0",
+    "name": "YoYo Guild Battle",
+    "iconUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
+    "homeUrl": "https://yoyoguild.vercel.app",
+    "description": "Blockchain Battle Arena on Base",
+    "termsOfServiceUrl": "https://yoyoguild.vercel.app/terms",
+    "privacyPolicyUrl": "https://yoyoguild.vercel.app/privacy",
+    "permissions": ["identity", "storage"]
   }
 }

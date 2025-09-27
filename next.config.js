@@ -1,25 +1,26 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/.well-known/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Content-Type', value: 'application/json' },
+        ],
+      },
+      {
+        source: '/frame',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+        ],
+      },
+    ];
+  },
   images: {
+    unoptimized: true,
     domains: ['yoyoguild.vercel.app'],
   },
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        bufferutil: false,
-        'utf-8-validate': false,
-        ws: false,
-      };
-    }
-    return config;
-  },
-  // Static export için
-  output: 'export',
-  trailingSlash: true,
-  images: {
-    unoptimized: true
-  }
 }
 
 module.exports = nextConfig
