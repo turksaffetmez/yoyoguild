@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
 
-export async function POST() {
+export async function GET(request) {
   return NextResponse.json({
     type: 'frame',
     image: "https://yoyoguild.vercel.app/images/page.png",
@@ -11,17 +11,17 @@ export async function POST() {
         target: "https://yoyoguild.vercel.app"
       },
       {
-        label: "🏆 Leaderboard",
+        label: "🏆 Leaderboard", 
         action: "link",
         target: "https://yoyoguild.vercel.app?tab=leaderboard"
       }
     ]
-  });
+  })
 }
 
-export async function GET() {
+export async function POST(request) {
   return NextResponse.json({
-    type: 'frame',
+    type: 'frame', 
     image: "https://yoyoguild.vercel.app/images/page.png",
     buttons: [
       {
@@ -30,5 +30,5 @@ export async function GET() {
         target: "https://yoyoguild.vercel.app"
       }
     ]
-  });
+  })
 }
