@@ -93,30 +93,34 @@ a {
 }
 
 /* Farcaster Mini App Specific Styles */
-.farcaster-embedded {
+.farcaster-mini-app {
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%) !important;
-  padding: 0 !important;
-  margin: 0 !important;
 }
 
-.farcaster-embedded .max-w-6xl {
-  max-width: 100% !important;
-  border-radius: 0 !important;
-  margin: 0 !important;
+.farcaster-mini-app .max-w-6xl {
+  border-radius: 12px !important;
+  margin: 8px !important;
 }
 
-/* Hide footer in embedded mode */
-.farcaster-embedded footer {
-  display: none;
+.farcaster-mini-app footer {
+  display: none !important;
 }
 
-/* Optimize for small screens */
+.farcaster-mini-app .text-4xl {
+  font-size: 1.75rem !important;
+}
+
+/* Mobile optimization for Mini App */
 @media (max-width: 400px) {
-  .farcaster-embedded {
-    padding: 5px !important;
+  .farcaster-mini-app {
+    padding: 4px !important;
   }
   
-  .farcaster-embedded .text-4xl {
-    font-size: 1.5rem !important;
+  .farcaster-mini-app .p-6 {
+    padding: 1rem !important;
+  }
+  
+  .farcaster-mini-app .text-2xl {
+    font-size: 1.25rem !important;
   }
 }

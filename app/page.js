@@ -8,6 +8,7 @@ import Leaderboard from "./components/Leaderboard";
 import HomeContent from "./components/HomeContent";
 import MobileWalletSelector from "./components/MobileWalletSelector";
 import FarcasterWallet from "./components/FarcasterWallet";
+import FarcasterMiniApp from "./components/FarcasterMiniApp";
 import Image from "next/image";
 
 export default function Home() {
@@ -83,7 +84,7 @@ export default function Home() {
     const checkFarcasterMiniApp = () => {
       // URL parametrelerini kontrol et
       const urlParams = new URLSearchParams(window.location.search);
-      const isFarcasterParam = urlParams.get('farcaster') === 'true';
+      const isFarcasterParam = urlParams.get('farcaster') === 'true' || urlParams.get('source') === 'farcaster';
       const isEmbeddedParam = urlParams.get('embedded') === 'true';
       
       // Embedded mode kontrolü
@@ -112,16 +113,12 @@ export default function Home() {
       
       // Mini App modunda özel styling uygula
       if (isMiniApp) {
-        document.body.classList.add('farcaster-embedded');
+        document.body.classList.add('farcaster-mini-app');
+        console.log('🎯 Farcaster Mini App mode activated');
       }
     };
     
     checkFarcasterMiniApp();
-    
-    // Farcaster SDK yükleme (opsiyonel)
-    if (typeof window !== 'undefined' && window.farcaster) {
-      console.log('Farcaster SDK detected');
-    }
   }, [isClient]);
 
   // Rabby Wallet desteği
@@ -545,7 +542,10 @@ export default function Home() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4 ${isFarcasterMiniApp ? 'farcaster-embedded' : ''}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4 ${isFarcasterMiniApp ? 'farcaster-mini-app' : ''}`}>
+      {/* Farcaster Mini App Component */}
+      <FarcasterMiniApp />
+      
       {showWalletOptions && (
         <MobileWalletSelector 
           onConnect={connectMobileWallet}
