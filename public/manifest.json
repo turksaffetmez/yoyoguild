@@ -1,24 +1,21 @@
 {
-  "name": "Yoyo Guild",
-  "short_name": "YoyoGuild",
-  "description": "Yoyo Guild Community Platform",
+  "name": "YoYo Guild Battle",
+  "short_name": "YoYoBattle",
+  "description": "Blockchain Battle Arena on Base",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
-  "orientation": "portrait-primary",
+  "background_color": "#000000",
+  "theme_color": "#8B5CF6",
   "icons": [
     {
-      "src": "https://yoyoguild.vercel.app/images/logo.png",
+      "src": "/images/logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://yoyoguild.vercel.app/images/logo.png",
+      "src": "/images/logo.png", 
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "categories": ["social", "entertainment"],
-  "lang": "tr-TR"
+  ]
 }
