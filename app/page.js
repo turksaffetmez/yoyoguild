@@ -619,7 +619,9 @@ export default function Home() {
         </div>
         
         <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
-          <p>YoYo Guild Battle | Base Mainnet </p>
+          <p>YoYo Guild Battle | Base Mainnet | {isFarcasterMiniApp ? 'Farcaster Mini App' : 'Web App'}</p>
+          {isRabbyWallet() && <p className="text-xs mt-1">🔗 Rabby Wallet Supported</p>}
+        </footer>
       </div>
 
       {isLoading && (
