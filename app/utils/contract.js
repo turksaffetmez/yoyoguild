@@ -1,4 +1,4 @@
-export const contractAddress = "0x393bba2aa73d40725afc029f4768d432d8ee595e";
+export const contractAddress = "0x9e3e2978cfc8e35ac574ecffa8371439ddc4397a";
 
 export const abi = [
     {
@@ -37,6 +37,24 @@ export const abi = [
                 "indexed": false,
                 "internalType": "uint256",
                 "name": "timestamp",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "totalGames",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "totalWins",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "winStreak",
                 "type": "uint256"
             }
         ],
@@ -172,6 +190,36 @@ export const abi = [
                 "internalType": "bool",
                 "name": "hasYoyoBoost",
                 "type": "bool"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalGames",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalWins",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalLosses",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "winStreak",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "maxWinStreak",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "winRate",
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",
@@ -257,6 +305,36 @@ export const abi = [
             {
                 "internalType": "uint256",
                 "name": "gamesPlayedToday",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalGames",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalWins",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalLosses",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "currentWinStreak",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "maxWinStreak",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "lastPlayedTimestamp",
                 "type": "uint256"
             }
         ],

@@ -4,13 +4,14 @@ const HomeContent = ({
   walletConnected, 
   yoyoBalanceAmount, 
   remainingGames,
-  pointValues 
+  pointValues,
+  playerStats 
 }) => {
   return (
     <div className="space-y-8">
       <div className="text-center">
         <div className="flex justify-center mb-6">
-          
+          <Image src="/images/yoyo.png" alt="YoYo Guild" width={100} height={100} className="rounded-full" />
         </div>
         <h2 className="text-4xl font-bold text-white mb-4">Welcome to YoYo Guild Battle</h2>
         <div className="text-lg text-gray-300 max-w-4xl mx-auto space-y-4">
@@ -62,43 +63,71 @@ const HomeContent = ({
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700">
-        <h3 className="text-2xl font-bold text-white mb-6 text-center">How to Play</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
-              1
+      {/* İstatistikler */}
+      {walletConnected && playerStats.totalGames > 0 && (
+        <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 rounded-2xl p-6 border border-green-500/30">
+          <h3 className="text-2xl font-bold text-white mb-4 text-center">📊 Your Battle Statistics</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-white">{playerStats.totalGames}</div>
+              <div className="text-gray-300">Total Games</div>
             </div>
-            <h4 className="font-bold text-white mb-2">Connect Wallet</h4>
-            <p className="text-gray-400 text-sm">Connect your Base-compatible wallet</p>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-400">{playerStats.totalWins}</div>
+              <div className="text-gray-300">Wins</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-red-400">{playerStats.totalLosses}</div>
+              <div className="text-gray-300">Losses</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-yellow-400">{playerStats.winRate}%</div>
+              <div className="text-gray-300">Win Rate</div>
+            </div>
           </div>
+          {playerStats.winStreak > 0 && (
+            <div className="text-center mt-3">
+              <span className="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-sm">
+                🔥 Current Win Streak: {playerStats.winStreak}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
-          <div className="text-center">
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
-              2
-            </div>
-            <h4 className="font-bold text-white mb-2">Choose Tevan</h4>
-            <p className="text-gray-400 text-sm">Select your fighter for the battle</p>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl p-6 border border-purple-500/30">
+          <div className="text-4xl mb-4">🎮</div>
+          <h3 className="text-xl font-bold text-white mb-2">Daily Battles</h3>
+          <p className="text-gray-300">
+            {walletConnected ? 
+              `Play ${remainingGames} out of 20 games remaining today` : 
+              'Connect wallet to see daily battles'
+            }
+          </p>
+        </div>
 
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
-              3
-            </div>
-            <h4 className="font-bold text-white mb-2">Battle</h4>
-            <p className="text-gray-400 text-sm">Win battles to earn points</p>
-          </div>
+        <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 rounded-2xl p-6 border border-green-500/30">
+          <div className="text-4xl mb-4">🎯</div>
+          <h3 className="text-xl font-bold text-white mb-2">YOYO Boost</h3>
+          <p className="text-gray-300">
+            {yoyoBalanceAmount > 0 ? 
+              `Active! ${yoyoBalanceAmount.toFixed(2)} YOYO (+10% win chance)` : 
+              'Not active - hold YOYO for boost'
+            }
+          </p>
+        </div>
 
-          <div className="text-center">
-            <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
-              4
-            </div>
-            <h4 className="font-bold text-white mb-2">Climb Leaderboard</h4>
-            <p className="text-gray-400 text-sm">Compete for top global ranking</p>
-          </div>
+        <div className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 rounded-2xl p-6 border border-yellow-500/30">
+          <div className="text-4xl mb-4">🏆</div>
+          <h3 className="text-xl font-bold text-white mb-2">Global Ranking</h3>
+          <p className="text-gray-300">
+            Compete for eternal glory in the all-time leaderboard!
+          </p>
         </div>
       </div>
+
+      {/* Diğer içerikler aynı kalacak... */}
     </div>
   );
 };

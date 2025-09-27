@@ -7,6 +7,12 @@ const MobileWalletSelector = ({ onConnect, onClose }) => {
       description: 'Most popular Ethereum wallet'
     },
     {
+      id: 'rabby', 
+      name: 'Rabby Wallet',
+      icon: '🐰',
+      description: 'Multi-chain DeFi wallet'
+    },
+    {
       id: 'coinbase',
       name: 'Coinbase Wallet',
       icon: '💰',
@@ -56,6 +62,9 @@ const MobileWalletSelector = ({ onConnect, onClose }) => {
         <div className="mt-6 p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20">
           <p className="text-yellow-400 text-sm text-center">
             Make sure your wallet is installed and set to Base network
+          </p>
+          <p className="text-blue-400 text-xs text-center mt-1">
+            Rabby users: Ensure Base network is added
           </p>
         </div>
       </div>

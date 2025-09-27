@@ -2,8 +2,16 @@ import { useState, useEffect } from 'react';
 
 const Leaderboard = ({ leaderboard }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
 
   const formatAddress = (address) => {
+    if (isMobile) {
+      return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    }
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
   };
 
@@ -39,33 +47,35 @@ const Leaderboard = ({ leaderboard }) => {
         </div>
       ) : (
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 overflow-hidden">
-          <div className="grid grid-cols-12 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 font-semibold">
-            <div className="col-span-1 text-center">Rank</div>
-            <div className="col-span-7">Player Address</div>
-            <div className="col-span-4 text-right">Total Points</div>
+          {/* Header - Mobil uyumlu */}
+          <div className={`grid ${isMobile ? 'grid-cols-10' : 'grid-cols-12'} bg-gradient-to-r from-purple-600 to-blue-600 text-white p-3 font-semibold`}>
+            <div className={`${isMobile ? 'col-span-1' : 'col-span-1'} text-center text-sm`}>Rank</div>
+            <div className={`${isMobile ? 'col-span-6' : 'col-span-7'} text-sm`}>Player</div>
+            <div className={`${isMobile ? 'col-span-3' : 'col-span-4'} text-right text-sm`}>Points</div>
           </div>
           
+          {/* List - Mobil uyumlu */}
           <div className="divide-y divide-gray-700 max-h-[600px] overflow-y-auto">
             {leaderboard.map((player, index) => (
-              <div key={`${player.address}-${index}`} className="grid grid-cols-12 p-4 hover:bg-gray-700/50 transition-colors">
-                <div className="col-span-1 flex items-center justify-center">
+              <div key={`${player.address}-${index}`} className={`grid ${isMobile ? 'grid-cols-10' : 'grid-cols-12'} p-3 hover:bg-gray-700/50 transition-colors`}>
+                <div className={`${isMobile ? 'col-span-1' : 'col-span-1'} flex items-center justify-center`}>
                   {index === 0 && <span className="text-yellow-400 text-lg">🥇</span>}
                   {index === 1 && <span className="text-gray-300 text-lg">🥈</span>}
                   {index === 2 && <span className="text-orange-400 text-lg">🥉</span>}
-                  {index > 2 && <span className="text-gray-400">{index + 1}</span>}
+                  {index > 2 && <span className="text-gray-400 text-sm">{index + 1}</span>}
                 </div>
-                <div className="col-span-7 font-mono text-sm flex items-center">
-                  {formatAddress(player.address)}
+                <div className={`${isMobile ? 'col-span-6' : 'col-span-7'} font-mono text-sm flex items-center truncate`}>
+                  <span className="truncate">{formatAddress(player.address)}</span>
                   {index < 3 && (
-                    <span className="ml-2 text-xs bg-purple-500/30 px-2 py-1 rounded">
+                    <span className="ml-2 text-xs bg-purple-500/30 px-2 py-1 rounded whitespace-nowrap">
                       Top {index + 1}
                     </span>
                   )}
                 </div>
-                <div className="col-span-4 text-right font-bold text-yellow-400">
+                <div className={`${isMobile ? 'col-span-3' : 'col-span-4'} text-right font-bold text-yellow-400 truncate`}>
                   {player.points.toLocaleString()}
                   {index === 0 && player.points > 0 && (
-                    <span className="text-green-400 text-xs ml-2">👑</span>
+                    <span className="text-green-400 text-xs ml-1">👑</span>
                   )}
                 </div>
               </div>

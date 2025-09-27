@@ -31,6 +31,14 @@ export default function Home() {
     lose: 10
   });
   const [isFarcasterMiniApp, setIsFarcasterMiniApp] = useState(false);
+  const [playerStats, setPlayerStats] = useState({
+    totalGames: 0,
+    totalWins: 0,
+    totalLosses: 0,
+    winRate: 0,
+    winStreak: 0,
+    maxWinStreak: 0
+  });
 
   const [gameState, setGameState] = useState({
     selectedImage: null,
@@ -57,7 +65,9 @@ export default function Home() {
       { id: 18, url: "/images/tevans18.png", name: "Tevan #18" },
       { id: 19, url: "/images/tevans19.png", name: "Tevan #19" }
     ],
-    isLoading: false
+    isLoading: false,
+    pointsEarned: 0,
+    isWinner: false
   });
 
   // Farcaster Mini App detection
@@ -65,15 +75,13 @@ export default function Home() {
     const checkFarcasterMiniApp = () => {
       const isMiniApp = window.parent !== window;
       setIsFarcasterMiniApp(isMiniApp);
-      
-      if (isMiniApp) {
-        console.log('Farcaster Mini App mode activated');
-        // Mini App için optimizasyonlar
-        document.documentElement.style.background = 'linear-gradient(135deg, #1E293B 0%, #334155 100%)';
-      }
     };
-
     checkFarcasterMiniApp();
+  }, []);
+
+  // Rabby Wallet desteği
+  const isRabbyWallet = useCallback(() => {
+    return window.ethereum?.isRabby || false;
   }, []);
 
   const checkYoyoBalance = useCallback(async (address) => {
@@ -115,10 +123,32 @@ export default function Home() {
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     try {
-      const [totalPoints, gamesToday, limit, hasYoyoBoost] = await contract.getPlayerInfo(address);
+      const [
+        totalPoints, 
+        gamesToday, 
+        limit, 
+        hasYoyoBoost,
+        totalGames,
+        totalWins, 
+        totalLosses,
+        winStreak,
+        maxWinStreak,
+        winRate
+      ] = await contract.getPlayerInfo(address);
+      
       setPoints(Number(totalPoints));
       setGamesPlayedToday(Number(gamesToday));
       setDailyLimit(Number(limit));
+      
+      // İstatistikleri güncelle
+      setPlayerStats({
+        totalGames: Number(totalGames),
+        totalWins: Number(totalWins),
+        totalLosses: Number(totalLosses),
+        winRate: Number(winRate),
+        winStreak: Number(winStreak),
+        maxWinStreak: Number(maxWinStreak)
+      });
       
       const yoyoBalance = await checkYoyoBalance(address);
       setYoyoBalanceAmount(yoyoBalance);
@@ -154,6 +184,12 @@ export default function Home() {
   }, [contract]);
 
   const connectWallet = useCallback(async (walletType = 'standard', farcasterAddress = null) => {
+    // Rabby wallet kontrolü
+    if (walletType === 'rabby' && !window.ethereum?.isRabby) {
+      setConnectionError("Rabby Wallet not detected! Please install Rabby Wallet.");
+      return;
+    }
+
     if (typeof window.ethereum === 'undefined' && !farcasterAddress) {
       setConnectionError("Wallet not installed!");
       if (isMobile) {
@@ -204,7 +240,15 @@ export default function Home() {
       
     } catch (err) {
       console.error("Failed to connect wallet:", err);
-      setConnectionError(err.message || "Failed to connect wallet");
+      
+      // Rabby-specific hata mesajları
+      if (err.code === 4001) {
+        setConnectionError("Connection rejected by user");
+      } else if (err.message.includes("Rabby")) {
+        setConnectionError("Rabby Wallet connection failed. Please check if Rabby is unlocked.");
+      } else {
+        setConnectionError(err.message || "Failed to connect wallet");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -300,6 +344,8 @@ export default function Home() {
         errorMessage += err.reason;
       } else if (err.message.includes("revert")) {
         errorMessage += "Daily limit reached";
+      } else if (err.message.includes("Rabby")) {
+        errorMessage += "Rabby Wallet error - please try again";
       } else {
         errorMessage += err.message;
       }
@@ -358,6 +404,14 @@ export default function Home() {
     setYoyoBalanceAmount(0);
     setGamesPlayedToday(0);
     setLeaderboard([]);
+    setPlayerStats({
+      totalGames: 0,
+      totalWins: 0,
+      totalLosses: 0,
+      winRate: 0,
+      winStreak: 0,
+      maxWinStreak: 0
+    });
     setGameState(prev => ({
       ...prev,
       gamePhase: "idle",
@@ -371,11 +425,14 @@ export default function Home() {
     let walletUrl = '';
     const WALLET_LINKS = {
       metamask: { universal: "https://metamask.app.link/dapp/" },
+      rabby: { universal: "https://rabby.io/" }, // Rabby mobile link
       coinbase: { universal: "https://go.cb-w.com/dapp?cb_url=" },
       trust: { universal: "https://link.trustwallet.com/dapp/" }
     };
+    
     switch(walletType) {
       case 'metamask': walletUrl = `${WALLET_LINKS.metamask.universal}${currentUrl}`; break;
+      case 'rabby': walletUrl = `${WALLET_LINKS.rabby.universal}`; break;
       case 'coinbase': walletUrl = `${WALLET_LINKS.coinbase.universal}${currentUrl}`; break;
       case 'trust': walletUrl = `${WALLET_LINKS.trust.universal}${currentUrl}`; break;
       default: return;
@@ -443,6 +500,7 @@ export default function Home() {
               <h1 className="text-4xl font-bold">YoYo Guild Battle</h1>
               <p className="text-sm opacity-90 mt-1">
                 {isFarcasterMiniApp ? "Farcaster Mini App" : "Blockchain Battle Arena"}
+                {isRabbyWallet() && " | Rabby Wallet Supported"}
               </p>
             </div>
           </div>
@@ -502,6 +560,7 @@ export default function Home() {
             dailyLimit={dailyLimit}
             isLoading={isLoading}
             pointValues={pointValues}
+            playerStats={playerStats}
           />
           
           <div className="min-h-[500px]">
@@ -511,6 +570,7 @@ export default function Home() {
                 yoyoBalanceAmount={yoyoBalanceAmount}
                 remainingGames={remainingGames}
                 pointValues={pointValues}
+                playerStats={playerStats}
               />
             )}
             {activeTab === "play" && (
@@ -529,6 +589,7 @@ export default function Home() {
                 dailyLimit={dailyLimit}
                 isLoading={isLoading}
                 pointValues={pointValues}
+                playerStats={playerStats}
               />
             )}
             {activeTab === "leaderboard" && (
@@ -541,6 +602,7 @@ export default function Home() {
         
         <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
           <p>YoYo Guild Battle | Base Mainnet | {isFarcasterMiniApp ? 'Farcaster Mini App' : 'Web App'}</p>
+          {isRabbyWallet() && <p className="text-xs mt-1">🔗 Rabby Wallet Supported</p>}
         </footer>
       </div>
 
