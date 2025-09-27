@@ -14,7 +14,9 @@
     "next": "^13.5.11",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "utf-8-validate": "^5.0.10"
+    "utf-8-validate": "^5.0.10",
+	"@basehub/mini-apps-sdk": "^0.1.0",
+    "@basehub/mini-apps-react": "^0.1.0"
   },
   "devDependencies": {
     "@types/react": "19.1.13",

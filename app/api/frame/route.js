@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST() {
   return NextResponse.json({
     type: 'frame',
-    image: "https://yoyoguild.vercel.app/images/page.png", // Yeni page.png
+    image: "https://yoyoguild.vercel.app/images/page.png",
     buttons: [
       {
         label: "🎮 Play Game",
@@ -22,7 +22,7 @@ export async function POST() {
 export async function GET() {
   return NextResponse.json({
     type: 'frame',
-    image: "https://yoyoguild.vercel.app/images/page.png", // Yeni page.png
+    image: "https://yoyoguild.vercel.app/images/page.png",
     buttons: [
       {
         label: "🎮 Play YoYo Battle",
