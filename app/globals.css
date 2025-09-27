@@ -92,23 +92,31 @@ a {
   @apply bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl border border-gray-700/50 backdrop-blur-sm;
 }
 
-.farcaster-mini-app {
-  background: linear-gradient(135deg, #1E293B 0%, #334155 100%) !important;
+/* Farcaster Mini App Specific Styles */
+.farcaster-embedded {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%) !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
-.farcaster-mini-app .bg-gradient-to-br {
-  background: rgba(30, 41, 59, 0.95) !important;
-  backdrop-filter: blur(10px);
+.farcaster-embedded .max-w-6xl {
+  max-width: 100% !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
 }
 
-/* Mobile optimizasyon */
-@media (max-width: 768px) {
-  .farcaster-mini-app {
-    padding: 10px;
+/* Hide footer in embedded mode */
+.farcaster-embedded footer {
+  display: none;
+}
+
+/* Optimize for small screens */
+@media (max-width: 400px) {
+  .farcaster-embedded {
+    padding: 5px !important;
   }
   
-  .farcaster-mini-app .max-w-6xl {
-    max-width: 100%;
-    border-radius: 16px;
+  .farcaster-embedded .text-4xl {
+    font-size: 1.5rem !important;
   }
 }

@@ -71,20 +71,57 @@ export default function Home() {
     isWinner: false
   });
 
-  // Client-side kontrolü - EN BAŞTA
+  // Client-side kontrolü
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Farcaster Mini App detection - useEffect İÇİNDE
+  // Geliştirilmiş Farcaster Mini App detection
   useEffect(() => {
     if (!isClient) return;
     
     const checkFarcasterMiniApp = () => {
-      const isMiniApp = window.parent !== window;
+      // URL parametrelerini kontrol et
+      const urlParams = new URLSearchParams(window.location.search);
+      const isFarcasterParam = urlParams.get('farcaster') === 'true';
+      const isEmbeddedParam = urlParams.get('embedded') === 'true';
+      
+      // Embedded mode kontrolü
+      const isEmbedded = window.self !== window.top;
+      
+      // User agent kontrolü
+      const isFarcasterUA = /Farcaster|Warpcast/i.test(navigator.userAgent);
+      
+      // Referrer kontrolü
+      const isFarcasterReferrer = document.referrer.includes('warpcast') || 
+                                 document.referrer.includes('farcaster');
+      
+      // Tüm koşulları değerlendir
+      const isMiniApp = isFarcasterParam || isEmbeddedParam || isEmbedded || isFarcasterUA || isFarcasterReferrer;
+      
+      console.log('Farcaster detection:', {
+        isFarcasterParam,
+        isEmbeddedParam,
+        isEmbedded,
+        isFarcasterUA,
+        isFarcasterReferrer,
+        isMiniApp
+      });
+      
       setIsFarcasterMiniApp(isMiniApp);
+      
+      // Mini App modunda özel styling uygula
+      if (isMiniApp) {
+        document.body.classList.add('farcaster-embedded');
+      }
     };
+    
     checkFarcasterMiniApp();
+    
+    // Farcaster SDK yükleme (opsiyonel)
+    if (typeof window !== 'undefined' && window.farcaster) {
+      console.log('Farcaster SDK detected');
+    }
   }, [isClient]);
 
   // Rabby Wallet desteği
@@ -242,8 +279,13 @@ export default function Home() {
       await updatePlayerInfo(address);
       await updateLeaderboard();
       
+      // Farcaster Mini App için mesaj gönder
       if (isFarcasterMiniApp) {
-        window.parent.postMessage({ type: 'WALLET_CONNECTED', address }, '*');
+        window.parent.postMessage({ 
+          type: 'WALLET_CONNECTED', 
+          address,
+          points: points
+        }, '*');
       }
       
     } catch (err) {
@@ -259,7 +301,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [checkYoyoBalance, getPointValues, updatePlayerInfo, updateLeaderboard, isMobile, isFarcasterMiniApp, isClient]);
+  }, [checkYoyoBalance, getPointValues, updatePlayerInfo, updateLeaderboard, isMobile, isFarcasterMiniApp, isClient, points]);
 
   const startGame = async (selectedIndex) => {
     if (!walletConnected || !contract || isLoading) return;
@@ -333,11 +375,13 @@ export default function Home() {
         isWinner: isWinner
       }));
       
+      // Farcaster Mini App için game result mesajı
       if (isFarcasterMiniApp) {
         window.parent.postMessage({ 
           type: 'GAME_RESULT', 
           won: isWinner, 
-          points: pointsEarned 
+          points: pointsEarned,
+          totalPoints: points + pointsEarned
         }, '*');
       }
       
@@ -501,7 +545,7 @@ export default function Home() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4 ${isFarcasterMiniApp ? 'farcaster-mini-app' : ''}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4 ${isFarcasterMiniApp ? 'farcaster-embedded' : ''}`}>
       {showWalletOptions && (
         <MobileWalletSelector 
           onConnect={connectMobileWallet}
@@ -517,7 +561,7 @@ export default function Home() {
             <div>
               <h1 className="text-4xl font-bold">YoYo Guild Battle</h1>
               <p className="text-sm opacity-90 mt-1">
-                {isFarcasterMiniApp ? "Farcaster Mini App" : "Blockchain Battle Arena"}
+                {isFarcasterMiniApp ? "🎯 Farcaster Mini App" : "Blockchain Battle Arena"}
                 {isRabbyWallet() && " | Rabby Wallet Supported"}
               </p>
             </div>
@@ -618,10 +662,12 @@ export default function Home() {
           </div>
         </div>
         
-        <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
-          <p>YoYo Guild Battle | Base Mainnet | {isFarcasterMiniApp ? 'Farcaster Mini App' : 'Web App'}</p>
-          {isRabbyWallet() && <p className="text-xs mt-1">🔗 Rabby Wallet Supported</p>}
-        </footer>
+        {!isFarcasterMiniApp && (
+          <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
+            <p>YoYo Guild Battle | Base Mainnet | {isFarcasterMiniApp ? 'Farcaster Mini App' : 'Web App'}</p>
+            {isRabbyWallet() && <p className="text-xs mt-1">🔗 Rabby Wallet Supported</p>}
+          </footer>
+        )}
       </div>
 
       {isLoading && (
