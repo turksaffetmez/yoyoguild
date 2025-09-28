@@ -12,6 +12,11 @@ import FarcasterMiniApp from "./components/FarcasterMiniApp";
 import MetaTags from "./components/MetaTags";
 import Image from "next/image";
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+// Mevcut kodunuz aynı kalacak...
+
 export default function Home() {
   const [walletConnected, setWalletConnected] = useState(false);
   const [userAddress, setUserAddress] = useState("");
