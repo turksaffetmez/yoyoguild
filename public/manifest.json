@@ -1,19 +1,34 @@
 {
-  "frame": {
-    "name": "YoYo Guild Battle",
-    "version": "1",
-    "iconUrl": "https://yoyoguild.vercel.app/images/logo.png",
-    "homeUrl": "https://yoyoguild.vercel.app",
-    "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
-    "splashBackgroundColor": "#000000",
-    "webhookUrl": "https://https://yoyoguild.vercel.app/api/webhook",
-    "subtitle": "YoYo Guild Battle",
-    "description": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
-    "primaryCategory": "games"
-  },
   "accountAssociation": {
     "header": "eyJmaWQiOjk5Mjk1NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweEQ3NDk0NGY3MEU1MTE2RDZBMkU2NjQzN2U1OGQ0MTYxYUVBMTRBYjAifQ",
     "payload": "eyJkb21haW4iOiJ5b3lvZ3VpbGQudmVyY2VsLmFwcCJ9",
     "signature": "6XA1QvELELcK2S2um1PoevADp/y9SouXIHEa/qHVdw5kIXJUUaizcLnwzrx/S6ctQKKXsJ3fQ5/nC2+gNt64Mxw="
+  },
+  "miniApp": {
+    "version": "1.0.0",
+    "name": "YoYo Guild Battle",
+    "iconUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
+    "homeUrl": "https://yoyoguild.vercel.app",
+    "description": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
+    "termsOfServiceUrl": "https://yoyoguild.vercel.app/terms",
+    "privacyPolicyUrl": "https://yoyoguild.vercel.app/privacy",
+    "permissions": [
+      "identity",
+      "storage"
+    ],
+    "webhookUrl": "https://yoyoguild.vercel.app/api/webhook",
+    "supportedFarcasterVersions": [
+      "vNext"
+    ]
+  },
+  "frame": {
+    "version": "next",
+    "name": "YoYo Guild Battle",
+    "iconUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
+    "homeUrl": "https://yoyoguild.vercel.app",
+    "imageUrl": "https://yoyoguild.vercel.app/images/page.png",
+    "buttonTitle": "Play Game",
+    "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
+    "splashBackgroundColor": "#000000"
   }
 }

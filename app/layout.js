@@ -31,6 +31,8 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="icon" href="/images/yoyo.png" />
+		// app/layout.js - head kısmına ekleyin
+		<link rel="manifest" href="/manifest.json" />
         
         {/* Farcaster Frame Meta Tags - DOĞRUDAN HEAD İÇİNE */}
         <meta property="fc:frame" content="vNext" />
