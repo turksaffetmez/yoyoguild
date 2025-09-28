@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server'
+
 export async function GET() {
   const html = `
     <!DOCTYPE html>
@@ -13,7 +15,7 @@ export async function GET() {
         <meta name="fc:frame:image" content="https://yoyoguild.vercel.app/images/page.png">
         <meta name="fc:frame:image:aspect_ratio" content="1.91:1">
         
-        <meta name="fc:frame:button:1" content="🎮 Play Mini App">
+        <meta name="fc:frame:button:1" content="🎮 Play Game">
         <meta name="fc:frame:button:1:action" content="link">
         <meta name="fc:frame:button:1:target" content="https://yoyoguild.vercel.app?source=farcaster">
         
