@@ -73,9 +73,35 @@ export default function Home() {
     isWinner: false
   });
 
-  // Client-side kontrolü
+  // Client-side kontrolü - IMMEDIATE READY CALL EKLENDİ
   useEffect(() => {
     setIsClient(true);
+    
+    // IMMEDIATE READY FOR BASE APP - CRITICAL!
+    if (window.parent !== window) {
+      console.log('🚀 Page.js: Sending immediate ready...');
+      const immediateReady = {
+        type: 'ready',
+        version: '1.0.0',
+        app: 'YoYo Guild Battle', 
+        from: 'page-component',
+        timestamp: Date.now()
+      };
+      
+      // Hemen gönder
+      window.parent.postMessage(immediateReady, '*');
+      
+      // Multiple fallbacks
+      setTimeout(() => {
+        window.parent.postMessage(immediateReady, '*');
+        console.log('📨 Page.js: Second ready sent');
+      }, 500);
+      
+      setTimeout(() => {
+        window.parent.postMessage(immediateReady, '*');
+        console.log('📨 Page.js: Third ready sent');
+      }, 2000);
+    }
   }, []);
 
   // Geliştirilmiş Farcaster Mini App detection
@@ -151,21 +177,22 @@ export default function Home() {
   // Farcaster Ready Call - CRITICAL FOR BASE APP
   useEffect(() => {
     if (isFarcasterMiniApp && isClient) {
-      console.log('🎯 Farcaster Mini App active - sending ready signals');
+      console.log('🎯 Farcaster Mini App active - sending additional ready signals');
       
-      // Multiple ready signals for reliability
-      const sendReadySignals = () => {
+      // Additional ready signals for reliability
+      const sendAdditionalReadySignals = () => {
         // Method 1: PostMessage ready
         if (window.parent !== window) {
           const readyMsg = {
             type: 'ready',
             version: '1.0.0', 
             app: 'YoYo Guild Battle',
+            from: 'page-farcaster-detection',
             timestamp: Date.now()
           };
           
           window.parent.postMessage(readyMsg, '*');
-          console.log('📨 App ready message sent via postMessage');
+          console.log('📨 Additional ready message sent via postMessage');
         }
         
         // Method 2: farcaster.ready() if SDK available
@@ -176,12 +203,9 @@ export default function Home() {
         }
       };
       
-      // Send immediately
-      sendReadySignals();
-      
-      // Send again after delays for reliability
-      const timer1 = setTimeout(sendReadySignals, 1000);
-      const timer2 = setTimeout(sendReadySignals, 3000);
+      // Send after delays for reliability
+      const timer1 = setTimeout(sendAdditionalReadySignals, 1500);
+      const timer2 = setTimeout(sendAdditionalReadySignals, 4000);
       
       return () => {
         clearTimeout(timer1);

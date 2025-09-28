@@ -13,7 +13,7 @@ export const metadata = {
     description: 'Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!',
     images: [
       {
-        url: 'https://yoyoguild.vercel.app/images/page.png',
+        url: 'https://yoyoguild.vercel.app/images/baseapp.png',
         width: 1200,
         height: 630,
         alt: 'YoYo Guild Battle',
@@ -27,7 +27,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'YoYo Guild Battle',
     description: 'Blockchain Battle Arena on Base',
-    images: ['https://yoyoguild.vercel.app/images/page.png'],
+    images: ['https://yoyoguild.vercel.app/images/baseapp.png'],
     creator: '@yoyoguild',
   },
 }
@@ -40,10 +40,43 @@ export default function RootLayout({ children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>YoYo Guild Battle - Blockchain Battle Arena</title>
         
+        {/* IMMEDIATE READY SCRIPT - CRITICAL FOR BASE APP */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // IMMEDIATE READY CALL - Base App için kritik!
+              if (window.parent !== window.self) {
+                console.log('🚀 Layout.js: Sending immediate ready...');
+                const readyMsg = {
+                  type: 'ready',
+                  version: '1.0.0',
+                  app: 'YoYo Guild Battle',
+                  from: 'layout-head',
+                  timestamp: Date.now()
+                };
+                
+                // Hemen gönder
+                window.parent.postMessage(readyMsg, '*');
+                
+                // Kısa aralıklarla tekrar gönder
+                setTimeout(() => {
+                  window.parent.postMessage(readyMsg, '*');
+                  console.log('📨 Layout.js: Second ready sent');
+                }, 300);
+                
+                setTimeout(() => {
+                  window.parent.postMessage(readyMsg, '*');
+                  console.log('📨 Layout.js: Third ready sent');
+                }, 1000);
+              }
+            `
+          }}
+        />
+        
         {/* CRITICAL - Open Graph Tags for Base Preview */}
         <meta property="og:title" content="YoYo Guild Battle" />
         <meta property="og:description" content="Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!" />
-        <meta property="og:image" content="https://yoyoguild.vercel.app/images/page.png" />
+        <meta property="og:image" content="https://yoyoguild.vercel.app/images/baseapp.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="YoYo Guild Battle" />
@@ -55,7 +88,7 @@ export default function RootLayout({ children }) {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="YoYo Guild Battle" />
         <meta name="twitter:description" content="Blockchain Battle Arena on Base" />
-        <meta name="twitter:image" content="https://yoyoguild.vercel.app/images/page.png" />
+        <meta name="twitter:image" content="https://yoyoguild.vercel.app/images/baseapp.png" />
         <meta name="twitter:site" content="@yoyoguild" />
         
         {/* Farcaster Mini App Tags */}
@@ -70,14 +103,14 @@ export default function RootLayout({ children }) {
         <meta name="base:title" content="YoYo Guild Battle" />
         <meta name="base:description" content="Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!" />
         <meta name="base:icon" content="https://yoyoguild.vercel.app/images/yoyo.png" />
-        <meta name="base:image" content="https://yoyoguild.vercel.app/images/page.png" />
+        <meta name="base:image" content="https://yoyoguild.vercel.app/images/yoyo.png" />
         <meta name="base:splash" content="https://yoyoguild.vercel.app/images/page.png" />
         <meta name="base:splashBackground" content="#000000" />
         <meta name="base:url" content="https://yoyoguild.vercel.app" />
         <meta name="base:network" content="base" />
         <meta name="base:category" content="gaming" />
         <meta name="base:tags" content="gaming,battle,blockchain,yoyo,base,nft,points" />
-        <meta name="base:ogImageUrl" content="https://yoyoguild.vercel.app/images/page.png" />
+        <meta name="base:ogImageUrl" content="https://yoyoguild.vercel.app/images/baseapp.png" />
         <meta name="base:ogTitle" content="YoYo Guild Battle" />
         <meta name="base:ogDescription" content="Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!" />
         <meta name="base:primaryCategory" content="gaming" />
