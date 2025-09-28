@@ -19,21 +19,30 @@
     "webhookUrl": "https://yoyoguild.vercel.app/api/webhook",
     "supportedFarcasterVersions": [
       "vNext"
-    ],
-    "primaryCategory": "gaming",
-    "tags": ["gaming", "battle", "blockchain", "yoyo", "base", "nft", "points"],
+    ]
+  },
+  "frame": {
+    "version": "next",
+    "name": "YoYo Guild Battle",
+    "iconUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
+    "homeUrl": "https://yoyoguild.vercel.app",
+    "imageUrl": "https://yoyoguild.vercel.app/images/page.png",
+    "buttonTitle": "Play Game",
     "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "splashBackgroundColor": "#000000",
-    "buttonTitle": "Play Game",
-    "ogTitle": "YoYo Guild Battle",
-    "ogDescription": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
-    "ogImageUrl": "https://yoyoguild.vercel.app/images/baseapp.png",
+    "primaryCategory": "gaming",
+    "tags": ["gaming", "battle", "blockchain", "yoyo", "base", "nft", "points"],
+    "webhookUrl": "https://yoyoguild.vercel.app/api/webhook",
     "subtitle": "Blockchain Battle Arena",
+    "description": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
     "screenshotUrls": [
       "https://yoyoguild.vercel.app/images/yoyo.png"
     ],
     "heroImageUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
     "tagline": "Battle Tevans, earn points, win YOYO!",
+    "ogTitle": "YoYo Guild Battle",
+    "ogDescription": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
+    "ogImageUrl": "https://yoyoguild.vercel.app/images/baseapp.png",
     "noindex": false,
     "castShareUrl": "https://yoyoguild.vercel.app"
   }
