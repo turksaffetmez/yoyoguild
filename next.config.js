@@ -11,6 +11,13 @@ const nextConfig = {
         ],
       },
       {
+        source: '/farcaster-frame.html',
+        headers: [
+          { key: 'X-Frame-Options', value: 'ALLOWALL' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://farcaster.xyz https://warpcast.com" }
+        ],
+      },
+      {
         source: '/(.*)',
         headers: [
           { key: 'X-Frame-Options', value: 'ALLOWALL' },
