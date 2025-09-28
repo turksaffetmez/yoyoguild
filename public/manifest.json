@@ -10,8 +10,8 @@
     "iconUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
     "homeUrl": "https://yoyoguild.vercel.app",
     "description": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
-    "termsOfServiceUrl": "https://yoyoguild.vercel.app/terms",
-    "privacyPolicyUrl": "https://yoyoguild.vercel.app/privacy",
+    "termsOfServiceUrl": "https://yoyoguild.vercel.app/api/terms",
+    "privacyPolicyUrl": "https://yoyoguild.vercel.app/api/privacy",
     "permissions": [
       "identity",
       "storage"
