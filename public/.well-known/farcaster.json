@@ -1,6 +1,6 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOjk5Mjk1NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweEQ3NDk0NGY3MEU1MTE2RDZBMkU2NjQzN2U1OGQ0MTYxYUVBMTRBYjAifQ",
+    "header": "eyJmaWQiOjk5Mjk1NiwidHlpZSI6ImF1dGgiLCJrZXkiOiIweEQ3NDk0NGY3MEU1MTE2RDZBMkU2NjQzN2U1OGQ0MTYxYUVBMTRBYjAifQ",
     "payload": "eyJkb21haW4iOiJ5b3lvZ3VpbGQudmVyY2VsLmFwcCJ9",
     "signature": "6XA1QvELELcK2S2um1PoevADp/y9SouXIHEa/qHVdw5kIXJUUaizcLnwzrx/S6ctQKKXsJ3fQ5/nC2+gNt64Mxw="
   },
@@ -21,19 +21,20 @@
       "vNext"
     ],
     "primaryCategory": "gaming",
-    "tags": ["gaming", "battle", "blockchain", "yoyo", "base", "nft", "points"]
-  },
-  "frame": {
-    "version": "next",
-    "name": "YoYo Guild Battle",
-    "iconUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
-    "homeUrl": "https://yoyoguild.vercel.app",
-    "imageUrl": "https://yoyoguild.vercel.app/images/page.png",
-    "buttonTitle": "Play Game",
+    "tags": ["gaming", "battle", "blockchain", "yoyo", "base", "nft", "points"],
     "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "splashBackgroundColor": "#000000",
-    "ogImageUrl": "https://yoyoguild.vercel.app/images/page.png",
+    "buttonTitle": "Play Game",
     "ogTitle": "YoYo Guild Battle",
-    "ogDescription": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!"
+    "ogDescription": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
+    "ogImageUrl": "https://yoyoguild.vercel.app/images/baseapp.png",
+    "subtitle": "Blockchain Battle Arena",
+    "screenshotUrls": [
+      "https://yoyoguild.vercel.app/images/yoyo.png"
+    ],
+    "heroImageUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
+    "tagline": "Battle Tevans, earn points, win YOYO!",
+    "noindex": false,
+    "castShareUrl": "https://yoyoguild.vercel.app"
   }
 }
