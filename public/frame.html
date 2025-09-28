@@ -1,35 +1,4 @@
-import { NextResponse } from 'next/server'
-
-export async function POST(request) {
-  try {
-    const body = await request.json();
-    console.log('Frame interaction:', body);
-    
-    // Basit response - frame'i güncelle
-    return NextResponse.json({
-      type: 'frame',
-      image: "https://yoyoguild.vercel.app/images/page.png",
-      buttons: [
-        {
-          label: "🎮 Play Game",
-          action: "link", 
-          target: "https://yoyoguild.vercel.app?source=farcaster"
-        },
-        {
-          label: "🏆 Leaderboard",
-          action: "link",
-          target: "https://yoyoguild.vercel.app?source=farcaster&tab=leaderboard"
-        }
-      ]
-    });
-  } catch (error) {
-    console.error('Frame API error:', error);
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
-  }
-}
-
-export async function GET() {
-  const html = `<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>YoYo Guild Battle</title>
@@ -51,11 +20,4 @@ export async function GET() {
     <p>Blockchain Battle Arena on Base Network</p>
     <img src="https://yoyoguild.vercel.app/images/page.png" width="300">
 </body>
-</html>`;
-
-  return new Response(html, {
-    headers: {
-      'Content-Type': 'text/html',
-    },
-  });
-}
+</html>

@@ -11,24 +11,24 @@ const nextConfig = {
         ],
       },
       {
-        source: '/farcaster-frame.html',
+        source: '/frame.html',
         headers: [
           { key: 'X-Frame-Options', value: 'ALLOWALL' },
           { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://farcaster.xyz https://warpcast.com" }
         ],
       },
       {
-        source: '/(.*)',
+        source: '/api/frame',
         headers: [
-          { key: 'X-Frame-Options', value: 'ALLOWALL' },
-          { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://farcaster.xyz https://warpcast.com" }
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type' },
         ],
       }
     ]
   },
   images: {
     unoptimized: true,
-    domains: ['yoyoguild.vercel.app'],
   },
 }
 
