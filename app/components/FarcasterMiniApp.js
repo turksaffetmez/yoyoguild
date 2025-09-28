@@ -7,7 +7,8 @@ export default function FarcasterMiniApp() {
     const isFarcasterMiniApp = 
       window.self !== window.top ||
       /Farcaster|Warpcast/i.test(navigator.userAgent) ||
-      new URLSearchParams(window.location.search).get('farcaster') === 'true';
+      new URLSearchParams(window.location.search).get('farcaster') === 'true' ||
+      new URLSearchParams(window.location.search).get('source') === 'farcaster';
 
     if (isFarcasterMiniApp) {
       console.log('🚀 Farcaster Mini App environment detected');
@@ -22,11 +23,13 @@ export default function FarcasterMiniApp() {
       }
       
       // Send ready message to parent window
-      window.parent.postMessage({ 
-        type: 'MINI_APP_READY',
-        version: '1.0',
-        name: 'YoYo Guild Battle'
-      }, '*');
+      if (window.self !== window.top) {
+        window.parent.postMessage({ 
+          type: 'MINI_APP_READY',
+          version: '1.0',
+          name: 'YoYo Guild Battle'
+        }, '*');
+      }
     }
   }, []);
 
