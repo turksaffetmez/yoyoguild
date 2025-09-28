@@ -5,7 +5,7 @@
     "signature": "6XA1QvELELcK2S2um1PoevADp/y9SouXIHEa/qHVdw5kIXJUUaizcLnwzrx/S6ctQKKXsJ3fQ5/nC2+gNt64Mxw="
   },
   "miniApp": {
-    "version": "1.0",
+    "version": "1.0.0",
     "name": "YoYo Guild Battle",
     "iconUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
     "homeUrl": "https://yoyoguild.vercel.app",
@@ -17,7 +17,7 @@
     "supportedFarcasterVersions": ["vNext"]
   },
   "frame": {
-    "version": "1.0",
+    "version": "next",
     "name": "YoYo Guild Battle",
     "iconUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
     "homeUrl": "https://yoyoguild.vercel.app",
