@@ -11,14 +11,6 @@ const nextConfig = {
         ],
       },
       {
-        source: '/frame.html',
-        headers: [
-          { key: 'Content-Type', value: 'text/html; charset=utf-8' },
-          { key: 'X-Frame-Options', value: 'ALLOWALL' },
-          { key: 'Content-Security-Policy', value: "default-src 'self' https://yoyoguild.vercel.app; frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://farcaster.xyz https://warpcast.com;" }
-        ],
-      },
-      {
         source: '/(.*)',
         headers: [
           { key: 'X-Frame-Options', value: 'ALLOWALL' },
