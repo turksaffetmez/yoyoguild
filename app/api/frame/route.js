@@ -1,61 +1,42 @@
 import { NextResponse } from 'next/server'
 
 export async function POST(request) {
-  try {
-    const body = await request.json();
-    console.log('Frame interaction:', body);
-    
-    // Basit response - frame'i güncelle
+  const body = await request.json()
+  const { untrustedData } = body
+  
+  // Button 1: Play Game
+  if (untrustedData.buttonIndex === 1) {
     return NextResponse.json({
       type: 'frame',
-      image: "https://yoyoguild.vercel.app/images/page.png",
-      buttons: [
-        {
-          label: "🎮 Play Game",
-          action: "link", 
-          target: "https://yoyoguild.vercel.app?source=farcaster"
-        },
-        {
-          label: "🏆 Leaderboard",
-          action: "link",
-          target: "https://yoyoguild.vercel.app?source=farcaster&tab=leaderboard"
-        }
-      ]
-    });
-  } catch (error) {
-    console.error('Frame API error:', error);
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+      frame: {
+        version: 'next',
+        image: `https://yoyoguild.vercel.app/images/page.png`,
+        buttons: [
+          {
+            label: '🎮 Open Game',
+            action: 'link',
+            target: 'https://yoyoguild.vercel.app?source=farcaster'
+          }
+        ]
+      }
+    })
   }
-}
-
-export async function GET() {
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-    <title>YoYo Guild Battle</title>
-    <meta property="og:title" content="YoYo Guild Battle">
-    <meta property="og:image" content="https://yoyoguild.vercel.app/images/page.png">
-    <meta property="og:url" content="https://yoyoguild.vercel.app">
-    <meta name="fc:frame" content="vNext">
-    <meta name="fc:frame:image" content="https://yoyoguild.vercel.app/images/page.png">
-    <meta name="fc:frame:post_url" content="https://yoyoguild.vercel.app/api/frame">
-    <meta name="fc:frame:button:1" content="🎮 Play Game">
-    <meta name="fc:frame:button:1:action" content="link">
-    <meta name="fc:frame:button:1:target" content="https://yoyoguild.vercel.app?source=farcaster">
-    <meta name="fc:frame:button:2" content="🏆 Leaderboard"> 
-    <meta name="fc:frame:button:2:action" content="link">
-    <meta name="fc:frame:button:2:target" content="https://yoyoguild.vercel.app?source=farcaster&tab=leaderboard">
-</head>
-<body>
-    <h1>YoYo Guild Battle</h1>
-    <p>Blockchain Battle Arena on Base Network</p>
-    <img src="https://yoyoguild.vercel.app/images/page.png" width="300">
-</body>
-</html>`;
-
-  return new Response(html, {
-    headers: {
-      'Content-Type': 'text/html',
-    },
-  });
+  
+  // Button 2: Leaderboard
+  if (untrustedData.buttonIndex === 2) {
+    return NextResponse.json({
+      type: 'frame', 
+      frame: {
+        version: 'next',
+        image: `https://yoyoguild.vercel.app/images/page.png`,
+        buttons: [
+          {
+            label: '🏆 View Leaderboard',
+            action: 'link', 
+            target: 'https://yoyoguild.vercel.app?source=farcaster&tab=leaderboard'
+          }
+        ]
+      }
+    })
+  }
 }

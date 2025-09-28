@@ -82,44 +82,75 @@ export default function Home() {
   useEffect(() => {
     if (!isClient) return;
     
-    const checkFarcasterMiniApp = () => {
+    const checkFarcaster = () => {
       // URL parametrelerini kontrol et
       const urlParams = new URLSearchParams(window.location.search);
-      const isFarcasterParam = urlParams.get('farcaster') === 'true' || urlParams.get('source') === 'farcaster';
+      const isFarcasterFrame = urlParams.get('source') === 'farcaster';
       const isEmbeddedParam = urlParams.get('embedded') === 'true';
       
       // Embedded mode kontrolü
       const isEmbedded = window.self !== window.top;
       
       // User agent kontrolü
-      const isFarcasterUA = /Farcaster|Warpcast/i.test(navigator.userAgent);
+      const isWarpcastUA = /Farcaster|Warpcast/i.test(navigator.userAgent);
       
       // Referrer kontrolü
       const isFarcasterReferrer = document.referrer.includes('warpcast') || 
                                  document.referrer.includes('farcaster');
       
-      // Tüm koşulları değerlendir
-      const isMiniApp = isFarcasterParam || isEmbeddedParam || isEmbedded || isFarcasterUA || isFarcasterReferrer;
+      // Tüm koşulları değerlendir - ANY condition should activate Mini App
+      const shouldActivateMiniApp = isFarcasterFrame || isEmbeddedParam || isEmbedded || isWarpcastUA || isFarcasterReferrer;
       
-      console.log('Farcaster detection:', {
-        isFarcasterParam,
+      console.log('🎯 Farcaster detection:', {
+        isFarcasterFrame,
         isEmbeddedParam,
         isEmbedded,
-        isFarcasterUA,
+        isWarpcastUA,
         isFarcasterReferrer,
-        isMiniApp
+        shouldActivateMiniApp
       });
       
-      setIsFarcasterMiniApp(isMiniApp);
+      setIsFarcasterMiniApp(shouldActivateMiniApp);
       
-      // Mini App modunda özel styling uygula
-      if (isMiniApp) {
+      // Mini App modunda özel styling ve optimizasyon uygula
+      if (shouldActivateMiniApp) {
         document.body.classList.add('farcaster-mini-app');
-        console.log('🎯 Farcaster Mini App mode activated');
+        
+        // Viewport optimizasyonu
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        if (viewportMeta) {
+          viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+        }
+        
+        // Farcaster SDK ready mesajı gönder
+        setTimeout(() => {
+          if (window.parent !== window) {
+            window.parent.postMessage({ 
+              type: 'ready',
+              version: '1.0.0'
+            }, '*');
+            console.log('📨 Sent ready message to parent frame');
+          }
+        }, 1000);
+        
+        console.log('🚀 Farcaster Mini App fully activated');
       }
     };
     
-    checkFarcasterMiniApp();
+    checkFarcaster();
+    
+    // URL değişikliklerini dinle (frame navigation için)
+    const handleUrlChange = () => {
+      setTimeout(checkFarcaster, 100);
+    };
+    
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+    };
   }, [isClient]);
 
   // Rabby Wallet desteği
