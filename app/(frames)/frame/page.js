@@ -43,22 +43,5 @@ export const metadata = {
     title: 'YoYo Guild Battle',
     description: 'Blockchain Battle Arena on Base',
     images: ['https://yoyoguild.vercel.app/images/page.png'],
-  },
-  other: {
-    'fc:frame': 'vNext',
-    'fc:frame:image': 'https://yoyoguild.vercel.app/images/page.png',
-    'fc:frame:image:aspect_ratio': '1.91:1',
-    'fc:frame:button:1': '🎮 Play Game',
-    'fc:frame:button:1:action': 'link',
-    'fc:frame:button:1:target': 'https://yoyoguild.vercel.app?source=farcaster',
-    'fc:frame:button:2': '🏆 Leaderboard',
-    'fc:frame:button:2:action': 'link',
-    'fc:frame:button:2:target': 'https://yoyoguild.vercel.app?source=farcaster&tab=leaderboard',
-    
-    // Mini App Meta Tags
-    'fc:mini-app:name': 'YoYo Guild Battle',
-    'fc:mini-app:icon': 'https://yoyoguild.vercel.app/images/yoyo.png',
-    'fc:mini-app:description': 'Blockchain Battle Arena on Base',
-    'fc:mini-app:url': 'https://yoyoguild.vercel.app',
   }
 }
