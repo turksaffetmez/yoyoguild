@@ -30,5 +30,15 @@
     "buttonTitle": "Play Game",
     "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "splashBackgroundColor": "#000000"
+  },
+  "base": {
+    "title": "YoYo Guild Battle",
+    "description": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
+    "icon": "https://yoyoguild.vercel.app/images/yoyo.png",
+    "splash": "https://yoyoguild.vercel.app/images/page.png",
+    "splashBackground": "#000000",
+    "network": "base",
+    "category": "gaming",
+    "tags": ["gaming", "battle", "blockchain", "yoyo"]
   }
 }

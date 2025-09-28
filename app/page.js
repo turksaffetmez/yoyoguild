@@ -87,6 +87,25 @@ export default function Home() {
   // Geliştirilmiş Farcaster Mini App detection
   useEffect(() => {
     if (!isClient) return;
+	
+	
+	  // Base App detection
+  const isBaseApp = 
+    window.location.href.includes('base.org') ||
+    document.referrer.includes('base.org') ||
+    navigator.userAgent.includes('Base') ||
+    window.ethereum?.isBase;
+  
+  if (isBaseApp) {
+    console.log('🎯 Base Mini App detected');
+    setIsFarcasterMiniApp(true);
+    document.body.classList.add('farcaster-mini-app');
+    
+    // Base'de otomatik wallet connect
+    if (window.ethereum) {
+      connectWallet();
+    }
+  }
     
     const checkFarcaster = () => {
       // URL parametrelerini kontrol et
