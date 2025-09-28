@@ -1,8 +1,4 @@
 "use client";
-export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'
-export const revalidate = 0
-
 import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { contractAddress, abi } from "./utils/contract";
@@ -15,8 +11,6 @@ import FarcasterWallet from "./components/FarcasterWallet";
 import FarcasterMiniApp from "./components/FarcasterMiniApp";
 import MetaTags from "./components/MetaTags";
 import Image from "next/image";
-
-// Mevcut kodunuz aynı kalacak...
 
 export default function Home() {
   const [walletConnected, setWalletConnected] = useState(false);
@@ -87,25 +81,6 @@ export default function Home() {
   // Geliştirilmiş Farcaster Mini App detection
   useEffect(() => {
     if (!isClient) return;
-	
-	
-	  // Base App detection
-  const isBaseApp = 
-    window.location.href.includes('base.org') ||
-    document.referrer.includes('base.org') ||
-    navigator.userAgent.includes('Base') ||
-    window.ethereum?.isBase;
-  
-  if (isBaseApp) {
-    console.log('🎯 Base Mini App detected');
-    setIsFarcasterMiniApp(true);
-    document.body.classList.add('farcaster-mini-app');
-    
-    // Base'de otomatik wallet connect
-    if (window.ethereum) {
-      connectWallet();
-    }
-  }
     
     const checkFarcaster = () => {
       // URL parametrelerini kontrol et
@@ -123,8 +98,13 @@ export default function Home() {
       const isFarcasterReferrer = document.referrer.includes('warpcast') || 
                                  document.referrer.includes('farcaster');
       
+      // Base App kontrolü
+      const isBaseApp = window.location.href.includes('base.org') ||
+                       document.referrer.includes('base.org') ||
+                       navigator.userAgent.includes('Base');
+      
       // Tüm koşulları değerlendir - ANY condition should activate Mini App
-      const shouldActivateMiniApp = isFarcasterFrame || isEmbeddedParam || isEmbedded || isWarpcastUA || isFarcasterReferrer;
+      const shouldActivateMiniApp = isFarcasterFrame || isEmbeddedParam || isEmbedded || isWarpcastUA || isFarcasterReferrer || isBaseApp;
       
       console.log('🎯 Farcaster detection:', {
         isFarcasterFrame,
@@ -132,6 +112,7 @@ export default function Home() {
         isEmbedded,
         isWarpcastUA,
         isFarcasterReferrer,
+        isBaseApp,
         shouldActivateMiniApp
       });
       
@@ -146,17 +127,6 @@ export default function Home() {
         if (viewportMeta) {
           viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
         }
-        
-        // Farcaster SDK ready mesajı gönder
-        setTimeout(() => {
-          if (window.parent !== window) {
-            window.parent.postMessage({ 
-              type: 'ready',
-              version: '1.0.0'
-            }, '*');
-            console.log('📨 Sent ready message to parent frame');
-          }
-        }, 1000);
         
         console.log('🚀 Farcaster Mini App fully activated');
       }
@@ -177,6 +147,48 @@ export default function Home() {
       window.removeEventListener('hashchange', handleUrlChange);
     };
   }, [isClient]);
+
+  // Farcaster Ready Call - CRITICAL FOR BASE APP
+  useEffect(() => {
+    if (isFarcasterMiniApp && isClient) {
+      console.log('🎯 Farcaster Mini App active - sending ready signals');
+      
+      // Multiple ready signals for reliability
+      const sendReadySignals = () => {
+        // Method 1: PostMessage ready
+        if (window.parent !== window) {
+          const readyMsg = {
+            type: 'ready',
+            version: '1.0.0', 
+            app: 'YoYo Guild Battle',
+            timestamp: Date.now()
+          };
+          
+          window.parent.postMessage(readyMsg, '*');
+          console.log('📨 App ready message sent via postMessage');
+        }
+        
+        // Method 2: farcaster.ready() if SDK available
+        if (window.farcaster && window.farcaster.ready) {
+          window.farcaster.ready()
+            .then(() => console.log('✅ farcaster.ready() successful'))
+            .catch(err => console.warn('⚠️ farcaster.ready() failed:', err));
+        }
+      };
+      
+      // Send immediately
+      sendReadySignals();
+      
+      // Send again after delays for reliability
+      const timer1 = setTimeout(sendReadySignals, 1000);
+      const timer2 = setTimeout(sendReadySignals, 3000);
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    }
+  }, [isFarcasterMiniApp, isClient]);
 
   // Rabby Wallet desteği
   const isRabbyWallet = useCallback(() => {

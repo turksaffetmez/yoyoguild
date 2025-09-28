@@ -40,12 +40,12 @@
       "https://yoyoguild.vercel.app/images/ss2.png",
 	   "https://yoyoguild.vercel.app/images/ss3.png"
     ],
-    "heroImageUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
+    "heroImageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "tagline": "Battle Tevans, earn YOYO!",
     "ogTitle": "YoYo Guild Battle",
     "ogDescription": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
     "ogImageUrl": "https://yoyoguild.vercel.app/images/baseapp.png",
-    "noindex": false,
+    "noIndex": false,
     "castShareUrl": "https://yoyoguild.vercel.app"
   }
 }
