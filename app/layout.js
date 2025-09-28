@@ -1,3 +1,4 @@
+// app/layout.js
 import './globals.css'
 import FarcasterSDK from './components/FarcasterSDK'
 
@@ -22,25 +23,7 @@ export const metadata = {
     images: ['https://yoyoguild.vercel.app/images/page.png'],
     creator: '@yoyoguild',
   },
-  other: {
-    'fc:frame': 'vNext',
-    'fc:frame:image': 'https://yoyoguild.vercel.app/images/page.png',
-    'fc:frame:image:aspect_ratio': '1.91:1',
-    'fc:frame:button:1': '🎮 Play Game',
-    'fc:frame:button:1:action': 'link',
-    'fc:frame:button:1:target': 'https://yoyoguild.vercel.app?source=farcaster',
-    'fc:frame:button:2': '🏆 Leaderboard',
-    'fc:frame:button:2:action': 'link',
-    'fc:frame:button:2:target': 'https://yoyoguild.vercel.app?source=farcaster&tab=leaderboard',
-    
-    // Mini App Meta Tags
-    'fc:mini-app:name': 'YoYo Guild Battle',
-    'fc:mini-app:icon': 'https://yoyoguild.vercel.app/images/yoyo.png',
-    'fc:mini-app:description': 'Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!',
-    'fc:mini-app:url': 'https://yoyoguild.vercel.app',
-    'fc:mini-app:terms': 'https://yoyoguild.vercel.app/terms',
-    'fc:mini-app:privacy': 'https://yoyoguild.vercel.app/privacy',
-  }
+  // metadata.other KULLANMAYIN - Next.js bunu doğru işlemez
 }
 
 export default function RootLayout({ children }) {
@@ -48,6 +31,25 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="icon" href="/images/yoyo.png" />
+        
+        {/* Farcaster Frame Meta Tags - DOĞRUDAN HEAD İÇİNE */}
+        <meta property="fc:frame" content="vNext" />
+        <meta property="fc:frame:image" content="https://yoyoguild.vercel.app/images/page.png" />
+        <meta property="fc:frame:image:aspect_ratio" content="1.91:1" />
+        <meta property="fc:frame:button:1" content="🎮 Play Game" />
+        <meta property="fc:frame:button:1:action" content="link" />
+        <meta property="fc:frame:button:1:target" content="https://yoyoguild.vercel.app?source=farcaster" />
+        <meta property="fc:frame:button:2" content="🏆 Leaderboard" />
+        <meta property="fc:frame:button:2:action" content="link" />
+        <meta property="fc:frame:button:2:target" content="https://yoyoguild.vercel.app?source=farcaster&tab=leaderboard" />
+        
+        {/* Farcaster Mini App Meta Tags */}
+        <meta property="fc:mini-app:name" content="YoYo Guild Battle" />
+        <meta property="fc:mini-app:icon" content="https://yoyoguild.vercel.app/images/yoyo.png" />
+        <meta property="fc:mini-app:description" content="Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!" />
+        <meta property="fc:mini-app:url" content="https://yoyoguild.vercel.app" />
+        <meta property="fc:mini-app:terms" content="https://yoyoguild.vercel.app/terms" />
+        <meta property="fc:mini-app:privacy" content="https://yoyoguild.vercel.app/privacy" />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
         <FarcasterSDK />
