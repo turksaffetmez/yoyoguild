@@ -3,7 +3,6 @@ export default function FramePage() {
     <div className="min-h-screen bg-black text-white flex items-center justify-center">
       <div className="text-center p-8">
         <h1 className="text-4xl font-bold mb-4">YoYo Guild Battle</h1>
-        <p className="text-xl mb-8">Frame should be visible in Farcaster</p>
         <img 
           src="/images/page.png" 
           alt="YoYo Guild Battle" 
