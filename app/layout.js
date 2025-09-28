@@ -87,10 +87,11 @@ export default function RootLayout({ children }) {
         <meta name="base:url" content="https://yoyoguild.vercel.app" />
         <meta name="base:network" content="base" />
         <meta name="base:category" content="gaming" />
-        <meta name="base:tags" content="gaming,battle,blockchain,yoyo" />
+        <meta name="base:tags" content="gaming,battle,blockchain,yoyo,base,nft,points" />
         <meta name="base:ogImageUrl" content="https://yoyoguild.vercel.app/images/page.png" />
         <meta name="base:ogTitle" content="YoYo Guild Battle" />
         <meta name="base:ogDescription" content="Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!" />
+        <meta name="base:primaryCategory" content="gaming" />
         
         <link rel="icon" href="/images/yoyo.png" />
         <link rel="manifest" href="/manifest.json" />
