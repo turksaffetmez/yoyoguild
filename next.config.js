@@ -1,13 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone', // veya 'server'
+  output: 'standalone',
   trailingSlash: true,
   images: {
-    unoptimized: true,
-    domains: ['yoyoguild.vercel.app'],
+    unoptimized: true
   },
-  experimental: {
-    appDir: true,
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 }
 

@@ -1,3 +1,7 @@
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+export const revalidate = 0
+
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
@@ -11,9 +15,6 @@ import FarcasterWallet from "./components/FarcasterWallet";
 import FarcasterMiniApp from "./components/FarcasterMiniApp";
 import MetaTags from "./components/MetaTags";
 import Image from "next/image";
-
-export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'
 
 // Mevcut kodunuz aynı kalacak...
 
