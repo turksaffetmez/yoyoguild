@@ -36,7 +36,9 @@
     "subtitle": "Blockchain Battle Arena",
     "description": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
     "screenshotUrls": [
-      "https://yoyoguild.vercel.app/images/yoyo.png"
+      "https://yoyoguild.vercel.app/images/ss1.png",
+      "https://yoyoguild.vercel.app/images/ss2.png",
+	   "https://yoyoguild.vercel.app/images/ss3.png"
     ],
     "heroImageUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
     "tagline": "Battle Tevans, earn points, win YOYO!",
