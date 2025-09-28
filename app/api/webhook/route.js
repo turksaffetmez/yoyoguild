@@ -1,6 +1,9 @@
 export async function POST(request) {
-  // Webhook logic here
-  return new Response(JSON.stringify({ success: true }), {
-    headers: { 'Content-Type': 'application/json' }
-  });
+  return new Response(
+    JSON.stringify({ success: true }),
+    {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
 }
