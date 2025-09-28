@@ -11,18 +11,10 @@ const nextConfig = {
         ],
       },
       {
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type' },
-        ],
-      },
-      {
         source: '/(.*)',
         headers: [
           { key: 'X-Frame-Options', value: 'ALLOWALL' },
-          { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://farcaster.xyz" }
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://farcaster.xyz https://warpcast.com" }
         ],
       }
     ]

@@ -9,6 +9,7 @@ import HomeContent from "./components/HomeContent";
 import MobileWalletSelector from "./components/MobileWalletSelector";
 import FarcasterWallet from "./components/FarcasterWallet";
 import FarcasterMiniApp from "./components/FarcasterMiniApp";
+import MetaTags from "./components/MetaTags";
 import Image from "next/image";
 
 export default function Home() {
@@ -543,6 +544,9 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4 ${isFarcasterMiniApp ? 'farcaster-mini-app' : ''}`}>
+      {/* Farcaster Meta Tags for Embed */}
+      <MetaTags />
+      
       {/* Farcaster Mini App Component */}
       <FarcasterMiniApp />
       
