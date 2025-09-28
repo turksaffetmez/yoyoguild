@@ -3,7 +3,7 @@
 **Blockchain-based Tevan NFT battle game - Win, collect points, climb the leaderboard!**
 
 ## 🚀 Live Demo
-**🌐 Website:** https://yoyo-guild-battle.vercel.app  
+**🌐 Website:** https://yoyoguild.vercel.app  
 **🔗 Contract:** `0x014d62b4d1bb617c36ccac745cb0aba7b1a089be` (Base Mainnet)
 
 ## 🎯 Features
