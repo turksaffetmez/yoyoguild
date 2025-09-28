@@ -4,7 +4,7 @@
 
 ## 🚀 Live Demo
 **🌐 Website:** https://yoyoguild.vercel.app  
-**🔗 Contract:** `0x014d62b4d1bb617c36ccac745cb0aba7b1a089be` (Base Mainnet)
+**🔗 Contract:** `0x9e3e2978cfc8e35ac574ecffa8371439ddc4397a` (Base Mainnet)
 
 ## 🎯 Features
 - **20 daily battles** - New opportunities every day
