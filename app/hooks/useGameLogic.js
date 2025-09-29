@@ -26,6 +26,8 @@ export const useGameLogic = (
     }
 
     try {
+      console.log('🎮 Starting game in Base App...', { selectedIndex });
+
       // Günlük limit kontrolü
       const currentInfo = await contract.getPlayerInfo(userAddress);
       const dailyGamesPlayed = Number(currentInfo[1]);
@@ -51,13 +53,17 @@ export const useGameLogic = (
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsLoading(true);
 
-      // Transaction
+      // ✅ BASE APP İÇİN YÜKSEK GAS LİMİT
       const tx = await contract.playGame({
-        gasLimit: 300000
+        gasLimit: 500000, // Artırılmış gas limit
       });
+      
+      console.log('📨 Transaction sent:', tx.hash);
       
       setGameState(prev => ({ ...prev, gamePhase: "fighting" }));
       const receipt = await tx.wait();
+      
+      console.log('✅ Transaction confirmed:', receipt);
       
       if (receipt.status === 0) {
         throw new Error("Transaction reverted");
@@ -77,6 +83,8 @@ export const useGameLogic = (
       let isWinner = false;
       let pointsEarned = newTotalPoints - oldTotalPoints;
 
+      console.log('📊 Points comparison:', { oldTotalPoints, newTotalPoints, pointsEarned });
+
       // Event parsing
       try {
         const gamePlayedEvent = receipt.logs.find(log => {
@@ -92,11 +100,14 @@ export const useGameLogic = (
           const parsedLog = contract.interface.parseLog(gamePlayedEvent);
           isWinner = parsedLog.args.won;
           pointsEarned = Number(parsedLog.args.points);
+          console.log('🎯 Event result:', { isWinner, pointsEarned });
         } else {
           isWinner = pointsEarned > 0;
+          console.log('⚠️ No event found, using points logic');
         }
       } catch (eventError) {
         isWinner = pointsEarned > 0;
+        console.log('⚠️ Event parsing failed');
       }
 
       // Countdown animasyonu
@@ -134,17 +145,21 @@ export const useGameLogic = (
         }, '*');
       }
 
+      console.log('🎮 Game completed successfully');
+
     } catch (err) {
-      console.error("Game transaction failed:", err);
+      console.error("❌ Game transaction failed:", err);
       setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
       
       let errorMessage = "Transaction failed: ";
       if (err.reason) {
         errorMessage += err.reason;
       } else if (err.message.includes("revert")) {
-        errorMessage += "Daily limit reached";
+        errorMessage += "Daily limit reached or out of gas";
       } else if (err.message.includes("user rejected")) {
         errorMessage += "User rejected transaction";
+      } else if (err.message.includes("gas")) {
+        errorMessage += "Gas error - try again with higher gas";
       } else {
         errorMessage += err.message;
       }
