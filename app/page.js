@@ -38,7 +38,8 @@ export default function Home() {
     isClient,
     gameState, setGameState,
     remainingGames,
-    connectMobileWallet
+    connectMobileWallet,
+    refreshPlayerData
   } = useGameState();
 
   // Contract functions
@@ -87,6 +88,7 @@ export default function Home() {
       setPointValues,
       updatePlayerInfo,
       updateLeaderboard,
+      refreshPlayerData,
       isFarcasterMiniApp,
       points,
       setConnectionError,
@@ -96,7 +98,7 @@ export default function Home() {
     connectContractWallet, isMobile, setShowWalletOptions, setProvider, setContract,
     setUserAddress, setWalletConnected, checkYoyoBalance, setYoyoBalanceAmount,
     getContractPointValues, setPointValues, updatePlayerInfo, updateLeaderboard,
-    isFarcasterMiniApp, points, setConnectionError, setIsLoading
+    refreshPlayerData, isFarcasterMiniApp, points, setConnectionError, setIsLoading
   ]);
 
   const disconnectWallet = useCallback(() => {
@@ -136,7 +138,39 @@ export default function Home() {
     points
   );
 
-  // Auto-connect wallet
+  // ✅ SAYFA YÜKLENDİĞİNDE OTOMATİK REFRESH
+  useEffect(() => {
+    if (!isClient || !walletConnected || !contract || !userAddress) return;
+
+    console.log('🔄 Auto-refreshing player data on page load...');
+    
+    const autoRefresh = async () => {
+      try {
+        await refreshPlayerData(
+          contract,
+          userAddress,
+          checkYoyoBalance,
+          setPoints,
+          setGamesPlayedToday,
+          setDailyLimit,
+          setPlayerStats,
+          setYoyoBalanceAmount
+        );
+        await updateLeaderboard();
+      } catch (error) {
+        console.error('❌ Auto-refresh failed:', error);
+      }
+    };
+
+    autoRefresh();
+
+    // Her 30 saniyede bir otomatik refresh
+    const interval = setInterval(autoRefresh, 30000);
+    
+    return () => clearInterval(interval);
+  }, [isClient, walletConnected, contract, userAddress, refreshPlayerData, checkYoyoBalance, updateLeaderboard]);
+
+  // Auto-connect wallet on page load
   useEffect(() => {
     if (!isClient || typeof window.ethereum === 'undefined') return;
     

@@ -7,23 +7,54 @@ const STORAGE_KEYS = {
   PLAYER_STATS: 'yoyo_player_stats', 
   POINTS: 'yoyo_points',
   GAMES_PLAYED: 'yoyo_games_played',
+  DAILY_LIMIT: 'yoyo_daily_limit',
+  YOYO_BALANCE: 'yoyo_balance',
   LAST_UPDATE: 'yoyo_last_update'
 };
 
 export const useGameState = () => {
   // State'ler - localStorage'dan başlangıç değerlerini al
   const [walletConnected, setWalletConnected] = useState(false);
-  const [userAddress, setUserAddress] = useState("");
+  const [userAddress, setUserAddress] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(STORAGE_KEYS.USER_ADDRESS) || "";
+    }
+    return "";
+  });
   const [contract, setContract] = useState(null);
-  const [points, setPoints] = useState(0);
+  const [points, setPoints] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEYS.POINTS);
+      return saved ? parseInt(saved) : 0;
+    }
+    return 0;
+  });
   const [provider, setProvider] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
   const [leaderboard, setLeaderboard] = useState([]);
-  const [yoyoBalanceAmount, setYoyoBalanceAmount] = useState(0);
+  const [yoyoBalanceAmount, setYoyoBalanceAmount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEYS.YOYO_BALANCE);
+      return saved ? parseFloat(saved) : 0;
+    }
+    return 0;
+  });
   const [isMobile, setIsMobile] = useState(false);
   const [showWalletOptions, setShowWalletOptions] = useState(false);
-  const [gamesPlayedToday, setGamesPlayedToday] = useState(0);
-  const [dailyLimit, setDailyLimit] = useState(20);
+  const [gamesPlayedToday, setGamesPlayedToday] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEYS.GAMES_PLAYED);
+      return saved ? parseInt(saved) : 0;
+    }
+    return 0;
+  });
+  const [dailyLimit, setDailyLimit] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEYS.DAILY_LIMIT);
+      return saved ? parseInt(saved) : 20;
+    }
+    return 20;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [connectionError, setConnectionError] = useState("");
   const [pointValues, setPointValues] = useState({
@@ -32,13 +63,26 @@ export const useGameState = () => {
     lose: 10
   });
   const [isFarcasterMiniApp, setIsFarcasterMiniApp] = useState(false);
-  const [playerStats, setPlayerStats] = useState({
-    totalGames: 0,
-    totalWins: 0,
-    totalLosses: 0,
-    winRate: 0,
-    winStreak: 0,
-    maxWinStreak: 0
+  const [playerStats, setPlayerStats] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEYS.PLAYER_STATS);
+      return saved ? JSON.parse(saved) : {
+        totalGames: 0,
+        totalWins: 0,
+        totalLosses: 0,
+        winRate: 0,
+        winStreak: 0,
+        maxWinStreak: 0
+      };
+    }
+    return {
+      totalGames: 0,
+      totalWins: 0,
+      totalLosses: 0,
+      winRate: 0,
+      winStreak: 0,
+      maxWinStreak: 0
+    };
   });
   const [isClient, setIsClient] = useState(false);
 
@@ -71,6 +115,64 @@ export const useGameState = () => {
     pointsEarned: 0,
     isWinner: false
   });
+
+  // ✅ STATE'LERİ LOCALSTORAGE'A OTOMATİK KAYDET
+  useEffect(() => {
+    if (!isClient) return;
+    
+    localStorage.setItem(STORAGE_KEYS.USER_ADDRESS, userAddress);
+    localStorage.setItem(STORAGE_KEYS.POINTS, points.toString());
+    localStorage.setItem(STORAGE_KEYS.GAMES_PLAYED, gamesPlayedToday.toString());
+    localStorage.setItem(STORAGE_KEYS.DAILY_LIMIT, dailyLimit.toString());
+    localStorage.setItem(STORAGE_KEYS.YOYO_BALANCE, yoyoBalanceAmount.toString());
+    localStorage.setItem(STORAGE_KEYS.PLAYER_STATS, JSON.stringify(playerStats));
+    localStorage.setItem(STORAGE_KEYS.LAST_UPDATE, Date.now().toString());
+    
+    console.log('💾 State saved to localStorage');
+  }, [userAddress, points, gamesPlayedToday, dailyLimit, yoyoBalanceAmount, playerStats, isClient]);
+
+  // ✅ SAYFA YÜKLENDİĞİNDE CONTRACT'TAN GÜNCEL VERİLERİ AL
+  const refreshPlayerData = useCallback(async (contract, address, checkYoyoBalance, setPoints, setGamesPlayedToday, setDailyLimit, setPlayerStats, setYoyoBalanceAmount) => {
+    if (!contract || !address) return;
+    
+    try {
+      console.log('🔄 Refreshing player data from contract...');
+      
+      const [
+        totalPoints, 
+        gamesToday, 
+        limit, 
+        hasYoyoBoost,
+        totalGames,
+        totalWins, 
+        totalLosses,
+        winStreak,
+        maxWinStreak,
+        winRate
+      ] = await contract.getPlayerInfo(address);
+      
+      // ✅ STATE'LERİ GÜNCELLE - Contract'tan gelen verilerle
+      setPoints(Number(totalPoints));
+      setGamesPlayedToday(Number(gamesToday));
+      setDailyLimit(Number(limit));
+      
+      setPlayerStats({
+        totalGames: Number(totalGames),
+        totalWins: Number(totalWins),
+        totalLosses: Number(totalLosses),
+        winRate: Number(winRate),
+        winStreak: Number(winStreak),
+        maxWinStreak: Number(maxWinStreak)
+      });
+      
+      const yoyoBalance = await checkYoyoBalance(address);
+      setYoyoBalanceAmount(yoyoBalance);
+      
+      console.log('✅ Player data refreshed from contract');
+    } catch (error) {
+      console.error("❌ Failed to refresh player data:", error);
+    }
+  }, []);
 
   // Client-side kontrolü
   useEffect(() => {
@@ -146,6 +248,7 @@ export const useGameState = () => {
     remainingGames,
     
     // Functions
-    connectMobileWallet
+    connectMobileWallet,
+    refreshPlayerData
   };
 };

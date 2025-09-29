@@ -121,6 +121,7 @@ export const useContract = (provider, isClient) => {
     setPointValues,
     updatePlayerInfo,
     updateLeaderboard,
+    refreshPlayerData,
     isFarcasterMiniApp,
     points,
     setConnectionError,
@@ -136,9 +137,7 @@ export const useContract = (provider, isClient) => {
       
       // Farcaster dışında normal wallet bağlantısı
       if (!farcasterAddress) {
-        // ✅ TÜM CÜZDAN DESTEĞİ - window.ethereum kontrolü
         if (typeof window.ethereum === 'undefined') {
-          // Mobile wallet seçeneklerini göster
           if (isMobile) {
             setShowWalletOptions(true);
             return;
@@ -173,7 +172,15 @@ export const useContract = (provider, isClient) => {
       const pointVals = await getPointValues(contractInstance);
       setPointValues(pointVals);
       
-      await updatePlayerInfo(contractInstance, address, checkYoyoBalance, () => {}, () => {}, () => {}, () => {}, setYoyoBalanceAmount);
+      // ✅ REFRESH DATA KULLAN - Hem localStorage'dan hem contract'tan
+      await refreshPlayerData(
+        contractInstance, 
+        address, 
+        checkYoyoBalance, 
+        () => {}, () => {}, () => {}, () => {}, 
+        setYoyoBalanceAmount
+      );
+      
       await updateLeaderboard(contractInstance, () => {});
       
       if (isFarcasterMiniApp) {
@@ -187,7 +194,6 @@ export const useContract = (provider, isClient) => {
     } catch (err) {
       console.error("Wallet connection failed:", err);
       
-      // ✅ DETAYLI HATA MESAJLARI
       if (err.code === 4001) {
         setConnectionError("Connection rejected by user");
       } else if (err.message.includes("Rabby")) {
@@ -236,6 +242,17 @@ export const useContract = (provider, isClient) => {
       selectedImage: null,
       winnerIndex: null
     }));
+
+    // ✅ LOCALSTORAGE'ı TEMİZLE
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('yoyo_user_address');
+      localStorage.removeItem('yoyo_player_stats');
+      localStorage.removeItem('yoyo_points');
+      localStorage.removeItem('yoyo_games_played');
+      localStorage.removeItem('yoyo_daily_limit');
+      localStorage.removeItem('yoyo_balance');
+      localStorage.removeItem('yoyo_last_update');
+    }
   }, []);
 
   return {
