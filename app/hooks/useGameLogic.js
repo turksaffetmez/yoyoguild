@@ -63,9 +63,12 @@ export const useGameLogic = (
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsLoading(true);
 
-      // Transaction'ı gönder
-      console.log('🎮 Sending playGame transaction...');
-      const tx = await contract.playGame();
+      // ✅ BASE APP İÇİN GAS LIMIT AYARI
+      console.log('🎮 Sending playGame transaction with gas limit...');
+      const tx = await contract.playGame({
+        gasLimit: 300000 // Base App için yeterli gas
+      });
+      
       setGameState(prev => ({ ...prev, gamePhase: "fighting" }));
       
       const receipt = await tx.wait();
@@ -79,36 +82,48 @@ export const useGameLogic = (
       const updatedInfo = await contract.getPlayerInfo(userAddress);
       const newGamesPlayed = Number(updatedInfo[1]);
       const newTotalPoints = Number(updatedInfo[0]);
+      const oldTotalPoints = points;
       
       // ✅ STATE'LERİ GÜNCELLE - Contract'tan gelen GÜNCEL verilerle
       setGamesPlayedToday(newGamesPlayed);
       setPoints(newTotalPoints);
       
       console.log('✅ State updated:', {
-        gamesPlayed: newGamesPlayed,
-        totalPoints: newTotalPoints
+        oldPoints: oldTotalPoints,
+        newPoints: newTotalPoints,
+        pointsEarned: newTotalPoints - oldTotalPoints,
+        gamesPlayed: newGamesPlayed
       });
 
       await updateLeaderboard();
 
       let isWinner = false;
-      let pointsEarned = 0;
+      let pointsEarned = newTotalPoints - oldTotalPoints;
 
-      // Event'leri parse et
-      const gamePlayedEvent = receipt.logs.find(log => {
-        try {
-          const parsedLog = contract.interface.parseLog(log);
-          return parsedLog && parsedLog.name === "GamePlayed";
-        } catch {
-          return false;
+      // ✅ GELİŞMİŞ EVENT PARSING - Base App için
+      try {
+        const gamePlayedEvent = receipt.logs.find(log => {
+          try {
+            const parsedLog = contract.interface.parseLog(log);
+            return parsedLog && parsedLog.name === "GamePlayed";
+          } catch {
+            return false;
+          }
+        });
+
+        if (gamePlayedEvent) {
+          const parsedLog = contract.interface.parseLog(gamePlayedEvent);
+          isWinner = parsedLog.args.won;
+          pointsEarned = Number(parsedLog.args.points);
+          console.log('🎯 Game result from event:', { isWinner, pointsEarned });
+        } else {
+          // ✅ EVENT BULUNAMADIYSA - Contract'tan manuel kontrol
+          console.log('⚠️ GamePlayed event not found, using contract state...');
+          isWinner = pointsEarned > 0; // Puan artışı varsa kazanılmış say
         }
-      });
-
-      if (gamePlayedEvent) {
-        const parsedLog = contract.interface.parseLog(gamePlayedEvent);
-        isWinner = parsedLog.args.won;
-        pointsEarned = Number(parsedLog.args.points);
-        console.log('🎯 Game result from event:', { isWinner, pointsEarned });
+      } catch (eventError) {
+        console.warn('⚠️ Event parsing failed, using contract state:', eventError);
+        isWinner = pointsEarned > 0;
       }
 
       // Countdown animasyonu
@@ -157,6 +172,8 @@ export const useGameLogic = (
         errorMessage += "Contract reverted - possible daily limit reached";
       } else if (err.message.includes("user rejected")) {
         errorMessage += "User rejected transaction";
+      } else if (err.message.includes("gas")) {
+        errorMessage += "Gas estimation failed - try again";
       } else {
         errorMessage += err.message;
       }
