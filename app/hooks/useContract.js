@@ -130,6 +130,7 @@ export const useContract = (provider, isClient) => {
     setPointValues,
     updatePlayerInfo,
     updateLeaderboard,
+    refreshPlayerData,
     isFarcasterMiniApp,
     points,
     setConnectionError,
@@ -184,7 +185,15 @@ export const useContract = (provider, isClient) => {
       const pointVals = await getPointValues(contractInstance);
       setPointValues(pointVals);
       
-      await updatePlayerInfo(contractInstance, address, checkYoyoBalance, () => {}, () => {}, () => {}, () => {}, setYoyoBalanceAmount);
+      // ✅ REFRESH DATA KULLAN - Hem localStorage'dan hem contract'tan
+      await refreshPlayerData(
+        contractInstance, 
+        address, 
+        checkYoyoBalance, 
+        () => {}, () => {}, () => {}, () => {}, 
+        setYoyoBalanceAmount
+      );
+      
       await updateLeaderboard(contractInstance, () => {});
       
       if (isFarcasterMiniApp) {
@@ -242,6 +251,16 @@ export const useContract = (provider, isClient) => {
       selectedImage: null,
       winnerIndex: null
     }));
+
+    // ✅ LOCALSTORAGE'ı TEMİZLE
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('yoyo_user_address');
+      localStorage.removeItem('yoyo_player_stats');
+      localStorage.removeItem('yoyo_points');
+      localStorage.removeItem('yoyo_games_played');
+      localStorage.removeItem('yoyo_last_update');
+      console.log('🗑️ LocalStorage cleared on disconnect');
+    }
   }, []);
 
   return {
