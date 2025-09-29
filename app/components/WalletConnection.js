@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAppKit } from '@reown/appkit/react'
 import { ethers } from 'ethers';
 
 const WalletConnection = ({
@@ -16,9 +17,9 @@ const WalletConnection = ({
   pointValues,
   playerStats
 }) => {
+  const { open, isConnected, address, provider, disconnect } = useAppKit()
   const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
-  const [supportedWallets, setSupportedWallets] = useState(['metamask', 'rabby']);
 
   // YOYO Token Address ve ABI
   const YOYO_TOKEN_ADDRESS = "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1";
@@ -32,16 +33,18 @@ const WalletConnection = ({
   const checkYoyoBalance = async (address) => {
     if (!address) return 0;
     try {
-      let provider;
+      let balanceProvider;
       
-      if (window.ethereum) {
-        provider = new ethers.BrowserProvider(window.ethereum);
+      if (provider) {
+        balanceProvider = provider;
+      } else if (window.ethereum) {
+        balanceProvider = new ethers.BrowserProvider(window.ethereum);
       } else {
         // Fallback: Public RPC
-        provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+        balanceProvider = new ethers.JsonRpcProvider('https://mainnet.base.org');
       }
 
-      const yoyoContract = new ethers.Contract(YOYO_TOKEN_ADDRESS, YOYO_TOKEN_ABI, provider);
+      const yoyoContract = new ethers.Contract(YOYO_TOKEN_ADDRESS, YOYO_TOKEN_ABI, balanceProvider);
       const balance = await yoyoContract.balanceOf(address);
       const decimals = await yoyoContract.decimals();
       const formattedBalance = Number(ethers.formatUnits(balance, decimals));
@@ -56,11 +59,12 @@ const WalletConnection = ({
 
   // Balance refresh fonksiyonu
   const refreshYoyoBalance = async () => {
-    if (!userAddress) return;
+    if (!userAddress && !address) return;
     
     setIsRefreshingBalance(true);
     try {
-      const newBalance = await checkYoyoBalance(userAddress);
+      const currentAddress = userAddress || address;
+      const newBalance = await checkYoyoBalance(currentAddress);
       setDisplayYoyoBalance(newBalance);
     } catch (error) {
       console.error("Failed to refresh YOYO balance:", error);
@@ -70,55 +74,56 @@ const WalletConnection = ({
   };
 
   useEffect(() => {
-    if (walletConnected && userAddress) {
+    if ((walletConnected && userAddress) || isConnected) {
       refreshYoyoBalance();
     }
-  }, [walletConnected, userAddress]);
+  }, [walletConnected, userAddress, isConnected, address]);
 
   useEffect(() => {
     setDisplayYoyoBalance(yoyoBalanceAmount);
-    
-    // Rabby wallet kontrolü
-    if (window.ethereum?.isRabby) {
-      setSupportedWallets(prev => [...prev, 'rabby']);
-    }
   }, [yoyoBalanceAmount]);
 
-  const formatAddress = (address) => {
-    if (!address) return "";
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
-
-  const detectWallet = () => {
-    if (window.ethereum) {
-      if (window.ethereum.isMetaMask) return 'MetaMask';
-      if (window.ethereum.isRabby) return 'Rabby';
-      if (window.ethereum.isCoinbaseWallet) return 'Coinbase';
-      if (window.ethereum.isTrust) return 'Trust Wallet';
-      return 'Ethereum Wallet';
+  // AppKit bağlantısını mevcut sisteme entegre et
+  useEffect(() => {
+    if (isConnected && address && provider && onConnect) {
+      console.log('AppKit wallet connected:', address);
+      // Mevcut connect fonksiyonunu tetikle
+      onConnect('appkit', address);
     }
-    return null;
+  }, [isConnected, address, provider, onConnect]);
+
+  const handleDisconnect = () => {
+    if (isConnected) {
+      disconnect();
+    }
+    onDisconnect();
   };
 
-  const currentWallet = detectWallet();
+  const handleConnect = () => {
+    if (isMobile) {
+      onShowWalletOptions();
+    } else {
+      open();
+    }
+  };
+
+  const formatAddress = (addr) => {
+    const currentAddr = userAddress || addr;
+    if (!currentAddr) return "";
+    return `${currentAddr.slice(0, 6)}...${currentAddr.slice(-4)}`;
+  };
+
+  const currentAddress = userAddress || address;
+  const isWalletConnected = walletConnected || isConnected;
 
   return (
     <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 mb-6 border border-slate-600 shadow-lg">
-      {!walletConnected ? (
+      {!isWalletConnected ? (
         <div className="text-center">
           <h3 className="text-xl font-bold text-white mb-4">Connect Your Wallet to Start Battling!</h3>
           
-          {/* Wallet Detected Indicator */}
-          {currentWallet && (
-            <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mb-4">
-              <p className="text-blue-400 text-sm">
-                {currentWallet} detected
-              </p>
-            </div>
-          )}
-          
           <button
-            onClick={isMobile ? onShowWalletOptions : onConnect}
+            onClick={handleConnect}
             disabled={isLoading}
             className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
           >
@@ -128,18 +133,9 @@ const WalletConnection = ({
                 <span>Connecting...</span>
               </div>
             ) : (
-              `Connect ${currentWallet || 'Wallet'}`
+              'Connect Wallet'
             )}
           </button>
-          
-          {/* Rabby Wallet Info */}
-          {!window.ethereum?.isRabby && (
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2 mb-2">
-              <p className="text-yellow-400 text-xs">
-                Using Rabby Wallet? Make sure it's active and set to Base network.
-              </p>
-            </div>
-          )}
           
           {isMobile && (
             <p className="text-gray-400 mt-2 text-sm">
@@ -154,13 +150,11 @@ const WalletConnection = ({
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
               <span className="text-white font-semibold">Connected</span>
               <span className="bg-purple-600 px-3 py-1 rounded-full text-sm font-mono">
-                {formatAddress(userAddress)}
+                {formatAddress(currentAddress)}
               </span>
-              {currentWallet && (
-                <span className="bg-blue-500 px-2 py-1 rounded-full text-xs">
-                  {currentWallet}
-                </span>
-              )}
+              <span className="bg-blue-500 px-2 py-1 rounded-full text-xs">
+                AppKit
+              </span>
             </div>
             
             <div className="flex items-center space-x-3">
@@ -172,7 +166,7 @@ const WalletConnection = ({
                 {isRefreshingBalance ? '🔄' : '🔄 Balance'}
               </button>
               <button
-                onClick={onDisconnect}
+                onClick={handleDisconnect}
                 className="bg-red-600 px-4 py-2 rounded-lg text-white hover:bg-red-500 transition-colors text-sm"
               >
                 Disconnect
@@ -281,4 +275,4 @@ const WalletConnection = ({
   );
 };
 
-export default WalletConnection; 
+export default WalletConnection;

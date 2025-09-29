@@ -10,9 +10,6 @@ const HomeContent = ({
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <div className="flex justify-center mb-6">
-          <Image src="/images/yoyo.png" alt="YoYo Guild" width={100} height={100} className="rounded-full" />
-        </div>
         <h2 className="text-4xl font-bold text-white mb-4">Welcome to YoYo Guild Battle</h2>
         <div className="text-lg text-gray-300 max-w-4xl mx-auto space-y-4">
           <p>

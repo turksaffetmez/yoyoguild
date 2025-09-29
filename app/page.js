@@ -9,7 +9,6 @@ import WalletConnection from "./components/WalletConnection";
 import GameBoard from "./components/GameBoard";
 import Leaderboard from "./components/Leaderboard";
 import HomeContent from "./components/HomeContent";
-import MobileWalletSelector from "./components/MobileWalletSelector";
 import FarcasterWallet from "./components/FarcasterWallet";
 import FarcasterMiniApp from "./components/FarcasterMiniApp";
 import MetaTags from "./components/MetaTags";
@@ -222,13 +221,6 @@ export default function Home() {
       <MetaTags />
       <FarcasterMiniApp />
       
-      {showWalletOptions && (
-        <MobileWalletSelector 
-          onConnect={connectMobileWallet}
-          onClose={() => setShowWalletOptions(false)}
-        />
-      )}
-      
       <div className="w-full max-w-6xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-3xl shadow-2xl overflow-hidden border border-purple-500/30 backdrop-blur-sm">
         <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 text-white py-6 px-6 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
@@ -292,7 +284,6 @@ export default function Home() {
             onDisconnect={disconnectWallet}
             onConnect={connectWallet}
             isMobile={isMobile}
-            onShowWalletOptions={() => setShowWalletOptions(true)}
             remainingGames={remainingGames}
             dailyLimit={dailyLimit}
             isLoading={isLoading}
@@ -319,7 +310,6 @@ export default function Home() {
                 onStartGame={startGame}
                 onConnectWallet={connectWallet}
                 isMobile={isMobile}
-                onShowWalletOptions={() => setShowWalletOptions(true)}
                 onStartNewGame={startNewGame}
                 onResetGame={resetGame}
                 remainingGames={remainingGames}

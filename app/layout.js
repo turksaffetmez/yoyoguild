@@ -1,5 +1,7 @@
 import './globals.css'
 import FarcasterSDK from './components/FarcasterSDK'
+import { AppKit } from '@reown/appkit/react'
+import { ethersAdapter } from '@reown/appkit-adapter-ethers'
 
 export const metadata = {
   title: 'YoYo Guild Battle - Blockchain Battle Arena',
@@ -36,40 +38,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-	    <script src="/ready.js" />
+        <script src="/ready.js" />
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>YoYo Guild Battle - Blockchain Battle Arena</title>
-        <script
-    dangerouslySetInnerHTML={{
-      __html: `
-        // ULTRA IMMEDIATE READY - Base App için
-        if (window.parent !== window.self) {
-          console.log('🚀 ULTRA IMMEDIATE READY CALL');
-          // 0ms delay - en hızlı
-          window.parent.postMessage({
-            type: 'ready',
-            version: '1.0.0',
-            app: 'YoYo Guild Battle'
-          }, '*');
-        }
         
-        // 100ms sonra tekrar
-        setTimeout(() => {
-          if (window.parent !== window.self) {
-            window.parent.postMessage({type: 'ready'}, '*');
-          }
-        }, 100);
-        
-        // 500ms sonra tekrar  
-        setTimeout(() => {
-          if (window.parent !== window.self) {
-            window.parent.postMessage({type: 'ready'}, '*');
-          }
-        }, 500);
-      `
-    }}
-  />
         {/* IMMEDIATE READY SCRIPT - CRITICAL FOR BASE APP */}
         <script
           dangerouslySetInnerHTML={{
@@ -149,10 +122,32 @@ export default function RootLayout({ children }) {
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-        <FarcasterSDK />
-        <main className="min-h-screen">
-          {children}
-        </main>
+        <AppKit
+          projectId="e8db88fb3beee69a329da06119e72095" // WalletConnect Cloud'dan alacaksınız
+          networks={[{
+            id: 8453,
+            name: 'Base',
+            currency: 'ETH',
+            explorerUrl: 'https://basescan.org',
+            rpcUrl: 'https://mainnet.base.org'
+          }]}
+          defaultNetwork={8453}
+          adapters={[ethersAdapter]}
+          features={{
+            analytics: true,
+            allWallets: true
+          }}
+          themeMode="dark"
+          themeVariables={{
+            '--w3m-accent': '#8B5CF6',
+            '--w3m-border-radius-master': '12px'
+          }}
+        >
+          <FarcasterSDK />
+          <main className="min-h-screen">
+            {children}
+          </main>
+        </AppKit>
       </body>
     </html>
   )

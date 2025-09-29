@@ -9,7 +9,6 @@ const GameBoard = ({
   onStartGame,
   onConnectWallet,
   isMobile,
-  onShowWalletOptions,
   onStartNewGame,
   onResetGame,
   remainingGames,
@@ -31,11 +30,7 @@ const GameBoard = ({
 
   const handleGameStart = (selectedIndex) => {
     if (!walletConnected) {
-      if (isMobile) {
-        onShowWalletOptions();
-      } else {
-        onConnectWallet();
-      }
+      onConnectWallet();
       return;
     }
     
@@ -293,7 +288,7 @@ const GameBoard = ({
         <h2 className="text-3xl font-bold text-white mb-4">⚔️ Battle Arena</h2>
         <p className="text-gray-300 mb-8">Connect your wallet to start battling!</p>
         <button
-          onClick={isMobile ? onShowWalletOptions : onConnectWallet}
+          onClick={onConnectWallet}
           className="btn-primary"
         >
           Connect Wallet to Play

@@ -203,23 +203,6 @@ export const useGameState = () => {
     setIsMobile(mobile);
   }, [isClient]);
 
-  const connectMobileWallet = useCallback((walletType) => {
-    if (!isClient) return;
-    
-    const currentUrl = encodeURIComponent(window.location.href);
-    let walletUrl = '';
-    
-    switch(walletType) {
-      case 'metamask': walletUrl = `https://metamask.app.link/dapp/${currentUrl}`; break;
-      case 'rabby': walletUrl = `https://rabby.io/`; break;
-      case 'coinbase': walletUrl = `https://go.cb-w.com/dapp?cb_url=${currentUrl}`; break;
-      case 'trust': walletUrl = `https://link.trustwallet.com/dapp/${currentUrl}`; break;
-      default: return;
-    }
-    window.open(walletUrl, '_blank');
-    setShowWalletOptions(false);
-  }, [isClient]);
-
   const remainingGames = dailyLimit - gamesPlayedToday;
 
   return {
@@ -248,7 +231,6 @@ export const useGameState = () => {
     remainingGames,
     
     // Functions
-    connectMobileWallet,
     refreshPlayerData
   };
 };
