@@ -1,7 +1,15 @@
 import './globals.css'
 import FarcasterSDK from './components/FarcasterSDK'
 import { AppKit } from '@reown/appkit/react'
-import { ethersAdapter } from '@reown/appkit-adapter-ethers'
+
+// ✅ Client Component olarak değiştiriyoruz
+import dynamic from 'next/dynamic'
+
+// ✅ AppKit'i client-side only yap
+const AppKitProvider = dynamic(
+  () => import('@reown/appkit/react').then((mod) => mod.AppKit),
+  { ssr: false }
+)
 
 export const metadata = {
   title: 'YoYo Guild Battle - Blockchain Battle Arena',
@@ -122,8 +130,9 @@ export default function RootLayout({ children }) {
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-        <AppKit
-          projectId="e8db88fb3beee69a329da06119e72095" // WalletConnect Cloud'dan alacaksınız
+        {/* ✅ AppKit'i dynamic import ile SSR olmadan yükle */}
+        <AppKitProvider
+          projectId="e8db88fb3beee69a329da06119e72095" // Test project ID - değiştirin
           networks={[{
             id: 8453,
             name: 'Base',
@@ -132,7 +141,6 @@ export default function RootLayout({ children }) {
             rpcUrl: 'https://mainnet.base.org'
           }]}
           defaultNetwork={8453}
-          adapters={[ethersAdapter]}
           features={{
             analytics: true,
             allWallets: true
@@ -147,7 +155,7 @@ export default function RootLayout({ children }) {
           <main className="min-h-screen">
             {children}
           </main>
-        </AppKit>
+        </AppKitProvider>
       </body>
     </html>
   )

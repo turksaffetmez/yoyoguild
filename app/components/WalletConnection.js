@@ -1,6 +1,23 @@
+"use client";
 import { useState, useEffect } from 'react';
-import { useAppKit } from '@reown/appkit/react'
 import { ethers } from 'ethers';
+
+// ✅ useAppKit'i dynamic import yap
+const useAppKit = () => {
+  if (typeof window === 'undefined') {
+    return {
+      open: () => {},
+      isConnected: false,
+      address: null,
+      provider: null,
+      disconnect: () => {}
+    };
+  }
+  
+  // Client-side'da dynamic import
+  const { useAppKit } = require('@reown/appkit/react');
+  return useAppKit();
+};
 
 const WalletConnection = ({
   walletConnected,
@@ -16,7 +33,7 @@ const WalletConnection = ({
   pointValues,
   playerStats
 }) => {
-  const { open, isConnected, address, provider, disconnect } = useAppKit()
+  const { open, isConnected, address, provider, disconnect } = useAppKit();
   const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
 
