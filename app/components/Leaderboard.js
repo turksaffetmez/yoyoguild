@@ -1,36 +1,108 @@
+"use client";
 import { useState, useEffect } from 'react';
+import { ethers } from 'ethers';
+import { contractAddress, abi } from '../utils/contract';
 
-const Leaderboard = ({ leaderboard }) => {
-  const [isLoading, setIsLoading] = useState(false);
+const Leaderboard = () => {
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+    loadLeaderboard();
   }, []);
 
+  const loadLeaderboard = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+
+      // Read-only provider oluştur (wallet bağlı olması gerekmez)
+      let provider;
+      
+      if (window.ethereum) {
+        // MetaMask/Rabby varsa onu kullan
+        provider = new ethers.BrowserProvider(window.ethereum);
+      } else {
+        // Public RPC kullan
+        provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+      }
+
+      // Read-only contract instance
+      const contract = new ethers.Contract(contractAddress, abi, provider);
+      
+      // Leaderboard'u getir
+      const [addresses, points] = await contract.getTopPlayers();
+      
+      if (!addresses || addresses.length === 0) {
+        setLeaderboard([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Leaderboard verisini işle
+      const leaderboardData = addresses
+        .map((address, index) => ({
+          rank: index + 1,
+          address: address,
+          points: Number(points[index] || 0)
+        }))
+        .filter(player => player.points > 0)
+        .slice(0, 100);
+      
+      setLeaderboard(leaderboardData);
+      
+    } catch (err) {
+      console.error("Failed to load leaderboard:", err);
+      setError("Leaderboard yüklenirken hata oluştu. Lütfen tekrar deneyin.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshLeaderboard = () => {
+    loadLeaderboard();
+  };
+
   const formatAddress = (address) => {
+    if (!address) return "";
     if (isMobile) {
       return `${address.slice(0, 6)}...${address.slice(-4)}`;
     }
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
   };
 
-  useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [leaderboard]);
-
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-white mb-2">🏆 Global Leaderboard</h2>
         <p className="text-gray-300">
-          All-time points ranking - Compete for the top spot!
+          Real-time points ranking - Top 100 players
         </p>
+        
+        {/* Refresh Button */}
+        <button
+          onClick={refreshLeaderboard}
+          disabled={isLoading}
+          className="mt-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50"
+        >
+          {isLoading ? 'Loading...' : '🔄 Refresh'}
+        </button>
       </div>
+
+      {error && (
+        <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 text-center">
+          <p className="text-red-400">{error}</p>
+          <button 
+            onClick={refreshLeaderboard}
+            className="text-red-300 text-sm mt-2 hover:text-white"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="text-center py-12">
@@ -89,25 +161,7 @@ const Leaderboard = ({ leaderboard }) => {
           The leaderboard is updated in real time. The top 100 players receive $YoYo equivalent to the points they have collected! 🏅
         </p>
         <p className="text-gray-400 text-sm mt-2">
-          You will be notified via the{' '}
-          <a 
-            href="https://x.com/yoyoguild" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-blue-400 hover:text-blue-300 underline"
-          >
-            YoYo Guild X account
-          </a>{' '}
-          and{' '}
-          <a 
-            href="https://discord.gg/yoyoguild" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-purple-400 hover:text-purple-300 underline"
-          >
-            Discord channel
-          </a>{' '}
-          when the rewards are sent. 📢
+          Leaderboard updates automatically after each battle.
         </p>
         <p className="text-green-400 text-xs mt-2">
           {leaderboard.length} players competing
