@@ -51,17 +51,13 @@ export const useGameLogic = (
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsLoading(true);
 
-      // ✅ IMPROVED: Daha güvenilir transaction settings
+      // Transaction
       const tx = await contract.playGame({
-        gasLimit: 300000,
-        maxPriorityFeePerGas: ethers.parseUnits('2', 'gwei'),
-        maxFeePerGas: ethers.parseUnits('30', 'gwei')
+        gasLimit: 300000
       });
       
       setGameState(prev => ({ ...prev, gamePhase: "fighting" }));
-      
-      // ✅ IMPROVED: Daha iyi transaction confirmation
-      const receipt = await tx.wait(2); // 2 confirmation bekleyelim
+      const receipt = await tx.wait();
       
       if (receipt.status === 0) {
         throw new Error("Transaction reverted");
@@ -81,7 +77,7 @@ export const useGameLogic = (
       let isWinner = false;
       let pointsEarned = newTotalPoints - oldTotalPoints;
 
-      // ✅ IMPROVED: Daha güvenilir event parsing
+      // Event parsing
       try {
         const gamePlayedEvent = receipt.logs.find(log => {
           try {
@@ -96,15 +92,11 @@ export const useGameLogic = (
           const parsedLog = contract.interface.parseLog(gamePlayedEvent);
           isWinner = parsedLog.args.won;
           pointsEarned = Number(parsedLog.args.points);
-          console.log('🎯 Game result from event:', { isWinner, pointsEarned });
         } else {
-          // Event bulunamazsa points değişimine göre belirle
-          isWinner = pointsEarned > 10; // 10'dan fazla points kazanıldıysa kazanmıştır
-          console.log('⚠️ Event not found, using points logic:', { pointsEarned, isWinner });
+          isWinner = pointsEarned > 0;
         }
       } catch (eventError) {
-        console.warn('Event parsing failed, using fallback logic');
-        isWinner = pointsEarned > 10;
+        isWinner = pointsEarned > 0;
       }
 
       // Countdown animasyonu
@@ -118,7 +110,6 @@ export const useGameLogic = (
       // Son güncelleme
       await updatePlayerInfo(userAddress);
 
-      // ✅ FIXED: Base App için daha güvenilir winner belirleme
       const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
 
       setGameState(prev => ({ 
@@ -143,14 +134,6 @@ export const useGameLogic = (
         }, '*');
       }
 
-      console.log('🎮 Game completed:', { 
-        isWinner, 
-        pointsEarned, 
-        winnerIndex,
-        oldTotalPoints,
-        newTotalPoints 
-      });
-
     } catch (err) {
       console.error("Game transaction failed:", err);
       setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
@@ -159,24 +142,17 @@ export const useGameLogic = (
       if (err.reason) {
         errorMessage += err.reason;
       } else if (err.message.includes("revert")) {
-        errorMessage += "Daily limit reached or transaction reverted";
+        errorMessage += "Daily limit reached";
       } else if (err.message.includes("user rejected")) {
         errorMessage += "User rejected transaction";
-      } else if (err.message.includes("insufficient funds")) {
-        errorMessage += "Insufficient funds for gas";
       } else {
         errorMessage += err.message;
       }
       
       setConnectionError(errorMessage);
       
-      // Hata durumunda player info'yu güncelle
       if (userAddress) {
-        try {
-          await updatePlayerInfo(userAddress);
-        } catch (updateError) {
-          console.error("Failed to update player info after error:", updateError);
-        }
+        await updatePlayerInfo(userAddress);
       }
     } finally {
       setIsLoading(false);
