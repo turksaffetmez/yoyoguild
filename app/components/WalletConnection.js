@@ -1,7 +1,4 @@
-"use client";
 import { useState, useEffect } from 'react';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount, useDisconnect } from 'wagmi';
 import { ethers } from 'ethers';
 
 const WalletConnection = ({
@@ -18,8 +15,6 @@ const WalletConnection = ({
   pointValues,
   playerStats
 }) => {
-  const { address, isConnected } = useAccount();
-  const { disconnect } = useDisconnect();
   const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
 
@@ -59,12 +54,11 @@ const WalletConnection = ({
 
   // Balance refresh fonksiyonu
   const refreshYoyoBalance = async () => {
-    if (!userAddress && !address) return;
+    if (!userAddress) return;
     
     setIsRefreshingBalance(true);
     try {
-      const currentAddress = userAddress || address;
-      const newBalance = await checkYoyoBalance(currentAddress);
+      const newBalance = await checkYoyoBalance(userAddress);
       setDisplayYoyoBalance(newBalance);
     } catch (error) {
       console.error("Failed to refresh YOYO balance:", error);
@@ -74,56 +68,68 @@ const WalletConnection = ({
   };
 
   useEffect(() => {
-    if ((walletConnected && userAddress) || isConnected) {
+    if (walletConnected && userAddress) {
       refreshYoyoBalance();
     }
-  }, [walletConnected, userAddress, isConnected, address]);
+  }, [walletConnected, userAddress]);
 
   useEffect(() => {
     setDisplayYoyoBalance(yoyoBalanceAmount);
   }, [yoyoBalanceAmount]);
 
-  // RainbowKit bağlantısını mevcut sisteme entegre et
-  useEffect(() => {
-    if (isConnected && address && onConnect) {
-      console.log('RainbowKit wallet connected:', address);
-      // Mevcut connect fonksiyonunu tetikle
-      onConnect('rainbowkit', address);
-    }
-  }, [isConnected, address, onConnect]);
-
-  const handleDisconnect = () => {
-    if (isConnected) {
-      disconnect();
-    }
-    onDisconnect();
+  const formatAddress = (address) => {
+    if (!address) return "";
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const formatAddress = (addr) => {
-    const currentAddr = userAddress || addr;
-    if (!currentAddr) return "";
-    return `${currentAddr.slice(0, 6)}...${currentAddr.slice(-4)}`;
+  const detectWallet = () => {
+    if (window.ethereum) {
+      if (window.ethereum.isMetaMask) return 'MetaMask';
+      if (window.ethereum.isRabby) return 'Rabby';
+      if (window.ethereum.isCoinbaseWallet) return 'Coinbase';
+      if (window.ethereum.isTrust) return 'Trust Wallet';
+      return 'Ethereum Wallet';
+    }
+    return null;
   };
 
-  const currentAddress = userAddress || address;
-  const isWalletConnected = walletConnected || isConnected;
+  const currentWallet = detectWallet();
 
   return (
     <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 mb-6 border border-slate-600 shadow-lg">
-      {!isWalletConnected ? (
+      {!walletConnected ? (
         <div className="text-center">
           <h3 className="text-xl font-bold text-white mb-4">Connect Your Wallet to Start Battling!</h3>
           
-          <div className="flex justify-center mb-3">
-            <ConnectButton 
-              label="Connect Wallet"
-              showBalance={false}
-            />
-          </div>
+          {/* Wallet Detected Indicator */}
+          {currentWallet && (
+            <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mb-4">
+              <p className="text-blue-400 text-sm">
+                {currentWallet} detected
+              </p>
+            </div>
+          )}
           
-          <p className="text-gray-400 text-sm">
-            Connect with 150+ wallets including MetaMask, Rabby, Coinbase, and more!
-          </p>
+          <button
+            onClick={onConnect}
+            disabled={isLoading}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+          >
+            {isLoading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Connecting...</span>
+              </div>
+            ) : (
+              `Connect ${currentWallet || 'Wallet'}`
+            )}
+          </button>
+          
+          {isMobile && (
+            <p className="text-gray-400 mt-2 text-sm">
+              Make sure your wallet app is installed
+            </p>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -132,11 +138,13 @@ const WalletConnection = ({
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
               <span className="text-white font-semibold">Connected</span>
               <span className="bg-purple-600 px-3 py-1 rounded-full text-sm font-mono">
-                {formatAddress(currentAddress)}
+                {formatAddress(userAddress)}
               </span>
-              <span className="bg-blue-500 px-2 py-1 rounded-full text-xs">
-                RainbowKit
-              </span>
+              {currentWallet && (
+                <span className="bg-blue-500 px-2 py-1 rounded-full text-xs">
+                  {currentWallet}
+                </span>
+              )}
             </div>
             
             <div className="flex items-center space-x-3">
@@ -148,7 +156,7 @@ const WalletConnection = ({
                 {isRefreshingBalance ? '🔄' : '🔄 Balance'}
               </button>
               <button
-                onClick={handleDisconnect}
+                onClick={onDisconnect}
                 className="bg-red-600 px-4 py-2 rounded-lg text-white hover:bg-red-500 transition-colors text-sm"
               >
                 Disconnect

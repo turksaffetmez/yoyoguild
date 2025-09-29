@@ -1,24 +1,5 @@
 import './globals.css'
 import FarcasterSDK from './components/FarcasterSDK'
-import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
-import { WagmiConfig, createConfig, http } from 'wagmi'
-import { base } from 'wagmi/chains'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { getDefaultConfig } from '@rainbow-me/rainbowkit'
-
-// Create query client
-const queryClient = new QueryClient()
-
-// Configure wagmi config
-const config = getDefaultConfig({
-  appName: 'YoYo Guild Battle',
-  projectId: 'e8db88fb3beee69a329da06119e72095', // WalletConnect Project ID
-  chains: [base],
-  transports: {
-    [base.id]: http('https://mainnet.base.org'),
-  },
-  ssr: true,
-})
 
 export const metadata = {
   title: 'YoYo Guild Battle - Blockchain Battle Arena',
@@ -139,24 +120,10 @@ export default function RootLayout({ children }) {
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-        <WagmiConfig config={config}>
-          <QueryClientProvider client={queryClient}>
-            <RainbowKitProvider
-              theme={darkTheme({
-                accentColor: '#8B5CF6',
-                accentColorForeground: 'white',
-                borderRadius: 'large',
-                fontStack: 'system',
-              })}
-              coolMode
-            >
-              <FarcasterSDK />
-              <main className="min-h-screen">
-                {children}
-              </main>
-            </RainbowKitProvider>
-          </QueryClientProvider>
-        </WagmiConfig>
+        <FarcasterSDK />
+        <main className="min-h-screen">
+          {children}
+        </main>
       </body>
     </html>
   )
