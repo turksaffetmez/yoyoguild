@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { contractAddress, abi } from "./utils/contract";
@@ -220,27 +220,42 @@ export default function Home() {
     return window.ethereum?.isRabby || false;
   }, [isClient]);
 
-  const checkYoyoBalance = useCallback(async (address) => {
-    if (!address || !isClient) return 0;
-    try {
-      let balanceProvider = provider;
-      if (!balanceProvider && window.ethereum) {
-        balanceProvider = new ethers.BrowserProvider(window.ethereum);
-      }
-      if (!balanceProvider) return 0;
-
-      const yoyoContract = new ethers.Contract(
-        "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1",
-        ["function balanceOf(address) view returns (uint256)"],
-        balanceProvider
-      );
-      const balance = await yoyoContract.balanceOf(address);
-      return Number(ethers.formatUnits(balance, 18));
-    } catch (error) {
-      console.error("YOYO balance check failed:", error);
-      return 0;
+const checkYoyoBalance = useCallback(async (address) => {
+  if (!address || !isClient) return 0;
+  try {
+    let balanceProvider;
+    
+    // Önce mevcut provider'ı kullan
+    if (provider) {
+      balanceProvider = provider;
+    } else if (window.ethereum) {
+      // Wallet bağlı değilse yeni provider oluştur
+      balanceProvider = new ethers.BrowserProvider(window.ethereum);
+    } else {
+      // Fallback: Public RPC
+      balanceProvider = new ethers.JsonRpcProvider('https://mainnet.base.org');
     }
-  }, [provider, isClient]);
+
+    const yoyoContract = new ethers.Contract(
+      "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1",
+      ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"],
+      balanceProvider
+    );
+    
+    const [balance, decimals] = await Promise.all([
+      yoyoContract.balanceOf(address),
+      yoyoContract.decimals()
+    ]);
+    
+    const formattedBalance = Number(ethers.formatUnits(balance, decimals));
+    console.log(`YOYO Balance updated: ${formattedBalance} for ${address}`);
+    return formattedBalance;
+  } catch (error) {
+    console.error("YOYO balance check failed:", error);
+    return 0;
+  }
+}, [provider, isClient]);
+      
 
   const getPointValues = useCallback(async () => {
     if (!contract) return;
