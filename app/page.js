@@ -192,6 +192,30 @@ export default function Home() {
     }
   }, [isFarcasterMiniApp, isClient]);
 
+  // Contract Event Listener
+  useEffect(() => {
+    if (!contract || !userAddress) return;
+
+    const handleGamePlayed = (player, won, points, event) => {
+      if (player.toLowerCase() === userAddress.toLowerCase()) {
+        console.log('GamePlayed event received:', { 
+          player, 
+          won, 
+          points: points.toString() 
+        });
+        // State'leri güncelle
+        updatePlayerInfo(userAddress);
+        updateLeaderboard();
+      }
+    };
+
+    contract.on('GamePlayed', handleGamePlayed);
+
+    return () => {
+      contract.off('GamePlayed', handleGamePlayed);
+    };
+  }, [contract, userAddress]);
+
   // Rabby Wallet desteği
   const isRabbyWallet = useCallback(() => {
     if (!isClient) return false;
@@ -201,19 +225,33 @@ export default function Home() {
   const checkYoyoBalance = useCallback(async (address) => {
     if (!address || !isClient) return 0;
     try {
-      let balanceProvider = provider;
-      if (!balanceProvider && window.ethereum) {
+      let balanceProvider;
+      
+      // Önce mevcut provider'ı kullan
+      if (provider) {
+        balanceProvider = provider;
+      } else if (window.ethereum) {
+        // Wallet bağlı değilse yeni provider oluştur
         balanceProvider = new ethers.BrowserProvider(window.ethereum);
+      } else {
+        // Fallback: Public RPC
+        balanceProvider = new ethers.JsonRpcProvider('https://mainnet.base.org');
       }
-      if (!balanceProvider) return 0;
 
       const yoyoContract = new ethers.Contract(
         "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1",
-        ["function balanceOf(address) view returns (uint256)"],
+        ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"],
         balanceProvider
       );
-      const balance = await yoyoContract.balanceOf(address);
-      return Number(ethers.formatUnits(balance, 18));
+      
+      const [balance, decimals] = await Promise.all([
+        yoyoContract.balanceOf(address),
+        yoyoContract.decimals()
+      ]);
+      
+      const formattedBalance = Number(ethers.formatUnits(balance, decimals));
+      console.log(`YOYO Balance updated: ${formattedBalance} for ${address}`);
+      return formattedBalance;
     } catch (error) {
       console.error("YOYO balance check failed:", error);
       return 0;
@@ -238,7 +276,11 @@ export default function Home() {
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     try {
+<<<<<<< HEAD
       console.log('🔄 Updating player info for:', address);
+=======
+      console.log('Fetching updated player info for:', address);
+>>>>>>> 56a171e11f059a5fd1946ef4b503ce9a71116988
       
       const [
         totalPoints, 
@@ -253,6 +295,7 @@ export default function Home() {
         winRate
       ] = await contract.getPlayerInfo(address);
       
+<<<<<<< HEAD
       console.log('📊 Player info received:', {
         totalPoints: Number(totalPoints),
         gamesToday: Number(gamesToday),
@@ -260,6 +303,17 @@ export default function Home() {
       });
       
       // ✅ State'leri TEK SEFERDE güncelle
+=======
+      console.log('Player info updated:', {
+        totalPoints: Number(totalPoints),
+        gamesToday: Number(gamesToday), 
+        limit: Number(limit),
+        totalGames: Number(totalGames),
+        totalWins: Number(totalWins),
+        totalLosses: Number(totalLosses)
+      });
+      
+>>>>>>> 56a171e11f059a5fd1946ef4b503ce9a71116988
       setPoints(Number(totalPoints));
       setGamesPlayedToday(Number(gamesToday));
       setDailyLimit(Number(limit));
@@ -276,7 +330,10 @@ export default function Home() {
       const yoyoBalance = await checkYoyoBalance(address);
       setYoyoBalanceAmount(yoyoBalance);
       
+<<<<<<< HEAD
       console.log('✅ Player info updated successfully');
+=======
+>>>>>>> 56a171e11f059a5fd1946ef4b503ce9a71116988
     } catch (error) {
       console.error("❌ Failed to update player info:", error);
     }
@@ -388,6 +445,7 @@ export default function Home() {
     if (gameState.gamePhase !== "idle") return;
     
     try {
+      // Önce mevcut state'i kontrol et
       const currentInfo = await contract.getPlayerInfo(userAddress);
       const dailyGamesPlayed = Number(currentInfo[1]);
       const dailyLimit = Number(currentInfo[2]);
@@ -409,9 +467,11 @@ export default function Home() {
       
       setIsLoading(true);
       
+      // Transaction'ı gönder
       const tx = await contract.playGame();
       setGameState(prev => ({ ...prev, gamePhase: "fighting" }));
       
+      // Transaction'ın onaylanmasını bekle
       const receipt = await tx.wait();
       
       if (receipt.status === 0) {
@@ -426,6 +486,7 @@ export default function Home() {
       let isWinner = false;
       let pointsEarned = 0;
       
+      // Event'leri parse et
       const gamePlayedEvent = receipt.logs.find(log => {
         try {
           const parsedLog = contract.interface.parseLog(log);
@@ -439,14 +500,27 @@ export default function Home() {
         const parsedLog = contract.interface.parseLog(gamePlayedEvent);
         isWinner = parsedLog.args.won;
         pointsEarned = Number(parsedLog.args.points);
+<<<<<<< HEAD
         
         // ✅ EVENT'ten gelen verileri kullanarak state'i güncelle
         setPoints(prev => prev + pointsEarned);
         setGamesPlayedToday(prev => prev + 1);
         
         console.log('🎯 Game result:', { isWinner, pointsEarned });
+=======
+        console.log('Game result:', { isWinner, pointsEarned });
+>>>>>>> 56a171e11f059a5fd1946ef4b503ce9a71116988
       }
       
+      // Debug için contract'ın güncel state'ini kontrol et
+      const afterGameInfo = await contract.getPlayerInfo(userAddress);
+      console.log('After game info:', {
+        points: Number(afterGameInfo[0]),
+        gamesToday: Number(afterGameInfo[1]),
+        totalGames: Number(afterGameInfo[3])
+      });
+      
+      // Countdown animasyonu
       for (let i = 3; i > 0; i--) {
         setGameState(prev => ({ ...prev, countdown: i }));
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -454,7 +528,12 @@ export default function Home() {
       
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+<<<<<<< HEAD
       // ✅ Tekrar güncelle (son durum için)
+=======
+      // CRITICAL: State'leri güncelle - ÖNCE contract'tan yeni verileri al
+      console.log('Updating player info after game...');
+>>>>>>> 56a171e11f059a5fd1946ef4b503ce9a71116988
       await updatePlayerInfo(userAddress);
       
       const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
@@ -467,6 +546,14 @@ export default function Home() {
         isWinner: isWinner
       }));
       
+<<<<<<< HEAD
+=======
+      // YOYO balance'ı da güncelle
+      const newYoyoBalance = await checkYoyoBalance(userAddress);
+      setYoyoBalanceAmount(newYoyoBalance);
+      
+      // Farcaster Mini App için game result mesajı
+>>>>>>> 56a171e11f059a5fd1946ef4b503ce9a71116988
       if (isFarcasterMiniApp) {
         window.parent.postMessage({ 
           type: 'GAME_RESULT', 
@@ -484,16 +571,20 @@ export default function Home() {
       if (err.reason) {
         errorMessage += err.reason;
       } else if (err.message.includes("revert")) {
-        errorMessage += "Daily limit reached";
-      } else if (err.message.includes("Rabby")) {
-        errorMessage += "Rabby Wallet error - please try again";
+        errorMessage += "Daily limit reached or contract error";
+      } else if (err.message.includes("user rejected")) {
+        errorMessage += "Transaction rejected by user";
       } else {
         errorMessage += err.message;
       }
       
       setConnectionError(errorMessage);
       
+<<<<<<< HEAD
       // Hata durumunda da state'i güncelle
+=======
+      // Hata durumunda da state'leri güncelle
+>>>>>>> 56a171e11f059a5fd1946ef4b503ce9a71116988
       if (userAddress) {
         await updatePlayerInfo(userAddress);
       }
