@@ -1,5 +1,7 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
+import { ethers } from "ethers";
+import { contractAddress, abi } from "./utils/contract";
 import { useGameState } from "./hooks/useGameState";
 import { useContract } from "./hooks/useContract";
 import { useGameLogic } from "./hooks/useGameLogic";
@@ -49,7 +51,69 @@ export default function Home() {
     disconnectWallet: disconnectContractWallet
   } = useContract(provider, isClient);
 
-  // Game logic hook'u
+  // Wrapper fonksiyonları - ÖNCE tanımla
+  const updatePlayerInfo = useCallback(async (address) => {
+    if (!contract || !address) return;
+    await updateContractPlayerInfo(
+      contract,
+      address,
+      checkYoyoBalance,
+      setPoints,
+      setGamesPlayedToday,
+      setDailyLimit,
+      setPlayerStats,
+      setYoyoBalanceAmount
+    );
+  }, [contract, updateContractPlayerInfo, checkYoyoBalance, setPoints, setGamesPlayedToday, setDailyLimit, setPlayerStats, setYoyoBalanceAmount]);
+
+  const updateLeaderboard = useCallback(async () => {
+    if (!contract) return;
+    await updateContractLeaderboard(contract, setLeaderboard);
+  }, [contract, updateContractLeaderboard, setLeaderboard]);
+
+  const connectWallet = useCallback(async (walletType = 'standard', farcasterAddress = null) => {
+    await connectContractWallet(
+      walletType,
+      farcasterAddress,
+      isMobile,
+      setShowWalletOptions,
+      setProvider,
+      setContract,
+      setUserAddress,
+      setWalletConnected,
+      checkYoyoBalance,
+      setYoyoBalanceAmount,
+      getContractPointValues,
+      setPointValues,
+      updatePlayerInfo,
+      updateLeaderboard,
+      isFarcasterMiniApp,
+      points,
+      setConnectionError,
+      setIsLoading
+    );
+  }, [
+    connectContractWallet, isMobile, setShowWalletOptions, setProvider, setContract,
+    setUserAddress, setWalletConnected, checkYoyoBalance, setYoyoBalanceAmount,
+    getContractPointValues, setPointValues, updatePlayerInfo, updateLeaderboard,
+    isFarcasterMiniApp, points, setConnectionError, setIsLoading
+  ]);
+
+  const disconnectWallet = useCallback(() => {
+    disconnectContractWallet(
+      setWalletConnected,
+      setUserAddress,
+      setContract,
+      setPoints,
+      setYoyoBalanceAmount,
+      setGamesPlayedToday,
+      setLeaderboard,
+      setPlayerStats,
+      setGameState
+    );
+  }, [disconnectContractWallet, setWalletConnected, setUserAddress, setContract, setPoints, setYoyoBalanceAmount, setGamesPlayedToday, setLeaderboard, setPlayerStats, setGameState]);
+
+  // Game logic hook'u - WRAPPER fonksiyonlardan SONRA
   const {
     startGame,
     resetGame,
@@ -71,61 +135,6 @@ export default function Home() {
     isFarcasterMiniApp,
     points
   );
-
-  // Wrapper fonksiyonları - contract hook'larını state setter'larıyla bağlamak için
-  const updatePlayerInfo = async (address) => {
-    await updateContractPlayerInfo(
-      contract,
-      address,
-      checkYoyoBalance,
-      setPoints,
-      setGamesPlayedToday,
-      setDailyLimit,
-      setPlayerStats,
-      setYoyoBalanceAmount
-    );
-  };
-
-  const updateLeaderboard = async () => {
-    await updateContractLeaderboard(contract, setLeaderboard);
-  };
-
-  const connectWallet = async (walletType = 'standard', farcasterAddress = null) => {
-    await connectContractWallet(
-      walletType,
-      farcasterAddress,
-      isMobile,
-      setShowWalletOptions,
-      setProvider,
-      setContract,
-      setUserAddress,
-      setWalletConnected,
-      checkYoyoBalance,
-      setYoyoBalanceAmount,
-      getContractPointValues,
-      setPointValues,
-      updatePlayerInfo,
-      updateLeaderboard,
-      isFarcasterMiniApp,
-      points,
-      setConnectionError,
-      setIsLoading
-    );
-  };
-
-  const disconnectWallet = () => {
-    disconnectContractWallet(
-      setWalletConnected,
-      setUserAddress,
-      setContract,
-      setPoints,
-      setYoyoBalanceAmount,
-      setGamesPlayedToday,
-      setLeaderboard,
-      setPlayerStats,
-      setGameState
-    );
-  };
 
   // Auto-connect wallet on page load
   useEffect(() => {
