@@ -10,7 +10,6 @@ const WalletConnection = ({
   onDisconnect,
   onConnect,
   isMobile,
-  onShowWalletOptions,
   remainingGames,
   dailyLimit,
   isLoading,
@@ -100,11 +99,7 @@ const WalletConnection = ({
   };
 
   const handleConnect = () => {
-    if (isMobile) {
-      onShowWalletOptions();
-    } else {
-      open();
-    }
+    open();
   };
 
   const formatAddress = (addr) => {
@@ -137,11 +132,9 @@ const WalletConnection = ({
             )}
           </button>
           
-          {isMobile && (
-            <p className="text-gray-400 mt-2 text-sm">
-              Mobile wallet detected. Tap to select your wallet.
-            </p>
-          )}
+          <p className="text-gray-400 text-sm">
+            Connect with 150+ wallets including MetaMask, Rabby, Coinbase, and more!
+          </p>
         </div>
       ) : (
         <div className="space-y-4">

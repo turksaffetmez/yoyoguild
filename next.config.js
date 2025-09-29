@@ -11,6 +11,14 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // ✅ CRITICAL: AppKit için SSR'yi devre dışı bırak
+  experimental: {
+    esmExternals: 'loose'
+  },
+  webpack: (config) => {
+    config.externals.push('pino-pretty', 'encoding');
+    return config;
+  }
 }
 
 module.exports = nextConfig

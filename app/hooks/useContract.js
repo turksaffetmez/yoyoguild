@@ -105,7 +105,7 @@ export const useContract = (provider, isClient) => {
     }
   }, []);
 
-  // ✅ GELİŞTİRİLMİŞ WALLET BAĞLANTISI - AppKit entegrasyonu
+  // ✅ GELİŞTİRİLMİŞ WALLET BAĞLANTISI - Tüm cüzdanlar için
   const connectWallet = useCallback(async (
     walletType = 'standard', 
     farcasterAddress = null,
@@ -133,67 +133,9 @@ export const useContract = (provider, isClient) => {
       setIsLoading(true);
       setConnectionError("");
 
-      // AppKit bağlantısı için özel işlem
-      if (walletType === 'appkit') {
-        console.log('🔄 AppKit wallet connection processing...');
-        
-        if (farcasterAddress) {
-          setUserAddress(farcasterAddress);
-          setWalletConnected(true);
-          
-          // Provider ve contract'ı ayarla
-          if (window.ethereum) {
-            try {
-              const newProvider = new ethers.BrowserProvider(window.ethereum);
-              setProvider(newProvider);
-              
-              const signer = await newProvider.getSigner();
-              const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-              setContract(contractInstance);
-              
-              const pointVals = await getPointValues(contractInstance);
-              setPointValues(pointVals);
-              
-              console.log('✅ AppKit contract setup completed');
-            } catch (contractError) {
-              console.warn('⚠️ AppKit contract setup warning:', contractError);
-              // Contract kurulumu başarısız olsa bile devam et
-            }
-          }
-          
-          // YOYO balance'ı güncelle
-          const yoyoBalance = await checkYoyoBalance(farcasterAddress);
-          setYoyoBalanceAmount(yoyoBalance);
-          
-          // Player data'yı refresh et
-          try {
-            if (window.ethereum) {
-              const newProvider = new ethers.BrowserProvider(window.ethereum);
-              const signer = await newProvider.getSigner();
-              const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-              
-              await refreshPlayerData(
-                contractInstance, 
-                farcasterAddress, 
-                checkYoyoBalance, 
-                () => {}, () => {}, () => {}, () => {}, 
-                setYoyoBalanceAmount
-              );
-              
-              await updateLeaderboard(contractInstance, () => {});
-            }
-          } catch (refreshError) {
-            console.warn('⚠️ AppKit data refresh warning:', refreshError);
-          }
-          
-          console.log('✅ AppKit wallet connection completed');
-        }
-        return;
-      }
-
-      // Orijinal bağlantı kodu (Farcaster ve diğerleri için)
       let address = farcasterAddress;
       
+      // Farcaster dışında normal wallet bağlantısı
       if (!farcasterAddress) {
         if (typeof window.ethereum === 'undefined') {
           if (isMobile) {
@@ -230,6 +172,7 @@ export const useContract = (provider, isClient) => {
       const pointVals = await getPointValues(contractInstance);
       setPointValues(pointVals);
       
+      // ✅ REFRESH DATA KULLAN - Hem localStorage'dan hem contract'tan
       await refreshPlayerData(
         contractInstance, 
         address, 
@@ -247,8 +190,6 @@ export const useContract = (provider, isClient) => {
           points: points
         }, '*');
       }
-      
-      console.log('✅ Standard wallet connection completed');
       
     } catch (err) {
       console.error("Wallet connection failed:", err);
@@ -312,8 +253,6 @@ export const useContract = (provider, isClient) => {
       localStorage.removeItem('yoyo_balance');
       localStorage.removeItem('yoyo_last_update');
     }
-
-    console.log('✅ Wallet disconnected and storage cleared');
   }, []);
 
   return {
