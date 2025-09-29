@@ -1,29 +1,23 @@
 import './globals.css'
 import FarcasterSDK from './components/FarcasterSDK'
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
-import { WagmiConfig, createClient, configureChains } from 'wagmi'
+import { WagmiConfig, createConfig, http } from 'wagmi'
 import { base } from 'wagmi/chains'
-import { publicProvider } from 'wagmi/providers/public'
-import { jsonRpcProvider } from 'wagmi/providers/jsonRpc'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 
-// Configure chains & providers
-const { chains, provider, webSocketProvider } = configureChains(
-  [base],
-  [
-    jsonRpcProvider({
-      rpc: (chain) => ({
-        http: 'https://mainnet.base.org',
-      }),
-    }),
-    publicProvider(),
-  ]
-)
+// Create query client
+const queryClient = new QueryClient()
 
-// Set up client
-const client = createClient({
-  autoConnect: true,
-  provider,
-  webSocketProvider,
+// Configure wagmi config
+const config = getDefaultConfig({
+  appName: 'YoYo Guild Battle',
+  projectId: 'e8db88fb3beee69a329da06119e72095', // WalletConnect Project ID
+  chains: [base],
+  transports: {
+    [base.id]: http('https://mainnet.base.org'),
+  },
+  ssr: true,
 })
 
 export const metadata = {
@@ -145,22 +139,23 @@ export default function RootLayout({ children }) {
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-        <WagmiConfig client={client}>
-          <RainbowKitProvider
-            chains={chains}
-            theme={darkTheme({
-              accentColor: '#8B5CF6',
-              accentColorForeground: 'white',
-              borderRadius: 'large',
-              fontStack: 'system',
-            })}
-            coolMode
-          >
-            <FarcasterSDK />
-            <main className="min-h-screen">
-              {children}
-            </main>
-          </RainbowKitProvider>
+        <WagmiConfig config={config}>
+          <QueryClientProvider client={queryClient}>
+            <RainbowKitProvider
+              theme={darkTheme({
+                accentColor: '#8B5CF6',
+                accentColorForeground: 'white',
+                borderRadius: 'large',
+                fontStack: 'system',
+              })}
+              coolMode
+            >
+              <FarcasterSDK />
+              <main className="min-h-screen">
+                {children}
+              </main>
+            </RainbowKitProvider>
+          </QueryClientProvider>
         </WagmiConfig>
       </body>
     </html>
