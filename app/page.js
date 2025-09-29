@@ -16,7 +16,7 @@ import MetaTags from "./components/MetaTags";
 import Image from "next/image";
 
 export default function Home() {
-  // State management hook'u
+  // State management
   const {
     walletConnected, setWalletConnected,
     userAddress, setUserAddress,
@@ -38,11 +38,10 @@ export default function Home() {
     isClient,
     gameState, setGameState,
     remainingGames,
-    connectMobileWallet,
-    refreshPlayerData
+    connectMobileWallet
   } = useGameState();
 
-  // Contract fonksiyonları hook'u
+  // Contract functions
   const {
     checkYoyoBalance,
     getPointValues: getContractPointValues,
@@ -52,7 +51,7 @@ export default function Home() {
     disconnectWallet: disconnectContractWallet
   } = useContract(provider, isClient);
 
-  // Wrapper fonksiyonları - ÖNCE tanımla
+  // Wrapper functions
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     await updateContractPlayerInfo(
@@ -88,7 +87,6 @@ export default function Home() {
       setPointValues,
       updatePlayerInfo,
       updateLeaderboard,
-      refreshPlayerData,
       isFarcasterMiniApp,
       points,
       setConnectionError,
@@ -98,7 +96,7 @@ export default function Home() {
     connectContractWallet, isMobile, setShowWalletOptions, setProvider, setContract,
     setUserAddress, setWalletConnected, checkYoyoBalance, setYoyoBalanceAmount,
     getContractPointValues, setPointValues, updatePlayerInfo, updateLeaderboard,
-    refreshPlayerData, isFarcasterMiniApp, points, setConnectionError, setIsLoading
+    isFarcasterMiniApp, points, setConnectionError, setIsLoading
   ]);
 
   const disconnectWallet = useCallback(() => {
@@ -115,7 +113,7 @@ export default function Home() {
     );
   }, [disconnectContractWallet, setWalletConnected, setUserAddress, setContract, setPoints, setYoyoBalanceAmount, setGamesPlayedToday, setLeaderboard, setPlayerStats, setGameState]);
 
-  // Game logic hook'u - WRAPPER fonksiyonlardan SONRA
+  // Game logic
   const {
     startGame,
     resetGame,
@@ -138,53 +136,20 @@ export default function Home() {
     points
   );
 
-  // ✅ SAYFA YÜKLENDİĞİNDE OTOMATİK REFRESH
-  useEffect(() => {
-    if (!isClient || !walletConnected || !contract || !userAddress) return;
-
-    console.log('🔄 Auto-refreshing player data on page load...');
-    
-    const autoRefresh = async () => {
-      try {
-        await refreshPlayerData(
-          contract,
-          userAddress,
-          checkYoyoBalance,
-          setPoints,
-          setGamesPlayedToday,
-          setDailyLimit,
-          setPlayerStats,
-          setYoyoBalanceAmount
-        );
-        await updateLeaderboard();
-        console.log('✅ Auto-refresh completed');
-      } catch (error) {
-        console.error('❌ Auto-refresh failed:', error);
-      }
-    };
-
-    autoRefresh();
-
-    // Her 30 saniyede bir otomatik refresh
-    const interval = setInterval(autoRefresh, 30000);
-    
-    return () => clearInterval(interval);
-  }, [isClient, walletConnected, contract, userAddress, refreshPlayerData, checkYoyoBalance, updateLeaderboard]);
-
-  // Auto-connect wallet on page load
+  // Auto-connect wallet
   useEffect(() => {
     if (!isClient || typeof window.ethereum === 'undefined') return;
     
     const checkWalletConnection = async () => {
       try {
-        const newProvider = new ethers.BrowserProvider(window.ethereum);
-        setProvider(newProvider);
-        
         const accounts = await window.ethereum.request({
           method: 'eth_accounts'
         });
 
         if (accounts.length > 0) {
+          const newProvider = new ethers.BrowserProvider(window.ethereum);
+          setProvider(newProvider);
+          
           const signer = await newProvider.getSigner();
           const address = await signer.getAddress();
           const contractInstance = new ethers.Contract(contractAddress, abi, signer);

@@ -37,7 +37,6 @@ export const useContract = (provider, isClient) => {
         lose: Number(values[2])
       };
     } catch (error) {
-      console.error("Failed to get point values:", error);
       return { winNormal: 250, winYoyo: 500, lose: 10 };
     }
   }, []);
@@ -45,8 +44,6 @@ export const useContract = (provider, isClient) => {
   const updatePlayerInfo = useCallback(async (contract, address, checkYoyoBalance, setPoints, setGamesPlayedToday, setDailyLimit, setPlayerStats, setYoyoBalanceAmount) => {
     if (!contract || !address) return;
     try {
-      console.log('🔄 Updating player info for:', address);
-      
       const [
         totalPoints, 
         gamesToday, 
@@ -60,13 +57,7 @@ export const useContract = (provider, isClient) => {
         winRate
       ] = await contract.getPlayerInfo(address);
       
-      console.log('📊 Player info received:', {
-        totalPoints: Number(totalPoints),
-        gamesToday: Number(gamesToday),
-        totalGames: Number(totalGames)
-      });
-      
-      // ✅ State'leri TEK SEFERDE güncelle
+      // State'leri güncelle
       setPoints(Number(totalPoints));
       setGamesPlayedToday(Number(gamesToday));
       setDailyLimit(Number(limit));
@@ -83,9 +74,8 @@ export const useContract = (provider, isClient) => {
       const yoyoBalance = await checkYoyoBalance(address);
       setYoyoBalanceAmount(yoyoBalance);
       
-      console.log('✅ Player info updated successfully');
     } catch (error) {
-      console.error("❌ Failed to update player info:", error);
+      console.error("Failed to update player info:", error);
     }
   }, []);
 
@@ -115,6 +105,7 @@ export const useContract = (provider, isClient) => {
     }
   }, []);
 
+  // ✅ GELİŞTİRİLMİŞ WALLET BAĞLANTISI - Tüm cüzdanlar için
   const connectWallet = useCallback(async (
     walletType = 'standard', 
     farcasterAddress = null,
@@ -130,26 +121,12 @@ export const useContract = (provider, isClient) => {
     setPointValues,
     updatePlayerInfo,
     updateLeaderboard,
-    refreshPlayerData,
     isFarcasterMiniApp,
     points,
     setConnectionError,
     setIsLoading
   ) => {
     if (!isClient) return;
-    
-    if (walletType === 'rabby' && !window.ethereum?.isRabby) {
-      setConnectionError("Rabby Wallet not detected! Please install Rabby Wallet.");
-      return;
-    }
-
-    if (typeof window.ethereum === 'undefined' && !farcasterAddress) {
-      setConnectionError("Wallet not installed!");
-      if (isMobile) {
-        setShowWalletOptions(true);
-      }
-      return;
-    }
 
     try {
       setIsLoading(true);
@@ -157,7 +134,19 @@ export const useContract = (provider, isClient) => {
 
       let address = farcasterAddress;
       
+      // Farcaster dışında normal wallet bağlantısı
       if (!farcasterAddress) {
+        // ✅ TÜM CÜZDAN DESTEĞİ - window.ethereum kontrolü
+        if (typeof window.ethereum === 'undefined') {
+          // Mobile wallet seçeneklerini göster
+          if (isMobile) {
+            setShowWalletOptions(true);
+            return;
+          } else {
+            throw new Error("Please install a Web3 wallet like MetaMask, Rabby, or Coinbase Wallet");
+          }
+        }
+
         const accounts = await window.ethereum.request({
           method: 'eth_requestAccounts'
         });
@@ -172,7 +161,6 @@ export const useContract = (provider, isClient) => {
       setProvider(newProvider);
       
       const signer = await newProvider.getSigner();
-      
       const contractInstance = new ethers.Contract(contractAddress, abi, signer);
       
       setContract(contractInstance);
@@ -185,15 +173,7 @@ export const useContract = (provider, isClient) => {
       const pointVals = await getPointValues(contractInstance);
       setPointValues(pointVals);
       
-      // ✅ REFRESH DATA KULLAN - Hem localStorage'dan hem contract'tan
-      await refreshPlayerData(
-        contractInstance, 
-        address, 
-        checkYoyoBalance, 
-        () => {}, () => {}, () => {}, () => {}, 
-        setYoyoBalanceAmount
-      );
-      
+      await updatePlayerInfo(contractInstance, address, checkYoyoBalance, () => {}, () => {}, () => {}, () => {}, setYoyoBalanceAmount);
       await updateLeaderboard(contractInstance, () => {});
       
       if (isFarcasterMiniApp) {
@@ -205,12 +185,17 @@ export const useContract = (provider, isClient) => {
       }
       
     } catch (err) {
-      console.error("Failed to connect wallet:", err);
+      console.error("Wallet connection failed:", err);
       
+      // ✅ DETAYLI HATA MESAJLARI
       if (err.code === 4001) {
         setConnectionError("Connection rejected by user");
       } else if (err.message.includes("Rabby")) {
-        setConnectionError("Rabby Wallet connection failed. Please check if Rabby is unlocked.");
+        setConnectionError("Rabby Wallet connection failed");
+      } else if (err.message.includes("MetaMask")) {
+        setConnectionError("MetaMask connection failed");
+      } else if (err.message.includes("install")) {
+        setConnectionError("Web3 wallet not detected. Please install MetaMask, Rabby, or Coinbase Wallet.");
       } else {
         setConnectionError(err.message || "Failed to connect wallet");
       }
@@ -251,16 +236,6 @@ export const useContract = (provider, isClient) => {
       selectedImage: null,
       winnerIndex: null
     }));
-
-    // ✅ LOCALSTORAGE'ı TEMİZLE
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('yoyo_user_address');
-      localStorage.removeItem('yoyo_player_stats');
-      localStorage.removeItem('yoyo_points');
-      localStorage.removeItem('yoyo_games_played');
-      localStorage.removeItem('yoyo_last_update');
-      console.log('🗑️ LocalStorage cleared on disconnect');
-    }
   }, []);
 
   return {

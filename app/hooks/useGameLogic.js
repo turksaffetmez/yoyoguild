@@ -21,37 +21,25 @@ export const useGameLogic = (
   
   const startGame = useCallback(async (selectedIndex) => {
     if (!walletConnected || !contract || !userAddress) {
-      console.error('❌ Game cannot start: missing requirements');
+      console.error('Game cannot start: missing requirements');
       return;
     }
 
     try {
-      console.log('🔄 Checking daily limit from contract...');
-      
-      // ✅ CRITICAL FIX: ÖNCE contract'tan GÜNCEL verileri al
+      // Günlük limit kontrolü
       const currentInfo = await contract.getPlayerInfo(userAddress);
       const dailyGamesPlayed = Number(currentInfo[1]);
       const dailyLimit = Number(currentInfo[2]);
       
-      console.log('📊 Contract daily info:', {
-        played: dailyGamesPlayed,
-        limit: dailyLimit,
-        remaining: dailyLimit - dailyGamesPlayed
-      });
-      
-      // ✅ FRONTEND STATE'İNİ GÜNCELLE - Contract'tan gelen verilerle
       setGamesPlayedToday(dailyGamesPlayed);
       setDailyLimit(dailyLimit);
       
-      // ✅ GÜNLÜK LİMİT KONTROLÜ - Contract'tan gelen veriyle
       if (dailyGamesPlayed >= dailyLimit) {
-        const errorMsg = `Daily limit reached! Played: ${dailyGamesPlayed}/${dailyLimit}`;
-        console.warn('🚫 ' + errorMsg);
-        alert(errorMsg);
+        alert(`Daily limit reached! Played: ${dailyGamesPlayed}/${dailyLimit}`);
         return;
       }
 
-      // Oyun başlıyor...
+      // Oyun başlıyor
       setGameState(prev => ({ 
         ...prev, 
         isLoading: true, 
@@ -63,44 +51,33 @@ export const useGameLogic = (
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsLoading(true);
 
-      // ✅ BASE APP İÇİN GAS LIMIT AYARI
-      console.log('🎮 Sending playGame transaction with gas limit...');
+      // Transaction
       const tx = await contract.playGame({
-        gasLimit: 300000 // Base App için yeterli gas
+        gasLimit: 300000
       });
       
       setGameState(prev => ({ ...prev, gamePhase: "fighting" }));
-      
       const receipt = await tx.wait();
       
       if (receipt.status === 0) {
         throw new Error("Transaction reverted");
       }
 
-      // ✅ CRITICAL FIX: Transaction'dan SONRA HEMEN contract state'ini güncelle
-      console.log('🔄 Updating state after successful transaction...');
+      // State güncelleme
       const updatedInfo = await contract.getPlayerInfo(userAddress);
       const newGamesPlayed = Number(updatedInfo[1]);
       const newTotalPoints = Number(updatedInfo[0]);
       const oldTotalPoints = points;
       
-      // ✅ STATE'LERİ GÜNCELLE - Contract'tan gelen GÜNCEL verilerle
       setGamesPlayedToday(newGamesPlayed);
       setPoints(newTotalPoints);
-      
-      console.log('✅ State updated:', {
-        oldPoints: oldTotalPoints,
-        newPoints: newTotalPoints,
-        pointsEarned: newTotalPoints - oldTotalPoints,
-        gamesPlayed: newGamesPlayed
-      });
 
       await updateLeaderboard();
 
       let isWinner = false;
       let pointsEarned = newTotalPoints - oldTotalPoints;
 
-      // ✅ GELİŞMİŞ EVENT PARSING - Base App için
+      // Event parsing
       try {
         const gamePlayedEvent = receipt.logs.find(log => {
           try {
@@ -115,14 +92,10 @@ export const useGameLogic = (
           const parsedLog = contract.interface.parseLog(gamePlayedEvent);
           isWinner = parsedLog.args.won;
           pointsEarned = Number(parsedLog.args.points);
-          console.log('🎯 Game result from event:', { isWinner, pointsEarned });
         } else {
-          // ✅ EVENT BULUNAMADIYSA - Contract'tan manuel kontrol
-          console.log('⚠️ GamePlayed event not found, using contract state...');
-          isWinner = pointsEarned > 0; // Puan artışı varsa kazanılmış say
+          isWinner = pointsEarned > 0;
         }
       } catch (eventError) {
-        console.warn('⚠️ Event parsing failed, using contract state:', eventError);
         isWinner = pointsEarned > 0;
       }
 
@@ -134,7 +107,7 @@ export const useGameLogic = (
 
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Son durum için tekrar güncelle
+      // Son güncelleme
       await updatePlayerInfo(userAddress);
 
       const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
@@ -147,11 +120,11 @@ export const useGameLogic = (
         isWinner: isWinner
       }));
 
-      // YOYO balance'ı da güncelle
+      // YOYO balance güncelleme
       const newYoyoBalance = await checkYoyoBalance(userAddress);
       setYoyoBalanceAmount(newYoyoBalance);
 
-      // Farcaster Mini App için mesaj
+      // Farcaster mesajı
       if (isFarcasterMiniApp) {
         window.parent.postMessage({ 
           type: 'GAME_RESULT', 
@@ -162,25 +135,22 @@ export const useGameLogic = (
       }
 
     } catch (err) {
-      console.error("❌ Game transaction failed:", err);
+      console.error("Game transaction failed:", err);
       setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
       
       let errorMessage = "Transaction failed: ";
       if (err.reason) {
         errorMessage += err.reason;
       } else if (err.message.includes("revert")) {
-        errorMessage += "Contract reverted - possible daily limit reached";
+        errorMessage += "Daily limit reached";
       } else if (err.message.includes("user rejected")) {
         errorMessage += "User rejected transaction";
-      } else if (err.message.includes("gas")) {
-        errorMessage += "Gas estimation failed - try again";
       } else {
         errorMessage += err.message;
       }
       
       setConnectionError(errorMessage);
       
-      // Hata durumunda da state'leri güncelle
       if (userAddress) {
         await updatePlayerInfo(userAddress);
       }
