@@ -339,7 +339,7 @@ export default function Home() {
         
         {!isFarcasterMiniApp && (
           <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
-            <p>YoYo Guild Battle | Base Mainnet | {isFarcasterMiniApp ? 'Farcaster Mini App' : 'Web App'}</p>
+            <p>YoYo Guild Battle | Base Mainnet</p>
           </footer>
         )}
       </div>

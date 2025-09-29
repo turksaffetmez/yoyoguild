@@ -63,38 +63,6 @@ const HomeContent = ({
         </div>
       </div>
 
-      {/* İstatistikler */}
-      {walletConnected && playerStats.totalGames > 0 && (
-        <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 rounded-2xl p-6 border border-green-500/30">
-          <h3 className="text-2xl font-bold text-white mb-4 text-center">📊 Your Battle Statistics</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">{playerStats.totalGames}</div>
-              <div className="text-gray-300">Total Games</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-400">{playerStats.totalWins}</div>
-              <div className="text-gray-300">Wins</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-red-400">{playerStats.totalLosses}</div>
-              <div className="text-gray-300">Losses</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-400">{playerStats.winRate}%</div>
-              <div className="text-gray-300">Win Rate</div>
-            </div>
-          </div>
-          {playerStats.winStreak > 0 && (
-            <div className="text-center mt-3">
-              <span className="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-sm">
-                🔥 Current Win Streak: {playerStats.winStreak}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl p-6 border border-purple-500/30">
           <div className="text-4xl mb-4">🎮</div>
@@ -126,8 +94,6 @@ const HomeContent = ({
           </p>
         </div>
       </div>
-
-      {/* Diğer içerikler aynı kalacak... */}
     </div>
   );
 };
