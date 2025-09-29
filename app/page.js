@@ -73,11 +73,10 @@ export default function Home() {
     isWinner: false
   });
 
-  // Client-side kontrolü - IMMEDIATE READY CALL EKLENDİ
+  // Client-side kontrolü
   useEffect(() => {
     setIsClient(true);
     
-    // IMMEDIATE READY FOR BASE APP - CRITICAL!
     if (window.parent !== window) {
       console.log('🚀 Page.js: Sending immediate ready...');
       const immediateReady = {
@@ -88,10 +87,8 @@ export default function Home() {
         timestamp: Date.now()
       };
       
-      // Hemen gönder
       window.parent.postMessage(immediateReady, '*');
       
-      // Multiple fallbacks
       setTimeout(() => {
         window.parent.postMessage(immediateReady, '*');
         console.log('📨 Page.js: Second ready sent');
@@ -104,32 +101,22 @@ export default function Home() {
     }
   }, []);
 
-  // Geliştirilmiş Farcaster Mini App detection
+  // Farcaster Mini App detection
   useEffect(() => {
     if (!isClient) return;
     
     const checkFarcaster = () => {
-      // URL parametrelerini kontrol et
       const urlParams = new URLSearchParams(window.location.search);
       const isFarcasterFrame = urlParams.get('source') === 'farcaster';
       const isEmbeddedParam = urlParams.get('embedded') === 'true';
-      
-      // Embedded mode kontrolü
       const isEmbedded = window.self !== window.top;
-      
-      // User agent kontrolü
       const isWarpcastUA = /Farcaster|Warpcast/i.test(navigator.userAgent);
-      
-      // Referrer kontrolü
       const isFarcasterReferrer = document.referrer.includes('warpcast') || 
                                  document.referrer.includes('farcaster');
-      
-      // Base App kontrolü
       const isBaseApp = window.location.href.includes('base.org') ||
                        document.referrer.includes('base.org') ||
                        navigator.userAgent.includes('Base');
       
-      // Tüm koşulları değerlendir - ANY condition should activate Mini App
       const shouldActivateMiniApp = isFarcasterFrame || isEmbeddedParam || isEmbedded || isWarpcastUA || isFarcasterReferrer || isBaseApp;
       
       console.log('🎯 Farcaster detection:', {
@@ -144,23 +131,18 @@ export default function Home() {
       
       setIsFarcasterMiniApp(shouldActivateMiniApp);
       
-      // Mini App modunda özel styling ve optimizasyon uygula
       if (shouldActivateMiniApp) {
         document.body.classList.add('farcaster-mini-app');
-        
-        // Viewport optimizasyonu
         const viewportMeta = document.querySelector('meta[name="viewport"]');
         if (viewportMeta) {
           viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
         }
-        
         console.log('🚀 Farcaster Mini App fully activated');
       }
     };
     
     checkFarcaster();
     
-    // URL değişikliklerini dinle (frame navigation için)
     const handleUrlChange = () => {
       setTimeout(checkFarcaster, 100);
     };
@@ -174,14 +156,12 @@ export default function Home() {
     };
   }, [isClient]);
 
-  // Farcaster Ready Call - CRITICAL FOR BASE APP
+  // Farcaster Ready Call
   useEffect(() => {
     if (isFarcasterMiniApp && isClient) {
       console.log('🎯 Farcaster Mini App active - sending additional ready signals');
       
-      // Additional ready signals for reliability
       const sendAdditionalReadySignals = () => {
-        // Method 1: PostMessage ready
         if (window.parent !== window) {
           const readyMsg = {
             type: 'ready',
@@ -195,7 +175,6 @@ export default function Home() {
           console.log('📨 Additional ready message sent via postMessage');
         }
         
-        // Method 2: farcaster.ready() if SDK available
         if (window.farcaster && window.farcaster.ready) {
           window.farcaster.ready()
             .then(() => console.log('✅ farcaster.ready() successful'))
@@ -203,7 +182,6 @@ export default function Home() {
         }
       };
       
-      // Send after delays for reliability
       const timer1 = setTimeout(sendAdditionalReadySignals, 1500);
       const timer2 = setTimeout(sendAdditionalReadySignals, 4000);
       
@@ -256,9 +234,12 @@ export default function Home() {
     }
   }, [contract]);
 
+  // ✅ GÜNCELLENDİ: updatePlayerInfo fonksiyonu
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     try {
+      console.log('🔄 Updating player info for:', address);
+      
       const [
         totalPoints, 
         gamesToday, 
@@ -272,6 +253,13 @@ export default function Home() {
         winRate
       ] = await contract.getPlayerInfo(address);
       
+      console.log('📊 Player info received:', {
+        totalPoints: Number(totalPoints),
+        gamesToday: Number(gamesToday),
+        totalGames: Number(totalGames)
+      });
+      
+      // ✅ State'leri TEK SEFERDE güncelle
       setPoints(Number(totalPoints));
       setGamesPlayedToday(Number(gamesToday));
       setDailyLimit(Number(limit));
@@ -287,8 +275,10 @@ export default function Home() {
       
       const yoyoBalance = await checkYoyoBalance(address);
       setYoyoBalanceAmount(yoyoBalance);
+      
+      console.log('✅ Player info updated successfully');
     } catch (error) {
-      console.error("Failed to update player info:", error);
+      console.error("❌ Failed to update player info:", error);
     }
   }, [contract, checkYoyoBalance]);
 
@@ -369,7 +359,6 @@ export default function Home() {
       await updatePlayerInfo(address);
       await updateLeaderboard();
       
-      // Farcaster Mini App için mesaj gönder
       if (isFarcasterMiniApp) {
         window.parent.postMessage({ 
           type: 'WALLET_CONNECTED', 
@@ -393,6 +382,7 @@ export default function Home() {
     }
   }, [checkYoyoBalance, getPointValues, updatePlayerInfo, updateLeaderboard, isMobile, isFarcasterMiniApp, isClient, points]);
 
+  // ✅ GÜNCELLENDİ: startGame fonksiyonu - STATE GÜNCELLEME SORUNU ÇÖZÜLDÜ
   const startGame = async (selectedIndex) => {
     if (!walletConnected || !contract || isLoading) return;
     if (gameState.gamePhase !== "idle") return;
@@ -428,6 +418,11 @@ export default function Home() {
         throw new Error("Transaction reverted");
       }
       
+      // ✅ CRITICAL FIX: HEMEN state güncellemesi yap
+      console.log('🔄 Immediately updating player info after transaction...');
+      await updatePlayerInfo(userAddress);
+      await updateLeaderboard();
+      
       let isWinner = false;
       let pointsEarned = 0;
       
@@ -444,6 +439,12 @@ export default function Home() {
         const parsedLog = contract.interface.parseLog(gamePlayedEvent);
         isWinner = parsedLog.args.won;
         pointsEarned = Number(parsedLog.args.points);
+        
+        // ✅ EVENT'ten gelen verileri kullanarak state'i güncelle
+        setPoints(prev => prev + pointsEarned);
+        setGamesPlayedToday(prev => prev + 1);
+        
+        console.log('🎯 Game result:', { isWinner, pointsEarned });
       }
       
       for (let i = 3; i > 0; i--) {
@@ -452,8 +453,9 @@ export default function Home() {
       }
       
       await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // ✅ Tekrar güncelle (son durum için)
       await updatePlayerInfo(userAddress);
-      await updateLeaderboard();
       
       const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
       
@@ -465,7 +467,6 @@ export default function Home() {
         isWinner: isWinner
       }));
       
-      // Farcaster Mini App için game result mesajı
       if (isFarcasterMiniApp) {
         window.parent.postMessage({ 
           type: 'GAME_RESULT', 
@@ -492,6 +493,7 @@ export default function Home() {
       
       setConnectionError(errorMessage);
       
+      // Hata durumunda da state'i güncelle
       if (userAddress) {
         await updatePlayerInfo(userAddress);
       }
@@ -636,10 +638,7 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4 ${isFarcasterMiniApp ? 'farcaster-mini-app' : ''}`}>
-      {/* Farcaster Meta Tags for Embed */}
       <MetaTags />
-      
-      {/* Farcaster Mini App Component */}
       <FarcasterMiniApp />
       
       {showWalletOptions && (
