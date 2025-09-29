@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
-import { ethers } from "ethers";
-import { contractAddress, abi } from "./utils/contract";
+import { useEffect } from "react";
+import { useGameState } from "./hooks/useGameState";
+import { useContract } from "./hooks/useContract";
+import { useGameLogic } from "./hooks/useGameLogic";
 import WalletConnection from "./components/WalletConnection";
 import GameBoard from "./components/GameBoard";
 import Leaderboard from "./components/Leaderboard";
@@ -13,591 +14,124 @@ import MetaTags from "./components/MetaTags";
 import Image from "next/image";
 
 export default function Home() {
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [userAddress, setUserAddress] = useState("");
-  const [contract, setContract] = useState(null);
-  const [points, setPoints] = useState(0);
-  const [provider, setProvider] = useState(null);
-  const [activeTab, setActiveTab] = useState("home");
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [yoyoBalanceAmount, setYoyoBalanceAmount] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
-  const [showWalletOptions, setShowWalletOptions] = useState(false);
-  const [gamesPlayedToday, setGamesPlayedToday] = useState(0);
-  const [dailyLimit, setDailyLimit] = useState(20);
-  const [isLoading, setIsLoading] = useState(false);
-  const [connectionError, setConnectionError] = useState("");
-  const [pointValues, setPointValues] = useState({
-    winNormal: 250,
-    winYoyo: 500,
-    lose: 10
-  });
-  const [isFarcasterMiniApp, setIsFarcasterMiniApp] = useState(false);
-  const [playerStats, setPlayerStats] = useState({
-    totalGames: 0,
-    totalWins: 0,
-    totalLosses: 0,
-    winRate: 0,
-    winStreak: 0,
-    maxWinStreak: 0
-  });
-  const [isClient, setIsClient] = useState(false);
+  // State management hook'u
+  const {
+    walletConnected, setWalletConnected,
+    userAddress, setUserAddress,
+    contract, setContract,
+    points, setPoints,
+    provider, setProvider,
+    activeTab, setActiveTab,
+    leaderboard, setLeaderboard,
+    yoyoBalanceAmount, setYoyoBalanceAmount,
+    isMobile, setIsMobile,
+    showWalletOptions, setShowWalletOptions,
+    gamesPlayedToday, setGamesPlayedToday,
+    dailyLimit, setDailyLimit,
+    isLoading, setIsLoading,
+    connectionError, setConnectionError,
+    pointValues, setPointValues,
+    isFarcasterMiniApp, setIsFarcasterMiniApp,
+    playerStats, setPlayerStats,
+    isClient,
+    gameState, setGameState,
+    remainingGames,
+    connectMobileWallet
+  } = useGameState();
 
-  const [gameState, setGameState] = useState({
-    selectedImage: null,
-    winnerIndex: null,
-    gamePhase: "idle",
-    images: [
-      { id: 1, url: "/images/tevans1.png", name: "Tevan #1" },
-      { id: 2, url: "/images/tevans2.png", name: "Tevan #2" },
-      { id: 3, url: "/images/tevans3.png", name: "Tevan #3" },
-      { id: 4, url: "/images/tevans4.png", name: "Tevan #4" },
-      { id: 5, url: "/images/tevans5.png", name: "Tevan #5" },
-      { id: 6, url: "/images/tevans6.png", name: "Tevan #6" },
-      { id: 7, url: "/images/tevans7.png", name: "Tevan #7" },
-      { id: 8, url: "/images/tevans8.png", name: "Tevan #8" },
-      { id: 9, url: "/images/tevans9.png", name: "Tevan #9" },
-      { id: 10, url: "/images/tevans10.png", name: "Tevan #10" },
-      { id: 11, url: "/images/tevans11.png", name: "Tevan #11" },
-      { id: 12, url: "/images/tevans12.png", name: "Tevan #12" },
-      { id: 13, url: "/images/tevans13.png", name: "Tevan #13" },
-      { id: 14, url: "/images/tevans14.png", name: "Tevan #14" },
-      { id: 15, url: "/images/tevans15.png", name: "Tevan #15" },
-      { id: 16, url: "/images/tevans16.png", name: "Tevan #16" },
-      { id: 17, url: "/images/tevans17.png", name: "Tevan #17" },
-      { id: 18, url: "/images/tevans18.png", name: "Tevan #18" },
-      { id: 19, url: "/images/tevans19.png", name: "Tevan #19" }
-    ],
-    isLoading: false,
-    pointsEarned: 0,
-    isWinner: false
-  });
+  // Contract fonksiyonları hook'u
+  const {
+    checkYoyoBalance,
+    getPointValues: getContractPointValues,
+    updatePlayerInfo: updateContractPlayerInfo,
+    updateLeaderboard: updateContractLeaderboard,
+    connectWallet: connectContractWallet,
+    disconnectWallet: disconnectContractWallet
+  } = useContract(provider, isClient);
 
-  // Client-side kontrolü
-  useEffect(() => {
-    setIsClient(true);
-    
-    if (window.parent !== window) {
-      console.log('🚀 Page.js: Sending immediate ready...');
-      const immediateReady = {
-        type: 'ready',
-        version: '1.0.0',
-        app: 'YoYo Guild Battle', 
-        from: 'page-component',
-        timestamp: Date.now()
-      };
-      
-      window.parent.postMessage(immediateReady, '*');
-      
-      setTimeout(() => {
-        window.parent.postMessage(immediateReady, '*');
-        console.log('📨 Page.js: Second ready sent');
-      }, 500);
-      
-      setTimeout(() => {
-        window.parent.postMessage(immediateReady, '*');
-        console.log('📨 Page.js: Third ready sent');
-      }, 2000);
-    }
-  }, []);
+  // Game logic hook'u
+  const {
+    startGame,
+    resetGame,
+    startNewGame
+  } = useGameLogic(
+    walletConnected,
+    contract,
+    userAddress,
+    updatePlayerInfo,
+    updateLeaderboard,
+    checkYoyoBalance,
+    setYoyoBalanceAmount,
+    setPoints,
+    setGamesPlayedToday,
+    setDailyLimit,
+    setGameState,
+    setIsLoading,
+    setConnectionError,
+    isFarcasterMiniApp,
+    points
+  );
 
-  // Farcaster Mini App detection
-  useEffect(() => {
-    if (!isClient) return;
-    
-    const checkFarcaster = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const isFarcasterFrame = urlParams.get('source') === 'farcaster';
-      const isEmbeddedParam = urlParams.get('embedded') === 'true';
-      const isEmbedded = window.self !== window.top;
-      const isWarpcastUA = /Farcaster|Warpcast/i.test(navigator.userAgent);
-      const isFarcasterReferrer = document.referrer.includes('warpcast') || 
-                                 document.referrer.includes('farcaster');
-      const isBaseApp = window.location.href.includes('base.org') ||
-                       document.referrer.includes('base.org') ||
-                       navigator.userAgent.includes('Base');
-      
-      const shouldActivateMiniApp = isFarcasterFrame || isEmbeddedParam || isEmbedded || isWarpcastUA || isFarcasterReferrer || isBaseApp;
-      
-      console.log('🎯 Farcaster detection:', {
-        isFarcasterFrame,
-        isEmbeddedParam,
-        isEmbedded,
-        isWarpcastUA,
-        isFarcasterReferrer,
-        isBaseApp,
-        shouldActivateMiniApp
-      });
-      
-      setIsFarcasterMiniApp(shouldActivateMiniApp);
-      
-      if (shouldActivateMiniApp) {
-        document.body.classList.add('farcaster-mini-app');
-        const viewportMeta = document.querySelector('meta[name="viewport"]');
-        if (viewportMeta) {
-          viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-        }
-        console.log('🚀 Farcaster Mini App fully activated');
-      }
-    };
-    
-    checkFarcaster();
-    
-    const handleUrlChange = () => {
-      setTimeout(checkFarcaster, 100);
-    };
-    
-    window.addEventListener('popstate', handleUrlChange);
-    window.addEventListener('hashchange', handleUrlChange);
-    
-    return () => {
-      window.removeEventListener('popstate', handleUrlChange);
-      window.removeEventListener('hashchange', handleUrlChange);
-    };
-  }, [isClient]);
-
-  // Farcaster Ready Call
-  useEffect(() => {
-    if (isFarcasterMiniApp && isClient) {
-      console.log('🎯 Farcaster Mini App active - sending additional ready signals');
-      
-      const sendAdditionalReadySignals = () => {
-        if (window.parent !== window) {
-          const readyMsg = {
-            type: 'ready',
-            version: '1.0.0', 
-            app: 'YoYo Guild Battle',
-            from: 'page-farcaster-detection',
-            timestamp: Date.now()
-          };
-          
-          window.parent.postMessage(readyMsg, '*');
-          console.log('📨 Additional ready message sent via postMessage');
-        }
-        
-        if (window.farcaster && window.farcaster.ready) {
-          window.farcaster.ready()
-            .then(() => console.log('✅ farcaster.ready() successful'))
-            .catch(err => console.warn('⚠️ farcaster.ready() failed:', err));
-        }
-      };
-      
-      const timer1 = setTimeout(sendAdditionalReadySignals, 1500);
-      const timer2 = setTimeout(sendAdditionalReadySignals, 4000);
-      
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-      };
-    }
-  }, [isFarcasterMiniApp, isClient]);
-
-  // Rabby Wallet desteği
-  const isRabbyWallet = useCallback(() => {
-    if (!isClient) return false;
-    return window.ethereum?.isRabby || false;
-  }, [isClient]);
-
-  const checkYoyoBalance = useCallback(async (address) => {
-    if (!address || !isClient) return 0;
-    try {
-      let balanceProvider = provider;
-      if (!balanceProvider && window.ethereum) {
-        balanceProvider = new ethers.BrowserProvider(window.ethereum);
-      }
-      if (!balanceProvider) return 0;
-
-      const yoyoContract = new ethers.Contract(
-        "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1",
-        ["function balanceOf(address) view returns (uint256)"],
-        balanceProvider
-      );
-      const balance = await yoyoContract.balanceOf(address);
-      return Number(ethers.formatUnits(balance, 18));
-    } catch (error) {
-      console.error("YOYO balance check failed:", error);
-      return 0;
-    }
-  }, [provider, isClient]);
-
-  const getPointValues = useCallback(async () => {
-    if (!contract) return;
-    try {
-      const values = await contract.getPointValues();
-      setPointValues({
-        winNormal: Number(values[0]),
-        winYoyo: Number(values[1]),
-        lose: Number(values[2])
-      });
-    } catch (error) {
-      console.error("Failed to get point values:", error);
-    }
-  }, [contract]);
-
-  // GÜNCELLENDİ: updatePlayerInfo fonksiyonu
-  const updatePlayerInfo = useCallback(async (address) => {
-    if (!contract || !address) return;
-    try {
-      console.log('🔄 Updating player info for:', address);
-      
-      const [
-        totalPoints, 
-        gamesToday, 
-        limit, 
-        hasYoyoBoost,
-        totalGames,
-        totalWins, 
-        totalLosses,
-        winStreak,
-        maxWinStreak,
-        winRate
-      ] = await contract.getPlayerInfo(address);
-      
-      console.log('📊 Player info received:', {
-        totalPoints: Number(totalPoints),
-        gamesToday: Number(gamesToday),
-        totalGames: Number(totalGames)
-      });
-      
-      // ✅ State'leri TEK SEFERDE güncelle
-      setPoints(Number(totalPoints));
-      setGamesPlayedToday(Number(gamesToday));
-      setDailyLimit(Number(limit));
-      
-      setPlayerStats({
-        totalGames: Number(totalGames),
-        totalWins: Number(totalWins),
-        totalLosses: Number(totalLosses),
-        winRate: Number(winRate),
-        winStreak: Number(winStreak),
-        maxWinStreak: Number(maxWinStreak)
-      });
-      
-      const yoyoBalance = await checkYoyoBalance(address);
-      setYoyoBalanceAmount(yoyoBalance);
-      
-      console.log('✅ Player info updated successfully');
-    } catch (error) {
-      console.error("❌ Failed to update player info:", error);
-    }
-  }, [contract, checkYoyoBalance]);
-
-  const updateLeaderboard = useCallback(async () => {
-    if (!contract) return;
-    try {
-      const [addresses, points] = await contract.getTopPlayers();
-      
-      if (!addresses || addresses.length === 0) {
-        setLeaderboard([]);
-        return;
-      }
-      
-      const leaderboardData = addresses
-        .map((address, index) => ({
-          rank: index + 1,
-          address: address,
-          points: Number(points[index] || 0)
-        }))
-        .filter(player => player.points > 0)
-        .slice(0, 100);
-      
-      setLeaderboard(leaderboardData);
-    } catch (error) {
-      console.error("Failed to update leaderboard:", error);
-      setLeaderboard([]);
-    }
-  }, [contract]);
-
-  const connectWallet = useCallback(async (walletType = 'standard', farcasterAddress = null) => {
-    if (!isClient) return;
-    
-    if (walletType === 'rabby' && !window.ethereum?.isRabby) {
-      setConnectionError("Rabby Wallet not detected! Please install Rabby Wallet.");
-      return;
-    }
-
-    if (typeof window.ethereum === 'undefined' && !farcasterAddress) {
-      setConnectionError("Wallet not installed!");
-      if (isMobile) {
-        setShowWalletOptions(true);
-      }
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setConnectionError("");
-
-      let address = farcasterAddress;
-      
-      if (!farcasterAddress) {
-        const accounts = await window.ethereum.request({
-          method: 'eth_requestAccounts'
-        });
-
-        if (accounts.length === 0) {
-          throw new Error("No accounts found");
-        }
-        address = accounts[0];
-      }
-
-      const newProvider = new ethers.BrowserProvider(window.ethereum);
-      setProvider(newProvider);
-      
-      const signer = await newProvider.getSigner();
-      
-      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-      
-      setContract(contractInstance);
-      setUserAddress(address);
-      setWalletConnected(true);
-      
-      const yoyoBalance = await checkYoyoBalance(address);
-      setYoyoBalanceAmount(yoyoBalance);
-      
-      await getPointValues();
-      await updatePlayerInfo(address);
-      await updateLeaderboard();
-      
-      if (isFarcasterMiniApp) {
-        window.parent.postMessage({ 
-          type: 'WALLET_CONNECTED', 
-          address,
-          points: points
-        }, '*');
-      }
-      
-    } catch (err) {
-      console.error("Failed to connect wallet:", err);
-      
-      if (err.code === 4001) {
-        setConnectionError("Connection rejected by user");
-      } else if (err.message.includes("Rabby")) {
-        setConnectionError("Rabby Wallet connection failed. Please check if Rabby is unlocked.");
-      } else {
-        setConnectionError(err.message || "Failed to connect wallet");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [checkYoyoBalance, getPointValues, updatePlayerInfo, updateLeaderboard, isMobile, isFarcasterMiniApp, isClient, points]);
-
-  // GÜNCELLENDİ: startGame fonksiyonu - STATE GÜNCELLEME SORUNU ÇÖZÜLDÜ
-  const startGame = async (selectedIndex) => {
-    if (!walletConnected || !contract || isLoading) return;
-    if (gameState.gamePhase !== "idle") return;
-    
-    try {
-      const currentInfo = await contract.getPlayerInfo(userAddress);
-      const dailyGamesPlayed = Number(currentInfo[1]);
-      const dailyLimit = Number(currentInfo[2]);
-      
-      if (dailyGamesPlayed >= dailyLimit) {
-        alert(`Daily limit reached! Played: ${dailyGamesPlayed}/${dailyLimit}`);
-        return;
-      }
-      
-      setGameState(prev => ({ 
-        ...prev, 
-        isLoading: true, 
-        selectedImage: selectedIndex, 
-        gamePhase: "selecting",
-        winnerIndex: null
-      }));
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setIsLoading(true);
-      
-      const tx = await contract.playGame();
-      setGameState(prev => ({ ...prev, gamePhase: "fighting" }));
-      
-      const receipt = await tx.wait();
-      
-      if (receipt.status === 0) {
-        throw new Error("Transaction reverted");
-      }
-      
-      // ✅ CRITICAL FIX: HEMEN state güncellemesi yap
-      console.log('🔄 Immediately updating player info after transaction...');
-      await updatePlayerInfo(userAddress);
-      await updateLeaderboard();
-      
-      let isWinner = false;
-      let pointsEarned = 0;
-      
-      const gamePlayedEvent = receipt.logs.find(log => {
-        try {
-          const parsedLog = contract.interface.parseLog(log);
-          return parsedLog && parsedLog.name === "GamePlayed";
-        } catch {
-          return false;
-        }
-      });
-      
-      if (gamePlayedEvent) {
-        const parsedLog = contract.interface.parseLog(gamePlayedEvent);
-        isWinner = parsedLog.args.won;
-        pointsEarned = Number(parsedLog.args.points);
-        
-        // ✅ EVENT'ten gelen verileri kullanarak state'i güncelle
-        setPoints(prev => prev + pointsEarned);
-        setGamesPlayedToday(prev => prev + 1);
-        
-        console.log('🎯 Game result:', { isWinner, pointsEarned });
-      }
-      
-      for (let i = 3; i > 0; i--) {
-        setGameState(prev => ({ ...prev, countdown: i }));
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // ✅ Tekrar güncelle (son durum için)
-      await updatePlayerInfo(userAddress);
-      
-      const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
-      
-      setGameState(prev => ({ 
-        ...prev, 
-        winnerIndex, 
-        gamePhase: "result",
-        pointsEarned: pointsEarned,
-        isWinner: isWinner
-      }));
-      
-      // YOYO balance'ı da güncelle
-      const newYoyoBalance = await checkYoyoBalance(userAddress);
-      setYoyoBalanceAmount(newYoyoBalance);
-      
-      if (isFarcasterMiniApp) {
-        window.parent.postMessage({ 
-          type: 'GAME_RESULT', 
-          won: isWinner, 
-          points: pointsEarned,
-          totalPoints: points + pointsEarned
-        }, '*');
-      }
-      
-    } catch (err) {
-      console.error("Game transaction failed:", err);
-      setGameState(prev => ({ ...prev, gamePhase: "idle", isLoading: false }));
-      
-      let errorMessage = "Transaction failed: ";
-      if (err.reason) {
-        errorMessage += err.reason;
-      } else if (err.message.includes("revert")) {
-        errorMessage += "Daily limit reached";
-      } else if (err.message.includes("Rabby")) {
-        errorMessage += "Rabby Wallet error - please try again";
-      } else {
-        errorMessage += err.message;
-      }
-      
-      setConnectionError(errorMessage);
-      
-      // Hata durumunda da state'leri güncelle
-      if (userAddress) {
-        await updatePlayerInfo(userAddress);
-      }
-    } finally {
-      setIsLoading(false);
-    }
+  // Wrapper fonksiyonları - contract hook'larını state setter'larıyla bağlamak için
+  const updatePlayerInfo = async (address) => {
+    await updateContractPlayerInfo(
+      contract,
+      address,
+      checkYoyoBalance,
+      setPoints,
+      setGamesPlayedToday,
+      setDailyLimit,
+      setPlayerStats,
+      setYoyoBalanceAmount
+    );
   };
 
-  const resetGame = useCallback(() => {
-    setGameState(prev => {
-      const newImages = [...prev.images];
-      if (prev.winnerIndex !== null) {
-        const loserIndex = prev.winnerIndex === 0 ? 1 : 0;
-        const currentIds = [prev.images[0].id, prev.images[1].id];
-        const availableIds = Array.from({length: 19}, (_, i) => i + 1).filter(id => !currentIds.includes(id));
-        if (availableIds.length > 0) {
-          const randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
-          newImages[loserIndex] = {
-            id: randomId,
-            url: `/images/tevans${randomId}.png`,
-            name: `Tevan #${randomId}`
-          };
-        }
-      }
-      return {
-        ...prev,
-        selectedImage: null,
-        winnerIndex: null,
-        gamePhase: "idle",
-        isLoading: false,
-        images: newImages,
-        pointsEarned: 0,
-        isWinner: false,
-        countdown: null
-      };
-    });
-  }, []);
+  const updateLeaderboard = async () => {
+    await updateContractLeaderboard(contract, setLeaderboard);
+  };
 
-  const startNewGame = useCallback(() => {
-    if (gameState.gamePhase === "result") {
-      resetGame();
-    }
-  }, [gameState.gamePhase, resetGame]);
+  const connectWallet = async (walletType = 'standard', farcasterAddress = null) => {
+    await connectContractWallet(
+      walletType,
+      farcasterAddress,
+      isMobile,
+      setShowWalletOptions,
+      setProvider,
+      setContract,
+      setUserAddress,
+      setWalletConnected,
+      checkYoyoBalance,
+      setYoyoBalanceAmount,
+      getContractPointValues,
+      setPointValues,
+      updatePlayerInfo,
+      updateLeaderboard,
+      isFarcasterMiniApp,
+      points,
+      setConnectionError,
+      setIsLoading
+    );
+  };
 
-  const disconnectWallet = useCallback(() => {
-    setWalletConnected(false);
-    setUserAddress("");
-    setContract(null);
-    setPoints(0);
-    setYoyoBalanceAmount(0);
-    setGamesPlayedToday(0);
-    setLeaderboard([]);
-    setPlayerStats({
-      totalGames: 0,
-      totalWins: 0,
-      totalLosses: 0,
-      winRate: 0,
-      winStreak: 0,
-      maxWinStreak: 0
-    });
-    setGameState(prev => ({
-      ...prev,
-      gamePhase: "idle",
-      selectedImage: null,
-      winnerIndex: null
-    }));
-  }, []);
+  const disconnectWallet = () => {
+    disconnectContractWallet(
+      setWalletConnected,
+      setUserAddress,
+      setContract,
+      setPoints,
+      setYoyoBalanceAmount,
+      setGamesPlayedToday,
+      setLeaderboard,
+      setPlayerStats,
+      setGameState
+    );
+  };
 
-  const connectMobileWallet = useCallback((walletType) => {
-    if (!isClient) return;
-    
-    const currentUrl = encodeURIComponent(window.location.href);
-    let walletUrl = '';
-    const WALLET_LINKS = {
-      metamask: { universal: "https://metamask.app.link/dapp/" },
-      rabby: { universal: "https://rabby.io/" },
-      coinbase: { universal: "https://go.cb-w.com/dapp?cb_url=" },
-      trust: { universal: "https://link.trustwallet.com/dapp/" }
-    };
-    
-    switch(walletType) {
-      case 'metamask': walletUrl = `${WALLET_LINKS.metamask.universal}${currentUrl}`; break;
-      case 'rabby': walletUrl = `${WALLET_LINKS.rabby.universal}`; break;
-      case 'coinbase': walletUrl = `${WALLET_LINKS.coinbase.universal}${currentUrl}`; break;
-      case 'trust': walletUrl = `${WALLET_LINKS.trust.universal}${currentUrl}`; break;
-      default: return;
-    }
-    window.open(walletUrl, '_blank');
-    setShowWalletOptions(false);
-  }, [isClient]);
-
+  // Auto-connect wallet on page load
   useEffect(() => {
-    if (!isClient) return;
-    
-    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    setIsMobile(mobile);
+    if (!isClient || typeof window.ethereum === 'undefined') return;
     
     const checkWalletConnection = async () => {
-      if (typeof window.ethereum === 'undefined') return;
-      
       try {
         const newProvider = new ethers.BrowserProvider(window.ethereum);
         setProvider(newProvider);
@@ -618,7 +152,9 @@ export default function Home() {
           const yoyoBalance = await checkYoyoBalance(address);
           setYoyoBalanceAmount(yoyoBalance);
           
-          await getPointValues();
+          const pointVals = await getContractPointValues(contractInstance);
+          setPointValues(pointVals);
+          
           await updatePlayerInfo(address);
           await updateLeaderboard();
         }
@@ -629,8 +165,6 @@ export default function Home() {
     
     checkWalletConnection();
   }, [isClient]);
-
-  const remainingGames = dailyLimit - gamesPlayedToday;
 
   if (!isClient) {
     return (
@@ -661,7 +195,6 @@ export default function Home() {
               <h1 className="text-4xl font-bold">YoYo Guild Battle</h1>
               <p className="text-sm opacity-90 mt-1">
                 {isFarcasterMiniApp ? "🎯 Farcaster Mini App" : "Blockchain Battle Arena"}
-                {isRabbyWallet() && " | Rabby Wallet Supported"}
               </p>
             </div>
           </div>
@@ -764,7 +297,6 @@ export default function Home() {
         {!isFarcasterMiniApp && (
           <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
             <p>YoYo Guild Battle | Base Mainnet | {isFarcasterMiniApp ? 'Farcaster Mini App' : 'Web App'}</p>
-            {isRabbyWallet() && <p className="text-xs mt-1">🔗 Rabby Wallet Supported</p>}
           </footer>
         )}
       </div>
