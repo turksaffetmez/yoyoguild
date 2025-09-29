@@ -1,17 +1,17 @@
 import './globals.css'
 import FarcasterSDK from './components/FarcasterSDK'
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
-import { WagmiConfig, createConfig, configureChains } from 'wagmi'
+import { WagmiConfig, createClient, configureChains } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { publicProvider } from 'wagmi/providers/public'
 import { jsonRpcProvider } from 'wagmi/providers/jsonRpc'
 
 // Configure chains & providers
-const { chains, publicClient, webSocketPublicClient } = configureChains(
+const { chains, provider, webSocketProvider } = configureChains(
   [base],
   [
     jsonRpcProvider({
-      rpc: () => ({
+      rpc: (chain) => ({
         http: 'https://mainnet.base.org',
       }),
     }),
@@ -19,11 +19,11 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
   ]
 )
 
-// Set up wagmi config
-const config = createConfig({
+// Set up client
+const client = createClient({
   autoConnect: true,
-  publicClient,
-  webSocketPublicClient,
+  provider,
+  webSocketProvider,
 })
 
 export const metadata = {
@@ -145,7 +145,7 @@ export default function RootLayout({ children }) {
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-        <WagmiConfig config={config}>
+        <WagmiConfig client={client}>
           <RainbowKitProvider
             chains={chains}
             theme={darkTheme({

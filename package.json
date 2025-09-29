@@ -9,9 +9,9 @@
   },
   "dependencies": {
     "@farcaster/miniapp-sdk": "^0.1.10",
-    "@rainbow-me/rainbowkit": "^2.1.0",
-    "wagmi": "^2.4.0",
-    "viem": "^2.7.0",
+    "@rainbow-me/rainbowkit": "^1.3.0",
+    "wagmi": "^1.4.0",
+    "viem": "^1.18.0",
     "@vercel/og": "0.5.8",
     "@vercel/speed-insights": "^1.2.0",
     "bufferutil": "^4.0.9",
