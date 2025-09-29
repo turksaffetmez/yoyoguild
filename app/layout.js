@@ -1,15 +1,30 @@
 import './globals.css'
 import FarcasterSDK from './components/FarcasterSDK'
-import { AppKit } from '@reown/appkit/react'
+import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
+import { WagmiConfig, createConfig, configureChains } from 'wagmi'
+import { base } from 'wagmi/chains'
+import { publicProvider } from 'wagmi/providers/public'
+import { jsonRpcProvider } from 'wagmi/providers/jsonRpc'
 
-// ✅ Client Component olarak değiştiriyoruz
-import dynamic from 'next/dynamic'
-
-// ✅ AppKit'i client-side only yap
-const AppKitProvider = dynamic(
-  () => import('@reown/appkit/react').then((mod) => mod.AppKit),
-  { ssr: false }
+// Configure chains & providers
+const { chains, publicClient, webSocketPublicClient } = configureChains(
+  [base],
+  [
+    jsonRpcProvider({
+      rpc: () => ({
+        http: 'https://mainnet.base.org',
+      }),
+    }),
+    publicProvider(),
+  ]
 )
+
+// Set up wagmi config
+const config = createConfig({
+  autoConnect: true,
+  publicClient,
+  webSocketPublicClient,
+})
 
 export const metadata = {
   title: 'YoYo Guild Battle - Blockchain Battle Arena',
@@ -130,32 +145,23 @@ export default function RootLayout({ children }) {
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-        {/* ✅ AppKit'i dynamic import ile SSR olmadan yükle */}
-        <AppKitProvider
-          projectId="e8db88fb3beee69a329da06119e72095" // Test project ID - değiştirin
-          networks={[{
-            id: 8453,
-            name: 'Base',
-            currency: 'ETH',
-            explorerUrl: 'https://basescan.org',
-            rpcUrl: 'https://mainnet.base.org'
-          }]}
-          defaultNetwork={8453}
-          features={{
-            analytics: true,
-            allWallets: true
-          }}
-          themeMode="dark"
-          themeVariables={{
-            '--w3m-accent': '#8B5CF6',
-            '--w3m-border-radius-master': '12px'
-          }}
-        >
-          <FarcasterSDK />
-          <main className="min-h-screen">
-            {children}
-          </main>
-        </AppKitProvider>
+        <WagmiConfig config={config}>
+          <RainbowKitProvider
+            chains={chains}
+            theme={darkTheme({
+              accentColor: '#8B5CF6',
+              accentColorForeground: 'white',
+              borderRadius: 'large',
+              fontStack: 'system',
+            })}
+            coolMode
+          >
+            <FarcasterSDK />
+            <main className="min-h-screen">
+              {children}
+            </main>
+          </RainbowKitProvider>
+        </WagmiConfig>
       </body>
     </html>
   )

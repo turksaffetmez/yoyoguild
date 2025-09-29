@@ -1,23 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount, useDisconnect } from 'wagmi';
 import { ethers } from 'ethers';
-
-// ✅ useAppKit'i dynamic import yap
-const useAppKit = () => {
-  if (typeof window === 'undefined') {
-    return {
-      open: () => {},
-      isConnected: false,
-      address: null,
-      provider: null,
-      disconnect: () => {}
-    };
-  }
-  
-  // Client-side'da dynamic import
-  const { useAppKit } = require('@reown/appkit/react');
-  return useAppKit();
-};
 
 const WalletConnection = ({
   walletConnected,
@@ -33,7 +18,8 @@ const WalletConnection = ({
   pointValues,
   playerStats
 }) => {
-  const { open, isConnected, address, provider, disconnect } = useAppKit();
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
   const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
 
@@ -49,18 +35,16 @@ const WalletConnection = ({
   const checkYoyoBalance = async (address) => {
     if (!address) return 0;
     try {
-      let balanceProvider;
+      let provider;
       
-      if (provider) {
-        balanceProvider = provider;
-      } else if (window.ethereum) {
-        balanceProvider = new ethers.BrowserProvider(window.ethereum);
+      if (window.ethereum) {
+        provider = new ethers.BrowserProvider(window.ethereum);
       } else {
         // Fallback: Public RPC
-        balanceProvider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+        provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
       }
 
-      const yoyoContract = new ethers.Contract(YOYO_TOKEN_ADDRESS, YOYO_TOKEN_ABI, balanceProvider);
+      const yoyoContract = new ethers.Contract(YOYO_TOKEN_ADDRESS, YOYO_TOKEN_ABI, provider);
       const balance = await yoyoContract.balanceOf(address);
       const decimals = await yoyoContract.decimals();
       const formattedBalance = Number(ethers.formatUnits(balance, decimals));
@@ -99,24 +83,20 @@ const WalletConnection = ({
     setDisplayYoyoBalance(yoyoBalanceAmount);
   }, [yoyoBalanceAmount]);
 
-  // AppKit bağlantısını mevcut sisteme entegre et
+  // RainbowKit bağlantısını mevcut sisteme entegre et
   useEffect(() => {
-    if (isConnected && address && provider && onConnect) {
-      console.log('AppKit wallet connected:', address);
+    if (isConnected && address && onConnect) {
+      console.log('RainbowKit wallet connected:', address);
       // Mevcut connect fonksiyonunu tetikle
-      onConnect('appkit', address);
+      onConnect('rainbowkit', address);
     }
-  }, [isConnected, address, provider, onConnect]);
+  }, [isConnected, address, onConnect]);
 
   const handleDisconnect = () => {
     if (isConnected) {
       disconnect();
     }
     onDisconnect();
-  };
-
-  const handleConnect = () => {
-    open();
   };
 
   const formatAddress = (addr) => {
@@ -134,20 +114,12 @@ const WalletConnection = ({
         <div className="text-center">
           <h3 className="text-xl font-bold text-white mb-4">Connect Your Wallet to Start Battling!</h3>
           
-          <button
-            onClick={handleConnect}
-            disabled={isLoading}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
-          >
-            {isLoading ? (
-              <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Connecting...</span>
-              </div>
-            ) : (
-              'Connect Wallet'
-            )}
-          </button>
+          <div className="flex justify-center mb-3">
+            <ConnectButton 
+              label="Connect Wallet"
+              showBalance={false}
+            />
+          </div>
           
           <p className="text-gray-400 text-sm">
             Connect with 150+ wallets including MetaMask, Rabby, Coinbase, and more!
@@ -163,7 +135,7 @@ const WalletConnection = ({
                 {formatAddress(currentAddress)}
               </span>
               <span className="bg-blue-500 px-2 py-1 rounded-full text-xs">
-                AppKit
+                RainbowKit
               </span>
             </div>
             
