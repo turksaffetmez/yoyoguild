@@ -92,31 +92,14 @@ a {
   @apply bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl border border-gray-700/50 backdrop-blur-sm;
 }
 
-/* ✅ FARCASTER MINI APP CRITICAL FIXES */
+/* Farcaster Mini App Specific Styles */
 .farcaster-mini-app {
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%) !important;
-  animation: farcasterReady 0.5s forwards !important;
-  opacity: 0;
 }
 
-/* ✅ FARCASTER SPLASH SCREEN HIDE */
-.farcaster-mini-app::before,
-.farcaster-mini-app::after,
-[class*="splash"],
-[class*="Splash"],
-iframe[src*="splash"] {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-}
-
-/* ✅ FARCASTER CONTAINER OVERRIDE */
 .farcaster-mini-app .max-w-6xl {
   border-radius: 12px !important;
   margin: 8px !important;
-  animation: contentFadeIn 0.8s forwards !important;
-  animation-delay: 0.3s !important;
-  opacity: 0;
 }
 
 .farcaster-mini-app footer {
@@ -127,8 +110,40 @@ iframe[src*="splash"] {
   font-size: 1.75rem !important;
 }
 
-/* ✅ FARCASTER READY ANIMATIONS */
-@keyframes farcasterReady {
+/* ✅ FARCASTER SPLASH SCREEN FORCE HIDE - KRİTİK */
+body::before,
+body::after,
+[class*="splash"],
+[class*="Splash"],
+iframe[src*="splash"],
+div[style*="splash"],
+div[class*="loading"],
+div[class*="Loading"],
+[data-farcaster-loading],
+[class*="farcaster-loading"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  z-index: -9999 !important;
+}
+
+/* ✅ Force show main content */
+body {
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: auto !important;
+}
+
+/* ✅ Farcaster container override */
+.farcaster-mini-app {
+  animation: farcasterShow 0.1s forwards !important;
+}
+
+@keyframes farcasterShow {
   0% {
     opacity: 0;
     visibility: hidden;
@@ -139,31 +154,15 @@ iframe[src*="splash"] {
   }
 }
 
-@keyframes contentFadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
+/* ✅ Emergency override for Farcaster bug */
+@media (min-width: 1px) {
+  .farcaster-mini-app {
+    animation-duration: 0.01s !important;
+    animation-delay: 0s !important;
   }
 }
 
-/* ✅ FARCASTER EMERGENCY OVERRIDES */
-body.farcaster-mini-app-loaded {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* ✅ Hide any Farcaster loading elements */
-[data-farcaster-loading],
-[class*="loading"],
-[class*="Loading"] {
-  display: none !important;
-}
-
-/* ✅ Mobile optimization for Mini App */
+/* Mobile optimization for Mini App */
 @media (max-width: 400px) {
   .farcaster-mini-app {
     padding: 4px !important;
@@ -175,17 +174,5 @@ body.farcaster-mini-app-loaded {
   
   .farcaster-mini-app .text-2xl {
     font-size: 1.25rem !important;
-  }
-  
-  .farcaster-mini-app .text-4xl {
-    font-size: 1.5rem !important;
-  }
-}
-
-/* ✅ Force show content after 3 seconds (emergency) */
-@media (min-width: 1px) {
-  .farcaster-mini-app {
-    animation-duration: 0.1s !important;
-    animation-delay: 3s !important;
   }
 }

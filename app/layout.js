@@ -1,5 +1,6 @@
 import './globals.css'
 import FarcasterSDK from './components/FarcasterSDK'
+import SplashRemover from './components/SplashRemover'
 
 export const metadata = {
   title: 'YoYo Guild Battle - Blockchain Battle Arena',
@@ -41,12 +42,12 @@ export default function RootLayout({ children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>YoYo Guild Battle - Blockchain Battle Arena</title>
         
-        {/* ✅ ACİL READY FIX - Splash screen için */}
+        {/* ACİL READY FIX - Splash screen için */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // ✅ ACİL READY FIX - Splash screen için
-              if (window.self !== window.top) {
+              // ACİL READY FIX - Splash screen için
+              if (window.parent !== window.self) {
                 console.log('🚀 EMERGENCY: Sending immediate ready from layout');
                 
                 // Acil ready mesajı
@@ -69,26 +70,11 @@ export default function RootLayout({ children }) {
                 [50, 150, 300, 600, 1000, 2000, 3000, 5000].forEach(timeout => {
                   setTimeout(emergencyReady, timeout);
                 });
-
-                // Farcaster SDK kontrolü
-                const tryFarcasterSDK = () => {
-                  if (window.farcaster && window.farcaster.ready) {
-                    window.farcaster.ready()
-                      .then(() => console.log('✅ farcaster.ready() successful from emergency script'))
-                      .catch(err => console.warn('⚠️ farcaster.ready() failed:', err));
-                  } else {
-                    // SDK yoksa, 1 saniye sonra tekrar dene
-                    setTimeout(tryFarcasterSDK, 1000);
-                  }
-                };
-
-                // SDK'yı dene
-                setTimeout(tryFarcasterSDK, 100);
               }
 
               // Sayfa yüklendikten sonra da ready gönder
               window.addEventListener('load', () => {
-                if (window.self !== window.top) {
+                if (window.parent !== window.self) {
                   setTimeout(() => {
                     const msg = { type: 'ready', version: '1.0.0', event: 'page_load' };
                     window.parent.postMessage(msg, '*');
@@ -120,7 +106,7 @@ export default function RootLayout({ children }) {
         
         {/* Farcaster Mini App Tags */}
         <meta property="fc:mini-app:name" content="YoYo Guild Battle" />
-        <meta property="fc:mini-app:icon" content="https://yoyoguild.vercel.app/images/yoyo.png" />
+        <meta property="fc:mini-app:icon" content="https://yoyoguild.vercel.app/images/logo.png" />
         <meta property="fc:mini-app:description" content="Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!" />
         <meta property="fc:mini-app:url" content="https://yoyoguild.vercel.app" />
         <meta property="fc:mini-app:terms" content="https://yoyoguild.vercel.app/api/terms" />
@@ -129,9 +115,9 @@ export default function RootLayout({ children }) {
         {/* Base Mini App Tags - CRITICAL FOR BASE */}
         <meta name="base:title" content="YoYo Guild Battle" />
         <meta name="base:description" content="Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!" />
-        <meta name="base:icon" content="https://yoyoguild.vercel.app/images/yoyo.png" />
-        <meta name="base:image" content="https://yoyoguild.vercel.app/images/yoyo.png" />
-        <meta name="base:splash" content="https://yoyoguild.vercel.app/images/page.png" />
+        <meta name="base:icon" content="https://yoyoguild.vercel.app/images/logo.png" />
+        <meta name="base:image" content="https://yoyoguild.vercel.app/images/logo.png" />
+        <meta name="base:splash" content="https://yoyoguild.vercel.app/images/yoyo.png" />
         <meta name="base:splashBackground" content="#000000" />
         <meta name="base:url" content="https://yoyoguild.vercel.app" />
         <meta name="base:network" content="base" />
@@ -142,11 +128,12 @@ export default function RootLayout({ children }) {
         <meta name="base:ogDescription" content="Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!" />
         <meta name="base:primaryCategory" content="gaming" />
         
-        <link rel="icon" href="/images/yoyo.png" />
+        <link rel="icon" href="/images/logo.png" />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
         <FarcasterSDK />
+        <SplashRemover />
         <main className="min-h-screen">
           {children}
         </main>
