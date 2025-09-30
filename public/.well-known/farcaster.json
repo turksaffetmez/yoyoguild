@@ -1,25 +1,8 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOjk5Mjk1NiwidHlpZSI6ImF1dGgiLCJrZXkiOiIweEQ3NDk0NGY3MEU1MTE2RDZBMkU2NjQzN2U1OGQ0MTYxYUVBMTRBYjAifQ",
+    "header": "eyJmaWQiOjk5Mjk1NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweEQ3NDk0NGY3MEU1MTE2RDZBMkU2NjQzN2U1OGQ0MTYxYUVBMTRBYjAifQ",
     "payload": "eyJkb21haW4iOiJ5b3lvZ3VpbGQudmVyY2VsLmFwcCJ9",
     "signature": "6XA1QvELELcK2S2um1PoevADp/y9SouXIHEa/qHVdw5kIXJUUaizcLnwzrx/S6ctQKKXsJ3fQ5/nC2+gNt64Mxw="
-  },
-  "miniApp": {
-    "version": "1.0.0",
-    "name": "YoYo Guild Battle",
-    "iconUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
-    "homeUrl": "https://yoyoguild.vercel.app",
-    "description": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
-    "termsOfServiceUrl": "https://yoyoguild.vercel.app/api/terms",
-    "privacyPolicyUrl": "https://yoyoguild.vercel.app/api/privacy",
-    "permissions": [
-      "identity",
-      "storage"
-    ],
-    "webhookUrl": "https://yoyoguild.vercel.app/api/webhook",
-    "supportedFarcasterVersions": [
-      "vNext"
-    ]
   },
   "frame": {
     "version": "next",
@@ -29,22 +12,6 @@
     "imageUrl": "https://yoyoguild.vercel.app/images/page.png",
     "buttonTitle": "Play Game",
     "splashImageUrl": "https://yoyoguild.vercel.app/images/page.png",
-    "splashBackgroundColor": "#000000",
-    "primaryCategory": "games",
-    "tags": ["gaming", "battle", "blockchain", "yoyo", "base"],
-    "webhookUrl": "https://yoyoguild.vercel.app/api/webhook",
-    "subtitle": "Blockchain Battle Arena",
-    "description": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
-    "screenshotUrls": [
-      "https://yoyoguild.vercel.app/images/page.png",
-      "https://yoyoguild.vercel.app/images/yoyo.png"
-    ],
-    "heroImageUrl": "https://yoyoguild.vercel.app/images/page.png",
-    "tagline": "Battle Tevans, earn YOYO!",
-    "ogTitle": "YoYo Guild Battle",
-    "ogDescription": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
-    "ogImageUrl": "https://yoyoguild.vercel.app/images/page.png",
-    "noIndex": false,
-    "castShareUrl": "https://yoyoguild.vercel.app"
+    "splashBackgroundColor": "#000000"
   }
 }
