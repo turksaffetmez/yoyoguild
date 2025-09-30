@@ -7,7 +7,6 @@
   "description": "Blockchain Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
   "splashImageUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
   "splashBackgroundColor": "#000000",
-  "webhookUrl": "https://yoyoguild.vercel.app/api/webhook",
   "permissions": [
     "identity",
     "storage"
