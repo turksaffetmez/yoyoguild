@@ -4,12 +4,17 @@
     "payload": "eyJkb21haW4iOiJ5b3lvZ3VpbGQudmVyY2VsLmFwcCJ9",
     "signature": "6XA1QvELELcK2S2um1PoevADp/y9SouXIHEa/qHVdw5kIXJUUaizcLnwzrx/S6ctQKKXsJ3fQ5/nC2+gNt64Mxw="
   },
+  "baseBuilder": {
+    "allowedAddresses": ["0x5beFBa4634D09B7868C438f9380Dd9205a1A24Aa"]
+  },
   "miniapp": {
     "version": "next",
     "name": "YoYo Guild Battle",
     "homeUrl": "https://yoyoguild.vercel.app",
     "iconUrl": "https://yoyoguild.vercel.app/images/logo.png",
+    "splashImageUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
     "splashBackgroundColor": "#000000",
+    "webhookUrl": "https://yoyoguild.vercel.app/api/webhook",
     "subtitle": "Battle Earn YoYo",
     "description": "Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
     "screenshotUrls": [
