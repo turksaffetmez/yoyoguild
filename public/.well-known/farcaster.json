@@ -8,7 +8,7 @@
     "allowedAddresses": ["0x5beFBa4634D09B7868C438f9380Dd9205a1A24Aa"]
   },
   "miniapp": {
-    "version": "1",
+    "version": "next",
     "name": "YoYo Guild Battle",
     "homeUrl": "https://yoyoguild.vercel.app",
     "iconUrl": "https://yoyoguild.vercel.app/images/logo.png",
