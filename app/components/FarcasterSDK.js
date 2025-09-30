@@ -5,59 +5,47 @@ export default function FarcasterSDK() {
   useEffect(() => {
     console.log('🚀 FarcasterSDK initializing...');
     
-    // ✅ KRİTİK - BASE APP READY ÇÖZÜMÜ
-    const initializeMiniApp = async () => {
-      // Farcaster Mini App environment kontrolü
-      const isMiniApp = window.self !== window.top;
+    const isFarcaster = window.self !== window.self || 
+                       /farcaster|warpcast/i.test(navigator.userAgent) ||
+                       window.location.href.includes('farcaster.xyz');
+
+    if (isFarcaster) {
+      console.log('🎯 Farcaster environment confirmed');
       
-      if (isMiniApp) {
-        console.log('🎯 Farcaster Mini App detected, sending ready...');
+      // FARCaster SPECIFIC ready
+      const sendFarcasterReady = () => {
+        // Method 1: Standard Farcaster ready
+        if (window.farcaster?.ready) {
+          window.farcaster.ready()
+            .then(() => console.log('✅ farcaster.ready() success'))
+            .catch(e => console.log('⚠️ farcaster.ready() failed:', e));
+        }
         
-        // YÖNTEM 1: Direct ready mesajı
-        const sendReadyMessage = () => {
-          const readyMsg = {
-            type: 'ready',
-            version: '1.0.0',
-            app: 'YoYo Guild Battle'
-          };
-          window.parent.postMessage(readyMsg, '*');
-          console.log('📨 Ready message sent to parent');
+        // Method 2: PostMessage with Farcaster format
+        const farcasterMsg = {
+          type: 'ready',
+          version: '1.0.0',
+          farcaster: true,
+          app: 'YoYo Guild Battle'
         };
+        window.parent?.postMessage(farcasterMsg, '*');
+        console.log('📨 Farcaster ready sent:', farcasterMsg);
+      };
 
-        // YÖNTEM 2: Farcaster SDK kullanımı
-        const useFarcasterSDK = async () => {
-          try {
-            // SDK'yı dynamic import et
-            const { createMiniAppSDK } = await import('@farcaster/miniapp-sdk');
-            const sdk = createMiniAppSDK();
-            await sdk.actions.ready();
-            console.log('✅ Farcaster SDK ready() successful');
-          } catch (error) {
-            console.log('⚠️ Farcaster SDK not available, using fallback');
-          }
-        };
+      // HEMEN gönder
+      sendFarcasterReady();
+      
+      // Farcaster bazen yavaş yükleniyor
+      [100, 300, 600, 1000, 2000, 3000, 5000, 8000].forEach(timeout => {
+        setTimeout(sendFarcasterReady, timeout);
+      });
 
-        // HEMEN çalıştır
-        sendReadyMessage();
-        
-        // Multiple denemeler (splash screen için kritik)
-        setTimeout(sendReadyMessage, 100);
-        setTimeout(sendReadyMessage, 500);
-        setTimeout(sendReadyMessage, 1000);
-        setTimeout(sendReadyMessage, 2000);
-        
-        // SDK'yı dene
-        setTimeout(useFarcasterSDK, 300);
-        
-        // Fallback: 5 saniye sonra hala splash varsa force ready
-        setTimeout(() => {
-          sendReadyMessage();
-          console.log('🔄 Final ready attempt');
-        }, 5000);
-      }
-    };
-
-    initializeMiniApp();
+      // Emergency: 10 saniye sonra force hide
+      setTimeout(() => {
+        console.log('🚨 EMERGENCY: Force ready after 10s');
+        sendFarcasterReady();
+      }, 10000);
+    }
 
   }, []);
 

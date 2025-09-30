@@ -92,14 +92,31 @@ a {
   @apply bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl border border-gray-700/50 backdrop-blur-sm;
 }
 
-/* Farcaster Mini App Specific Styles */
+/* ✅ FARCASTER MINI APP CRITICAL FIXES */
 .farcaster-mini-app {
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%) !important;
+  animation: farcasterReady 0.5s forwards !important;
+  opacity: 0;
 }
 
+/* ✅ FARCASTER SPLASH SCREEN HIDE */
+.farcaster-mini-app::before,
+.farcaster-mini-app::after,
+[class*="splash"],
+[class*="Splash"],
+iframe[src*="splash"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* ✅ FARCASTER CONTAINER OVERRIDE */
 .farcaster-mini-app .max-w-6xl {
   border-radius: 12px !important;
   margin: 8px !important;
+  animation: contentFadeIn 0.8s forwards !important;
+  animation-delay: 0.3s !important;
+  opacity: 0;
 }
 
 .farcaster-mini-app footer {
@@ -110,7 +127,43 @@ a {
   font-size: 1.75rem !important;
 }
 
-/* Mobile optimization for Mini App */
+/* ✅ FARCASTER READY ANIMATIONS */
+@keyframes farcasterReady {
+  0% {
+    opacity: 0;
+    visibility: hidden;
+  }
+  100% {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@keyframes contentFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ✅ FARCASTER EMERGENCY OVERRIDES */
+body.farcaster-mini-app-loaded {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ✅ Hide any Farcaster loading elements */
+[data-farcaster-loading],
+[class*="loading"],
+[class*="Loading"] {
+  display: none !important;
+}
+
+/* ✅ Mobile optimization for Mini App */
 @media (max-width: 400px) {
   .farcaster-mini-app {
     padding: 4px !important;
@@ -122,5 +175,17 @@ a {
   
   .farcaster-mini-app .text-2xl {
     font-size: 1.25rem !important;
+  }
+  
+  .farcaster-mini-app .text-4xl {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* ✅ Force show content after 3 seconds (emergency) */
+@media (min-width: 1px) {
+  .farcaster-mini-app {
+    animation-duration: 0.1s !important;
+    animation-delay: 3s !important;
   }
 }
