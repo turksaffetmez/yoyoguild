@@ -41,45 +41,61 @@ export default function RootLayout({ children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>YoYo Guild Battle - Blockchain Battle Arena</title>
         
-        {/* ✅ GÜNCELLENMİŞ - BASE APP READY SCRIPT - KRİTİK */}
+        {/* ✅ ACİL READY FIX - Splash screen için */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // BASE APP READY - KRİTİK!
-              if (window.parent !== window.self) {
-                console.log('🚀 Layout: Sending immediate ready...');
-                const readyMsg = {
-                  type: 'ready', 
-                  version: '1.0.0',
-                  app: 'YoYo Guild Battle',
-                  timestamp: Date.now()
+              // ✅ ACİL READY FIX - Splash screen için
+              if (window.self !== window.top) {
+                console.log('🚀 EMERGENCY: Sending immediate ready from layout');
+                
+                // Acil ready mesajı
+                const emergencyReady = () => {
+                  const msg = { 
+                    type: 'ready', 
+                    version: '1.0.0', 
+                    app: 'YoYo Guild Battle',
+                    timestamp: Date.now(),
+                    emergency: true 
+                  };
+                  window.parent.postMessage(msg, '*');
+                  console.log('📨 Emergency ready sent:', msg.timestamp);
                 };
                 
-                // Hemen gönder
-                window.parent.postMessage(readyMsg, '*');
+                // HEMEN gönder
+                emergencyReady();
                 
-                // Kısa sürelerle tekrar gönder (Base App bazen kaçırıyor)
-                [100, 500, 1000, 2000, 3000].forEach(delay => {
-                  setTimeout(() => {
-                    window.parent.postMessage(readyMsg, '*');
-                    console.log('📨 Layout: Ready sent after ' + delay + 'ms');
-                  }, delay);
+                // Hızlı aralıklarla tekrarla
+                [50, 150, 300, 600, 1000, 2000, 3000, 5000].forEach(timeout => {
+                  setTimeout(emergencyReady, timeout);
                 });
 
-                // Farcaster SDK ready çağrısı
-                const checkAndCallReady = () => {
+                // Farcaster SDK kontrolü
+                const tryFarcasterSDK = () => {
                   if (window.farcaster && window.farcaster.ready) {
                     window.farcaster.ready()
-                      .then(() => console.log('✅ farcaster.ready() successful from layout'))
-                      .catch(err => console.warn('⚠️ farcaster.ready() failed from layout:', err));
+                      .then(() => console.log('✅ farcaster.ready() successful from emergency script'))
+                      .catch(err => console.warn('⚠️ farcaster.ready() failed:', err));
+                  } else {
+                    // SDK yoksa, 1 saniye sonra tekrar dene
+                    setTimeout(tryFarcasterSDK, 1000);
                   }
                 };
 
-                // SDK yüklendikten sonra ready çağır
-                setTimeout(checkAndCallReady, 100);
-                setTimeout(checkAndCallReady, 1000);
-                setTimeout(checkAndCallReady, 3000);
+                // SDK'yı dene
+                setTimeout(tryFarcasterSDK, 100);
               }
+
+              // Sayfa yüklendikten sonra da ready gönder
+              window.addEventListener('load', () => {
+                if (window.self !== window.top) {
+                  setTimeout(() => {
+                    const msg = { type: 'ready', version: '1.0.0', event: 'page_load' };
+                    window.parent.postMessage(msg, '*');
+                    console.log('📨 Ready sent after page load');
+                  }, 100);
+                }
+              });
             `
           }}
         />

@@ -5,65 +5,59 @@ export default function FarcasterSDK() {
   useEffect(() => {
     console.log('🚀 FarcasterSDK initializing...');
     
-    // ✅ BASE APP İÇİN KRİTİK - ready() ÇAĞRISI
-    const initializeBaseApp = () => {
-      if (window.self !== window.top) {
-        console.log('🎯 Base App environment detected');
+    // ✅ KRİTİK - BASE APP READY ÇÖZÜMÜ
+    const initializeMiniApp = async () => {
+      // Farcaster Mini App environment kontrolü
+      const isMiniApp = window.self !== window.top;
+      
+      if (isMiniApp) {
+        console.log('🎯 Farcaster Mini App detected, sending ready...');
         
-        // Hemen ready mesajı gönder
-        const sendReady = () => {
+        // YÖNTEM 1: Direct ready mesajı
+        const sendReadyMessage = () => {
           const readyMsg = {
             type: 'ready',
             version: '1.0.0',
             app: 'YoYo Guild Battle'
           };
-          
-          console.log('📨 Sending ready message...');
           window.parent.postMessage(readyMsg, '*');
-          
-          // Base App SDK'yı kontrol et
-          if (window.farcaster && window.farcaster.ready) {
-            window.farcaster.ready()
-              .then(() => console.log('✅ farcaster.ready() successful'))
-              .catch(err => console.warn('⚠️ farcaster.ready() failed:', err));
+          console.log('📨 Ready message sent to parent');
+        };
+
+        // YÖNTEM 2: Farcaster SDK kullanımı
+        const useFarcasterSDK = async () => {
+          try {
+            // SDK'yı dynamic import et
+            const { createMiniAppSDK } = await import('@farcaster/miniapp-sdk');
+            const sdk = createMiniAppSDK();
+            await sdk.actions.ready();
+            console.log('✅ Farcaster SDK ready() successful');
+          } catch (error) {
+            console.log('⚠️ Farcaster SDK not available, using fallback');
           }
         };
 
-        // Hemen gönder
-        sendReady();
+        // HEMEN çalıştır
+        sendReadyMessage();
         
-        // 1 saniye sonra tekrar dene
-        setTimeout(sendReady, 1000);
+        // Multiple denemeler (splash screen için kritik)
+        setTimeout(sendReadyMessage, 100);
+        setTimeout(sendReadyMessage, 500);
+        setTimeout(sendReadyMessage, 1000);
+        setTimeout(sendReadyMessage, 2000);
         
-        // 3 saniye sonra tekrar dene
-        setTimeout(sendReady, 3000);
+        // SDK'yı dene
+        setTimeout(useFarcasterSDK, 300);
+        
+        // Fallback: 5 saniye sonra hala splash varsa force ready
+        setTimeout(() => {
+          sendReadyMessage();
+          console.log('🔄 Final ready attempt');
+        }, 5000);
       }
     };
 
-    // HEMEN başlat
-    initializeBaseApp();
-
-    // Farcaster SDK yükleme (opsiyonel)
-    const loadFarcasterSDK = () => {
-      if (window.self !== window.top && !window.farcaster) {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/@farcaster/auth-kit@latest';
-        script.async = true;
-        
-        script.onload = () => {
-          console.log('✅ Farcaster SDK loaded');
-          if (window.farcaster && window.farcaster.ready) {
-            window.farcaster.ready()
-              .then(() => console.log('✅ farcaster.ready() successful after SDK load'))
-              .catch(err => console.warn('⚠️ farcaster.ready() failed after SDK load:', err));
-          }
-        };
-        
-        document.head.appendChild(script);
-      }
-    };
-
-    loadFarcasterSDK();
+    initializeMiniApp();
 
   }, []);
 
