@@ -41,34 +41,44 @@ export default function RootLayout({ children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>YoYo Guild Battle - Blockchain Battle Arena</title>
         
-        {/* IMMEDIATE READY SCRIPT - CRITICAL FOR BASE APP */}
+        {/* ✅ GÜNCELLENMİŞ - BASE APP READY SCRIPT - KRİTİK */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // IMMEDIATE READY CALL - Base App için kritik!
+              // BASE APP READY - KRİTİK!
               if (window.parent !== window.self) {
-                console.log('🚀 Layout.js: Sending immediate ready...');
+                console.log('🚀 Layout: Sending immediate ready...');
                 const readyMsg = {
-                  type: 'ready',
+                  type: 'ready', 
                   version: '1.0.0',
                   app: 'YoYo Guild Battle',
-                  from: 'layout-head',
                   timestamp: Date.now()
                 };
                 
                 // Hemen gönder
                 window.parent.postMessage(readyMsg, '*');
                 
-                // Kısa aralıklarla tekrar gönder
-                setTimeout(() => {
-                  window.parent.postMessage(readyMsg, '*');
-                  console.log('📨 Layout.js: Second ready sent');
-                }, 300);
-                
-                setTimeout(() => {
-                  window.parent.postMessage(readyMsg, '*');
-                  console.log('📨 Layout.js: Third ready sent');
-                }, 1000);
+                // Kısa sürelerle tekrar gönder (Base App bazen kaçırıyor)
+                [100, 500, 1000, 2000, 3000].forEach(delay => {
+                  setTimeout(() => {
+                    window.parent.postMessage(readyMsg, '*');
+                    console.log('📨 Layout: Ready sent after ' + delay + 'ms');
+                  }, delay);
+                });
+
+                // Farcaster SDK ready çağrısı
+                const checkAndCallReady = () => {
+                  if (window.farcaster && window.farcaster.ready) {
+                    window.farcaster.ready()
+                      .then(() => console.log('✅ farcaster.ready() successful from layout'))
+                      .catch(err => console.warn('⚠️ farcaster.ready() failed from layout:', err));
+                  }
+                };
+
+                // SDK yüklendikten sonra ready çağır
+                setTimeout(checkAndCallReady, 100);
+                setTimeout(checkAndCallReady, 1000);
+                setTimeout(checkAndCallReady, 3000);
               }
             `
           }}
