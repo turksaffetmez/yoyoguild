@@ -11,108 +11,64 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {/* MANUEL FARCASTER SDK YÜKLEME - MODULE FORMAT */}
+        {/* SIMPLE FARCASTER READY SOLUTION */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // MANUEL FARCASTER SDK YÜKLEME - MODULE FORMAT
+              // SIMPLE FARCASTER READY - No complex SDK loading
               (function() {
-                console.log('🚀 MANUEL: Loading Farcaster SDK as module...');
+                console.log('🚀 SIMPLE: Starting Farcaster ready process...');
                 
-                // Eğer SDK zaten yüklüyse, hemen ready çağır
-                if (window.farcaster) {
-                  console.log('✅ SDK already loaded, calling ready immediately');
-                  callFarcasterReady();
-                  return;
-                }
-                
-                // Module olarak SDK yükle
-                const script = document.createElement('script');
-                script.type = 'module';
-                script.innerHTML = \\`
-                  import { sdk } from 'https://esm.sh/@farcaster/frame-sdk@0.1.4';
-                  window.farcaster = sdk;
-                  console.log('✅ Farcaster SDK loaded as module');
-                  
-                  // Ready çağır
-                  if (window.farcaster?.actions?.ready) {
-                    window.farcaster.actions.ready();
-                    console.log('✅ sdk.actions.ready() called from module');
-                  }
-                \\`;
-                
-                script.onerror = function() {
-                  console.error('❌ Failed to load SDK as module');
-                  sendEmergencyReady();
-                };
-                
-                document.head.appendChild(script);
-                
-                // Fallback: Eğer module yüklenmezse, classic script dene
-                setTimeout(() => {
-                  if (!window.farcaster) {
-                    console.log('🔄 Module failed, trying classic script...');
-                    loadClassicSDK();
-                  }
-                }, 2000);
-                
-                function loadClassicSDK() {
-                  const classicScript = document.createElement('script');
-                  classicScript.src = 'https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@0.1.4/dist.js';
-                  classicScript.onload = function() {
-                    console.log('✅ Classic SDK loaded');
-                    callFarcasterReady();
-                  };
-                  classicScript.onerror = function() {
-                    console.error('❌ Classic SDK also failed');
-                    sendEmergencyReady();
-                  };
-                  document.head.appendChild(classicScript);
-                }
-                
-                // Ready çağırma fonksiyonu
-                function callFarcasterReady() {
+                const sendFarcasterReady = function() {
                   try {
-                    // Tüm olası SDK formatlarını dene
-                    let called = false;
+                    // 1. Önce SDK'yı dene (eğer Farcaster yüklemişse)
+                    let sdkCalled = false;
                     
-                    // FORMAT 1: Yeni SDK - sdk.actions.ready()
                     if (window.farcaster?.actions?.ready) {
                       window.farcaster.actions.ready();
-                      console.log('✅ sdk.actions.ready() called successfully');
-                      called = true;
+                      console.log('✅ Layout: sdk.actions.ready() called');
+                      sdkCalled = true;
                     }
-                    
-                    // FORMAT 2: Eski SDK - farcaster.ready()
-                    if (!called && window.farcaster?.ready) {
+                    else if (window.farcaster?.ready) {
                       window.farcaster.ready();
-                      console.log('✅ farcaster.ready() called successfully');
-                      called = true;
+                      console.log('✅ Layout: farcaster.ready() called');
+                      sdkCalled = true;
                     }
                     
-                    if (!called) {
-                      console.warn('⚠️ SDK loaded but no ready method found');
-                      sendEmergencyReady();
+                    // 2. Farcaster formatında ready mesajı gönder
+                    if (window.parent !== window) {
+                      const readyMsg = {
+                        type: 'ready',
+                        data: {
+                          version: '1.0.0',
+                          app: 'YoYo Guild Battle',
+                          sdk: sdkCalled,
+                          timestamp: Date.now()
+                        }
+                      };
+                      window.parent.postMessage(readyMsg, '*');
+                      console.log('📨 Layout ready sent, SDK:', sdkCalled);
                     }
-                  } catch (error) {
-                    console.error('❌ Error calling ready:', error);
-                    sendEmergencyReady();
+                    
+                    // 3. SDK yoksa bilgi ver
+                    if (!sdkCalled) {
+                      console.log('ℹ️ Layout: No SDK found, Farcaster should provide it');
+                    }
+                  } catch(error) {
+                    console.error('❌ Layout ready error:', error);
                   }
-                }
+                };
                 
-                // Acil ready mesajı (fallback)
-                function sendEmergencyReady() {
-                  if (window.parent !== window) {
-                    const readyMsg = {
-                      type: 'ready',
-                      data: {
-                        version: '1.0.0'
-                      }
-                    };
-                    window.parent.postMessage(readyMsg, '*');
-                    console.log('📨 Emergency ready sent with Farcaster format');
-                  }
-                }
+                // Hemen gönder
+                sendFarcasterReady();
+                
+                // Multiple attempts - Farcaster yavaş yüklenebilir
+                [100, 500, 1000, 2000, 3000, 5000].forEach(timeout => {
+                  setTimeout(sendFarcasterReady, timeout);
+                });
+                
+                // Final attempt
+                setTimeout(sendFarcasterReady, 10000);
               })();
             `
           }}
