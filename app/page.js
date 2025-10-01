@@ -1,10 +1,6 @@
 "use client";
-import { useEffect, useCallback } from "react";
-import { ethers } from "ethers";
-import { contractAddress, abi } from "./utils/contract";
+import { useEffect } from "react";
 import { useGameState } from "./hooks/useGameState";
-import { useContract } from "./hooks/useContract";
-import { useGameLogic } from "./hooks/useGameLogic";
 import WalletConnection from "./components/WalletConnection";
 import GameBoard from "./components/GameBoard";
 import Leaderboard from "./components/Leaderboard";
@@ -16,189 +12,47 @@ import Image from "next/image";
 
 export default function Home() {
   const {
-    walletConnected, setWalletConnected,
-    userAddress, setUserAddress,
-    contract, setContract,
-    points, setPoints,
-    provider, setProvider,
     activeTab, setActiveTab,
-    leaderboard, setLeaderboard,
-    yoyoBalanceAmount, setYoyoBalanceAmount,
-    isMobile, setIsMobile,
-    showWalletOptions, setShowWalletOptions,
-    gamesPlayedToday, setGamesPlayedToday,
-    dailyLimit, setDailyLimit,
-    isLoading, setIsLoading,
-    connectionError, setConnectionError,
-    pointValues, setPointValues,
-    isFarcasterMiniApp, setIsFarcasterMiniApp,
-    playerStats, setPlayerStats,
+    pointValues,
+    isFarcasterMiniApp,
     isClient,
-    gameState, setGameState,
-    remainingGames,
-    refreshPlayerData
+    gameState, setGameState
   } = useGameState();
 
-  const {
-    checkYoyoBalance,
-    getPointValues: getContractPointValues,
-    updatePlayerInfo: updateContractPlayerInfo,
-    updateLeaderboard: updateContractLeaderboard,
-    connectWallet: connectContractWallet,
-    disconnectWallet: disconnectContractWallet
-  } = useContract(provider, isClient);
+  const showMaintenanceMessage = () => {
+    alert("Wallet connection is under maintenance. It will be available soon.");
+  };
 
-  const updatePlayerInfo = useCallback(async (address) => {
-    if (!contract || !address) return;
-    await updateContractPlayerInfo(
-      contract,
-      address,
-      checkYoyoBalance,
-      setPoints,
-      setGamesPlayedToday,
-      setDailyLimit,
-      setPlayerStats,
-      setYoyoBalanceAmount
-    );
-  }, [contract, updateContractPlayerInfo, checkYoyoBalance, setPoints, setGamesPlayedToday, setDailyLimit, setPlayerStats, setYoyoBalanceAmount]);
+  const startGame = () => {
+    showMaintenanceMessage();
+  };
 
-  const updateLeaderboard = useCallback(async () => {
-    if (!contract) return;
-    await updateContractLeaderboard(contract, setLeaderboard);
-  }, [contract, updateContractLeaderboard, setLeaderboard]);
+  const startNewGame = () => {
+    // Oyun state'ini sıfırla ama işlem yapma
+    setGameState(prev => ({
+      ...prev,
+      selectedImage: null,
+      winnerIndex: null,
+      gamePhase: "idle",
+      isLoading: false,
+      pointsEarned: 0,
+      isWinner: false,
+      countdown: null
+    }));
+  };
 
-  const connectWallet = useCallback(async (walletType = 'standard', farcasterAddress = null) => {
-    await connectContractWallet(
-      walletType,
-      farcasterAddress,
-      isMobile,
-      setShowWalletOptions,
-      setProvider,
-      setContract,
-      setUserAddress,
-      setWalletConnected,
-      checkYoyoBalance,
-      setYoyoBalanceAmount,
-      getContractPointValues,
-      setPointValues,
-      updatePlayerInfo,
-      updateLeaderboard,
-      refreshPlayerData,
-      isFarcasterMiniApp,
-      points,
-      setConnectionError,
-      setIsLoading
-    );
-  }, [
-    connectContractWallet, isMobile, setShowWalletOptions, setProvider, setContract,
-    setUserAddress, setWalletConnected, checkYoyoBalance, setYoyoBalanceAmount,
-    getContractPointValues, setPointValues, updatePlayerInfo, updateLeaderboard,
-    refreshPlayerData, isFarcasterMiniApp, points, setConnectionError, setIsLoading
-  ]);
-
-  const disconnectWallet = useCallback(() => {
-    disconnectContractWallet(
-      setWalletConnected,
-      setUserAddress,
-      setContract,
-      setPoints,
-      setYoyoBalanceAmount,
-      setGamesPlayedToday,
-      setLeaderboard,
-      setPlayerStats,
-      setGameState
-    );
-  }, [disconnectContractWallet, setWalletConnected, setUserAddress, setContract, setPoints, setYoyoBalanceAmount, setGamesPlayedToday, setLeaderboard, setPlayerStats, setGameState]);
-
-  const {
-    startGame,
-    resetGame,
-    startNewGame
-  } = useGameLogic(
-    walletConnected,
-    contract,
-    userAddress,
-    updatePlayerInfo,
-    updateLeaderboard,
-    checkYoyoBalance,
-    setYoyoBalanceAmount,
-    setPoints,
-    setGamesPlayedToday,
-    setDailyLimit,
-    setGameState,
-    setIsLoading,
-    setConnectionError,
-    isFarcasterMiniApp,
-    points
-  );
-
-  useEffect(() => {
-    if (!isClient || !walletConnected || !contract || !userAddress) return;
-
-    console.log('🔄 Auto-refreshing player data...');
-    
-    const autoRefresh = async () => {
-      try {
-        await refreshPlayerData(
-          contract,
-          userAddress,
-          checkYoyoBalance,
-          setPoints,
-          setGamesPlayedToday,
-          setDailyLimit,
-          setPlayerStats,
-          setYoyoBalanceAmount
-        );
-        await updateLeaderboard();
-      } catch (error) {
-        console.error('❌ Auto-refresh failed:', error);
-      }
-    };
-
-    autoRefresh();
-    const interval = setInterval(autoRefresh, 30000);
-    
-    return () => clearInterval(interval);
-  }, [isClient, walletConnected, contract, userAddress, refreshPlayerData, checkYoyoBalance, updateLeaderboard]);
-
-  // Sadece daha önce bağlanmışsa kontrol et (otomatik bağlanma YOK)
-  useEffect(() => {
-    if (!isClient || typeof window.ethereum === 'undefined' || walletConnected) return;
-    
-    const checkWalletConnection = async () => {
-      try {
-        const accounts = await window.ethereum.request({
-          method: 'eth_accounts'
-        });
-
-        if (accounts.length > 0) {
-          const newProvider = new ethers.BrowserProvider(window.ethereum);
-          setProvider(newProvider);
-          
-          const signer = await newProvider.getSigner();
-          const address = await signer.getAddress();
-          const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-          
-          setContract(contractInstance);
-          setUserAddress(address);
-          setWalletConnected(true);
-          
-          const yoyoBalance = await checkYoyoBalance(address);
-          setYoyoBalanceAmount(yoyoBalance);
-          
-          const pointVals = await getContractPointValues(contractInstance);
-          setPointValues(pointVals);
-          
-          await updatePlayerInfo(address);
-          await updateLeaderboard();
-        }
-      } catch (err) {
-        console.error("Auto-connection error:", err);
-      }
-    };
-    
-    checkWalletConnection();
-  }, [isClient, walletConnected]);
+  const resetGame = () => {
+    setGameState(prev => ({
+      ...prev,
+      selectedImage: null,
+      winnerIndex: null,
+      gamePhase: "idle",
+      isLoading: false,
+      pointsEarned: 0,
+      isWinner: false,
+      countdown: null
+    }));
+  };
 
   if (!isClient) {
     return (
@@ -254,67 +108,40 @@ export default function Home() {
         </nav>
         
         <div className="p-6">
-          {connectionError && (
-            <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 mb-4">
-              <p className="text-red-400 text-center">{connectionError}</p>
-              <button 
-                onClick={() => setConnectionError("")}
-                className="text-red-300 text-sm mt-2 hover:text-white"
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
+          <FarcasterWallet />
           
-          <FarcasterWallet onConnect={connectWallet} />
-          
-          <WalletConnection
-            walletConnected={walletConnected}
-            userAddress={userAddress}
-            points={points}
-            yoyoBalanceAmount={yoyoBalanceAmount}
-            onDisconnect={disconnectWallet}
-            onConnect={connectWallet}
-            isMobile={isMobile}
-            remainingGames={remainingGames}
-            dailyLimit={dailyLimit}
-            isLoading={isLoading}
-            pointValues={pointValues}
-            playerStats={playerStats}
-          />
+          <WalletConnection pointValues={pointValues} />
           
           <div className="min-h-[500px]">
             {activeTab === "home" && (
               <HomeContent 
-                walletConnected={walletConnected} 
-                yoyoBalanceAmount={yoyoBalanceAmount}
-                remainingGames={remainingGames}
+                walletConnected={false} 
+                yoyoBalanceAmount={0}
+                remainingGames={0}
                 pointValues={pointValues}
-                playerStats={playerStats}
+                playerStats={null}
               />
             )}
             {activeTab === "play" && (
               <GameBoard
-                walletConnected={walletConnected}
+                walletConnected={false}
                 gameState={gameState}
-                yoyoBalanceAmount={yoyoBalanceAmount}
-                points={points}
+                yoyoBalanceAmount={0}
+                points={0}
                 onStartGame={startGame}
-                onConnectWallet={connectWallet}
-                isMobile={isMobile}
+                onConnectWallet={showMaintenanceMessage}
+                isMobile={false}
                 onStartNewGame={startNewGame}
                 onResetGame={resetGame}
-                remainingGames={remainingGames}
-                dailyLimit={dailyLimit}
-                isLoading={isLoading}
+                remainingGames={0}
+                dailyLimit={20}
+                isLoading={false}
                 pointValues={pointValues}
-                playerStats={playerStats}
+                playerStats={null}
               />
             )}
             {activeTab === "leaderboard" && (
-              <Leaderboard 
-                leaderboard={leaderboard} 
-              />
+              <Leaderboard />
             )}
           </div>
         </div>
@@ -325,15 +152,6 @@ export default function Home() {
           </footer>
         )}
       </div>
-
-      {isLoading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-2xl p-6 flex items-center space-x-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-            <span className="text-white">Processing...</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

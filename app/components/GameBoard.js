@@ -18,24 +18,6 @@ const GameBoard = ({
 }) => {
   const [countdown, setCountdown] = useState(0);
   const [fightAnimation, setFightAnimation] = useState(false);
-  const [wrongNetwork, setWrongNetwork] = useState(false);
-
-  // Base Mainnet chainId
-  const BASE_CHAIN_ID = '0x2105';
-
-  // Ağ kontrolü
-  const checkNetwork = async () => {
-    if (!window.ethereum) return false;
-    
-    try {
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-      setWrongNetwork(chainId !== BASE_CHAIN_ID);
-      return chainId === BASE_CHAIN_ID;
-    } catch (error) {
-      console.error('Network check failed:', error);
-      return false;
-    }
-  };
 
   useEffect(() => {
     if (gameState.gamePhase === "fighting" && gameState.countdown > 0) {
@@ -46,32 +28,8 @@ const GameBoard = ({
     }
   }, [gameState.gamePhase, gameState.countdown]);
 
-  // Ağ kontrolü yap
-  useEffect(() => {
-    if (walletConnected) {
-      checkNetwork();
-    }
-  }, [walletConnected]);
-
-  const handleGameStart = async (selectedIndex) => {
-    if (!walletConnected) {
-      onConnectWallet();
-      return;
-    }
-    
-    // Ağ kontrolü
-    const isCorrectNetwork = await checkNetwork();
-    if (!isCorrectNetwork) {
-      alert("Please switch to Base Mainnet to play YoYo Guild Battle!");
-      return;
-    }
-    
-    if (remainingGames <= 0) {
-      alert("Daily game limit reached! Come back tomorrow.");
-      return;
-    }
-    
-    onStartGame(selectedIndex);
+  const handleGameStart = (selectedIndex) => {
+    onConnectWallet();
   };
 
   const getWinChance = () => {
@@ -92,16 +50,6 @@ const GameBoard = ({
         return (
           <div className="text-center space-y-6">
             <h2 className="text-3xl font-bold text-white mb-2">Choose Your Tevan</h2>
-            
-            {/* Wrong Network Warning */}
-            {wrongNetwork && (
-              <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 mb-4">
-                <p className="text-red-400 font-semibold">⚠️ Wrong Network Detected</p>
-                <p className="text-red-300 text-sm mt-1">
-                  Please switch to Base Mainnet in your wallet to start playing
-                </p>
-              </div>
-            )}
 
             <p className="text-gray-300 mb-2">
               Win rate: <span className="text-yellow-400">{getWinChance()}%</span>
@@ -116,8 +64,8 @@ const GameBoard = ({
                 <div 
                   className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 ${isMobile ? 'w-full' : 'p-6'} border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
                     gameState.selectedImage === 0 ? 'border-yellow-400 scale-105' : 'border-gray-600'
-                  } ${wrongNetwork ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={() => !wrongNetwork && handleGameStart(0)}
+                  }`}
+                  onClick={() => handleGameStart(0)}
                 >
                   <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                     <Image
@@ -129,9 +77,6 @@ const GameBoard = ({
                   </div>
                   <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white mb-2`}>{gameState.images[0].name}</h3>
                   <div className="text-sm text-gray-400">Win Chance: {getWinChance()}%</div>
-                  {wrongNetwork && (
-                    <div className="text-red-400 text-xs mt-2">Switch to Base Network</div>
-                  )}
                 </div>
               </div>
 
@@ -143,8 +88,8 @@ const GameBoard = ({
                 <div 
                   className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 ${isMobile ? 'w-full' : 'p-6'} border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
                     gameState.selectedImage === 1 ? 'border-yellow-400 scale-105' : 'border-gray-600'
-                  } ${wrongNetwork ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={() => !wrongNetwork && handleGameStart(1)}
+                  }`}
+                  onClick={() => handleGameStart(1)}
                 >
                   <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                     <Image
@@ -156,9 +101,6 @@ const GameBoard = ({
                   </div>
                   <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white mb-2`}>{gameState.images[1].name}</h3>
                   <div className="text-sm text-gray-400">Win Chance: {getWinChance()}%</div>
-                  {wrongNetwork && (
-                    <div className="text-red-400 text-xs mt-2">Switch to Base Network</div>
-                  )}
                 </div>
               </div>
             </div>
@@ -166,225 +108,37 @@ const GameBoard = ({
             <div className="bg-gray-800/50 rounded-xl p-4 max-w-md mx-auto">
               <div className="text-sm text-gray-300 space-y-2">
                 <div className="flex justify-between">
-                  <span>Remaining Games Today:</span>
-                  <span className={remainingGames > 0 ? "text-green-400" : "text-red-400"}>
-                    {remainingGames}/{dailyLimit}
-                  </span>
+                  <span>Wallet Status:</span>
+                  <span className="text-yellow-400">Not Connected</span>
                 </div>
                 <div className="flex justify-between">
                   <span>YOYO Boost:</span>
-                  <span className={yoyoBalanceAmount > 0 ? "text-green-400" : "text-yellow-400"}>
-                    {yoyoBalanceAmount > 0 ? "Active (+10%)" : "Not Active"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Network:</span>
-                  <span className={wrongNetwork ? "text-red-400" : "text-green-400"}>
-                    {wrongNetwork ? "Wrong Network" : "✓ Base Mainnet"}
-                  </span>
+                  <span className="text-yellow-400">Not Active</span>
                 </div>
                 <div className="flex justify-between text-blue-400">
-                  <span>Total Points:</span>
-                  <span>{points.toLocaleString()}</span>
+                  <span>Connect wallet to play!</span>
                 </div>
               </div>
             </div>
           </div>
         );
 
-      case "selecting":
+      // Diğer game phase'ler aynı kalabilir, sadece butonlar maintenance mesajı göstersin
+      default:
         return (
           <div className="text-center space-y-8">
-            <h2 className="text-4xl font-bold text-yellow-400 animate-pulse">Preparing Battle...</h2>
-            <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} justify-center items-center relative`}>
-              {gameState.images.slice(0, 2).map((image, index) => (
-                <div key={image.id} className={`transform transition-all duration-500 ${
-                  gameState.selectedImage === index ? 'scale-110' : 'scale-90 opacity-60'
-                } ${isMobile ? 'mb-12' : index === 0 ? 'mr-12' : 'ml-12'}`}>
-                  <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 border-4 border-yellow-400">
-                    <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
-                      <Image
-                        src={image.url}
-                        alt={image.name}
-                        fill
-                        className={`rounded-xl object-cover ${index === 1 ? 'scale-x-[-1]' : ''}`}
-                      />
-                    </div>
-                    <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white`}>{image.name}</h3>
-                  </div>
-                </div>
-              ))}
-              <div className={`font-bold text-red-500 animate-pulse absolute ${isMobile ? 'text-3xl top-1/2' : 'text-4xl left-1/2'} transform -translate-x-1/2 -translate-y-1/2 z-10 bg-gray-900/80 rounded-full ${isMobile ? 'w-16 h-16' : 'w-20 h-20'} flex items-center justify-center border-4 border-red-500`}>
-                VS
-              </div>
-            </div>
-          </div>
-        );
-
-      case "fighting":
-        return (
-          <div className="text-center space-y-8">
-            <h2 className="text-4xl font-bold text-red-400 animate-pulse">
-              {gameState.countdown > 0 ? `Battle starts in ${gameState.countdown}...` : 'BATTLE!'}
-            </h2>
-            
-            <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} justify-center items-center relative transition-all duration-300 ${
-              fightAnimation ? 'scale-110' : 'scale-100'
-            }`}>
-              {gameState.images.slice(0, 2).map((image, index) => (
-                <div key={image.id} className={`transform transition-all duration-500 ${
-                  fightAnimation && index === gameState.selectedImage ? 'animate-bounce' : ''
-                } ${isMobile ? 'mb-12' : index === 0 ? 'mr-12' : 'ml-12'}`}>
-                  <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 border-4 border-red-500">
-                    <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
-                      <Image
-                        src={image.url}
-                        alt={image.name}
-                        fill
-                        className={`rounded-xl object-cover ${index === 1 ? 'scale-x-[-1]' : ''}`}
-                      />
-                    </div>
-                    <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white`}>{image.name}</h3>
-                  </div>
-                </div>
-              ))}
-              <div className={`font-bold text-red-500 animate-pulse absolute ${isMobile ? 'text-3xl top-1/2' : 'text-4xl left-1/2'} transform -translate-x-1/2 -translate-y-1/2 z-10 bg-gray-900/80 rounded-full ${isMobile ? 'w-16 h-16' : 'w-20 h-20'} flex items-center justify-center border-4 border-red-500`}>
-                VS
-              </div>
-            </div>
-
-            {fightAnimation && (
-              <div className="text-6xl animate-pulse">⚔️</div>
-            )}
-          </div>
-        );
-
-      case "result":
-        const isWinner = gameState.isWinner;
-        const pointsEarned = gameState.pointsEarned || 0;
-        
-        return (
-          <div className="text-center space-y-8">
-            <div className={`text-4xl font-bold ${isWinner ? 'text-green-400' : 'text-red-400'} animate-bounce`}>
-              {isWinner ? 'VICTORY! 🎉' : 'DEFEAT! 💀'}
-            </div>
-            
-            <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} justify-center items-center relative`}>
-              {gameState.images.slice(0, 2).map((image, index) => (
-                <div key={image.id} className={`transform transition-all duration-500 ${
-                  index === gameState.winnerIndex ? 'scale-110 border-green-400' : 'scale-90 border-red-400 opacity-70'
-                } ${isMobile ? 'mb-12' : index === 0 ? 'mr-12' : 'ml-12'}`}>
-                  <div className={`bg-gradient-to-br rounded-2xl p-4 border-4 ${
-                    index === gameState.winnerIndex ? 'from-green-900/50 to-emerald-900/50' : 'from-red-900/50 to-rose-900/50'
-                  }`}>
-                    <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
-                      <Image
-                        src={image.url}
-                        alt={image.name}
-                        fill
-                        className={`rounded-xl object-cover ${index === 1 ? 'scale-x-[-1]' : ''}`}
-                      />
-                    </div>
-                    <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white`}>{image.name}</h3>
-                    <div className={`text-lg font-bold ${index === gameState.winnerIndex ? 'text-green-400' : 'text-red-400'}`}>
-                      {index === gameState.winnerIndex ? 'WINNER' : 'LOSER'}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div className={`font-bold text-red-500 absolute ${isMobile ? 'text-3xl top-1/2' : 'text-4xl left-1/2'} transform -translate-x-1/2 -translate-y-1/2 z-10 bg-gray-900/80 rounded-full ${isMobile ? 'w-16 h-16' : 'w-20 h-20'} flex items-center justify-center border-4 border-red-500`}>
-                VS
-              </div>
-            </div>
-
-            <div className="bg-gray-800/50 rounded-xl p-6 max-w-md mx-auto">
-              <div className="space-y-3">
-                <div className="text-2xl font-bold text-yellow-400">
-                  {isWinner ? 
-                    (yoyoBalanceAmount > 0 ? 
-                      `+${pointValues.winYoyo} Points! 🎯` : 
-                      `+${pointValues.winNormal} Points!`) 
-                    : `+${pointValues.lose} Points`}
-                </div>
-                
-                <div className="text-green-400 font-semibold">
-                  Points Earned: +{pointsEarned}
-                </div>
-                
-                <div className="text-gray-300">
-                  Total Points: <span className="text-white font-bold">{points.toLocaleString()}</span>
-                </div>
-                <div className="text-gray-300">
-                  Remaining Games: <span className={remainingGames > 0 ? "text-green-400" : "text-red-400"}>
-                    {remainingGames}/{dailyLimit}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* SADECE "BATTLE AGAIN!" BUTONU - DAHA BELİRGİN */}
+            <h2 className="text-3xl font-bold text-white mb-4">Game Demo</h2>
+            <p className="text-gray-300">Wallet connection is under maintenance.</p>
             <button
               onClick={onStartNewGame}
-              disabled={remainingGames <= 0 || wrongNetwork}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg px-8 py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 min-w-[200px]"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
             >
-              {wrongNetwork ? 'Switch to Base Network' : 
-               remainingGames > 0 ? '⚔️ Battle Again!' : 'Daily Limit Reached'}
+              Back to Selection
             </button>
           </div>
         );
-
-      default:
-        return null;
     }
   };
-
-  if (!walletConnected) {
-    return (
-      <div className="text-center py-12">
-        <h2 className="text-3xl font-bold text-white mb-4">⚔️ Battle Arena</h2>
-        <p className="text-gray-300 mb-8">Connect your wallet to start battling!</p>
-        <button
-          onClick={onConnectWallet}
-          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
-        >
-          Connect Wallet to Play
-        </button>
-      </div>
-    );
-  }
-
-  if (wrongNetwork) {
-    return (
-      <div className="text-center py-12">
-        <h2 className="text-3xl font-bold text-red-400 mb-4">Wrong Network!</h2>
-        <p className="text-gray-300 mb-4">Please switch to <strong>Base Mainnet</strong> to play YoYo Guild Battle.</p>
-        <p className="text-yellow-400 mb-6">Current network is not supported for this game.</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
-        >
-          Refresh After Switching Network
-        </button>
-      </div>
-    );
-  }
-
-  if (remainingGames <= 0) {
-    return (
-      <div className="text-center py-12">
-        <h2 className="text-3xl font-bold text-red-400 mb-4">Daily Limit Reached!</h2>
-        <p className="text-gray-300 mb-4">You've played all {dailyLimit} games for today.</p>
-        <p className="text-yellow-400 mb-6">Come back tomorrow for more battles!</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
-        >
-          Refresh Page
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-[500px] flex items-center justify-center">

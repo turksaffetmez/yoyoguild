@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 
-const FarcasterWallet = ({ onConnect }) => {
+const FarcasterWallet = () => {
   const [isFarcaster, setIsFarcaster] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
