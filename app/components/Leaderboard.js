@@ -19,7 +19,7 @@ const Leaderboard = () => {
       setIsLoading(true);
       setError('');
 
-      console.log('🏆 Loading leaderboard...');
+      console.log('🏆 Loading leaderboard from contract:', contractAddress);
       
       // Base RPC provider
       const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
@@ -28,22 +28,24 @@ const Leaderboard = () => {
       // Önce contract bağlantısını test et
       try {
         const dailyLimit = await contract.DAILY_LIMIT();
-        console.log('✅ Contract connection test passed:', dailyLimit);
+        console.log('✅ Contract connection test passed, daily limit:', dailyLimit.toString());
       } catch (testError) {
         console.error('❌ Contract connection failed:', testError);
-        throw new Error('Contract connection failed. Please check contract address and ABI.');
+        throw new Error('Contract bağlantısı başarısız. Lütfen contract adresini ve ABI kontrol edin.');
       }
       
       // Leaderboard'u getir
       console.log('📊 Fetching leaderboard data...');
-      const [addresses, points] = await contract.getTopPlayers();
+      const result = await contract.getTopPlayers();
       
-      console.log('📋 Raw leaderboard data:', { addresses, points });
+      console.log('📋 Raw leaderboard result:', result);
+      
+      const addresses = result[0];
+      const points = result[1];
       
       if (!addresses || addresses.length === 0) {
         console.log('ℹ️ No leaderboard data found');
         setLeaderboard([]);
-        setIsLoading(false);
         return;
       }
       
@@ -52,12 +54,12 @@ const Leaderboard = () => {
         .map((address, index) => ({
           rank: index + 1,
           address: address,
-          points: Number(points[index] || 0)
+          points: Number(ethers.formatUnits(points[index] || 0, 0)) // points uint256 olduğu için format
         }))
         .filter(player => player.points > 0)
         .slice(0, 100);
       
-      console.log('✅ Processed leaderboard:', leaderboardData);
+      console.log('✅ Processed leaderboard:', leaderboardData.length, 'players');
       setLeaderboard(leaderboardData);
       
     } catch (err) {
@@ -104,7 +106,7 @@ const Leaderboard = () => {
             onClick={refreshLeaderboard}
             className="mt-2 bg-red-600 px-4 py-2 rounded-lg text-white hover:bg-red-700 transition-colors"
           >
-            Try Again
+            Tekrar Dene
           </button>
         </div>
       )}

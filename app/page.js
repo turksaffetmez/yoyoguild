@@ -42,7 +42,7 @@ export default function Home() {
     updateLeaderboard: updateContractLeaderboard,
     connectWallet: connectContractWallet,
     disconnectWallet: disconnectContractWallet
-  } = useContract(provider, isClient);
+  } = useContract();
 
   const [farcasterSDK, setFarcasterSDK] = useState(null);
 
@@ -64,26 +64,101 @@ export default function Home() {
     initializeFarcasterSDK();
   }, [isClient]);
 
+  // YOYO BALANCE OTOMATİK GÜNCELLEME
+  const updateYoyoBalance = useCallback(async (address) => {
+    if (!address) return;
+    try {
+      console.log('🔄 Updating YOYO balance for:', address);
+      const balance = await checkYoyoBalance(address);
+      console.log('✅ YOYO balance updated:', balance);
+      setYoyoBalanceAmount(balance);
+      return balance;
+    } catch (error) {
+      console.error('❌ YOYO balance update failed:', error);
+      return 0;
+    }
+  }, [checkYoyoBalance, setYoyoBalanceAmount]);
+
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
-    await updateContractPlayerInfo(
-      contract,
-      address,
-      checkYoyoBalance,
-      setPoints,
-      setGamesPlayedToday,
-      setDailyLimit,
-      setPlayerStats,
-      setYoyoBalanceAmount
-    );
-  }, [contract, updateContractPlayerInfo, checkYoyoBalance, setPoints, setGamesPlayedToday, setDailyLimit, setPlayerStats, setYoyoBalanceAmount]);
+    
+    try {
+      console.log('🔄 Updating player info for:', address);
+      
+      const playerInfo = await contract.getPlayerInfo(address);
+      const [
+        totalPoints, 
+        gamesToday, 
+        limit, 
+        hasYoyoBoost,
+        totalGames,
+        totalWins, 
+        totalLosses,
+        winStreak,
+        maxWinStreak,
+        winRate
+      ] = playerInfo;
+
+      // State'leri güncelle
+      setPoints(Number(totalPoints));
+      setGamesPlayedToday(Number(gamesToday));
+      setDailyLimit(Number(limit));
+      
+      setPlayerStats({
+        totalGames: Number(totalGames),
+        totalWins: Number(totalWins),
+        totalLosses: Number(totalLosses),
+        winRate: Number(winRate),
+        winStreak: Number(winStreak),
+        maxWinStreak: Number(maxWinStreak)
+      });
+
+      // YOYO balance'ı da güncelle
+      await updateYoyoBalance(address);
+      
+      console.log('✅ Player info updated successfully');
+      
+    } catch (error) {
+      console.error("❌ Failed to update player info:", error);
+    }
+  }, [contract, setPoints, setGamesPlayedToday, setDailyLimit, setPlayerStats, updateYoyoBalance]);
 
   const updateLeaderboard = useCallback(async () => {
-    if (!contract) return;
-    await updateContractLeaderboard(contract, setLeaderboard);
-  }, [contract, updateContractLeaderboard, setLeaderboard]);
+    if (!contract) {
+      console.log('⚠️ No contract for leaderboard update');
+      return;
+    }
+    
+    try {
+      console.log('🏆 Updating leaderboard...');
+      const [addresses, points] = await contract.getTopPlayers();
+      
+      console.log('📊 Raw leaderboard data:', { addresses, points });
+      
+      if (!addresses || addresses.length === 0) {
+        console.log('ℹ️ No leaderboard data found');
+        setLeaderboard([]);
+        return;
+      }
+      
+      const leaderboardData = addresses
+        .map((address, index) => ({
+          rank: index + 1,
+          address: address,
+          points: Number(points[index] || 0)
+        }))
+        .filter(player => player.points > 0)
+        .slice(0, 100);
+      
+      console.log('✅ Processed leaderboard:', leaderboardData.length, 'players');
+      setLeaderboard(leaderboardData);
+      
+    } catch (error) {
+      console.error("❌ Leaderboard update failed:", error);
+    }
+  }, [contract, setLeaderboard]);
 
-  // UNIVERSAL WALLET CONNECTION
+  // UNIVERSAL WALLET CONNECTION - GÜNCELLENDİ
   const connectWallet = useCallback(async () => {
     setIsLoading(true);
     setConnectionError("");
@@ -123,25 +198,8 @@ export default function Home() {
         }
       }
 
-      // 3. SON ÇARE: STANDARD ETHEREUM
-      if (window.ethereum) {
-        try {
-          console.log('🌐 Trying standard Ethereum...');
-          const accounts = await window.ethereum.request({
-            method: 'eth_requestAccounts'
-          });
-          if (accounts && accounts[0]) {
-            console.log('✅ Ethereum connected:', accounts[0]);
-            await handleWalletConnection('ethereum', accounts[0]);
-            return;
-          }
-        } catch (error) {
-          console.log('Ethereum failed:', error);
-        }
-      }
-
       // HİÇBİRİ ÇALIŞMAZSA
-      throw new Error('No wallet found. Please make sure you have a wallet installed.');
+      throw new Error('No wallet found. Please use Farcaster or Base app.');
 
     } catch (error) {
       console.error('❌ All connection methods failed:', error);
@@ -153,6 +211,8 @@ export default function Home() {
 
   const handleWalletConnection = async (walletType, address) => {
     try {
+      console.log('💰 Setting up wallet connection for:', address);
+      
       let providerInstance;
       let signer;
 
@@ -160,32 +220,38 @@ export default function Home() {
         providerInstance = new ethers.BrowserProvider(window.ethereum);
         signer = await providerInstance.getSigner();
       } else {
-        providerInstance = new ethers.JsonRpcProvider('https://mainnet.base.org');
-        signer = null;
+        throw new Error('No Ethereum provider found');
       }
 
-      const contractInstance = signer 
-        ? new ethers.Contract(contractAddress, abi, signer)
-        : new ethers.Contract(contractAddress, abi, providerInstance);
+      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
 
       setProvider(providerInstance);
       setContract(contractInstance);
       setUserAddress(address);
       setWalletConnected(true);
 
-      // Fetch initial data
+      console.log('✅ Contract instance created');
+
+      // TÜM VERİLERİ PARALEL YÜKLE
       const [balance, pointVals] = await Promise.all([
-        checkYoyoBalance(address),
+        updateYoyoBalance(address), // YOYO balance hemen güncelle
         getContractPointValues(contractInstance)
       ]);
 
-      setYoyoBalanceAmount(balance);
       setPointValues(pointVals);
 
-      await updatePlayerInfo(address);
-      await updateLeaderboard();
+      // Player info ve leaderboard'u güncelle
+      await Promise.all([
+        updatePlayerInfo(address),
+        updateLeaderboard()
+      ]);
 
       console.log('✅ Wallet connection completed successfully');
+      console.log('📊 Final data:', { 
+        yoyoBalance: balance, 
+        points: points,
+        playerStats 
+      });
 
     } catch (error) {
       console.error('❌ Wallet setup failed:', error);
@@ -207,11 +273,7 @@ export default function Home() {
     );
   }, [disconnectContractWallet, setWalletConnected, setUserAddress, setContract, setPoints, setYoyoBalanceAmount, setGamesPlayedToday, setLeaderboard, setPlayerStats, setGameState]);
 
-  const {
-    startGame,
-    resetGame,
-    startNewGame
-  } = useGameLogic(
+  const { startGame, resetGame, startNewGame } = useGameLogic(
     walletConnected,
     contract,
     userAddress,
@@ -234,16 +296,7 @@ export default function Home() {
 
     const autoRefresh = async () => {
       try {
-        await refreshPlayerData(
-          contract,
-          userAddress,
-          checkYoyoBalance,
-          setPoints,
-          setGamesPlayedToday,
-          setDailyLimit,
-          setPlayerStats,
-          setYoyoBalanceAmount
-        );
+        await updatePlayerInfo(userAddress);
         await updateLeaderboard();
       } catch (error) {
         console.error('❌ Auto-refresh failed:', error);
@@ -254,7 +307,7 @@ export default function Home() {
     const interval = setInterval(autoRefresh, 30000);
     
     return () => clearInterval(interval);
-  }, [isClient, walletConnected, contract, userAddress, refreshPlayerData, checkYoyoBalance, updateLeaderboard]);
+  }, [isClient, walletConnected, contract, userAddress, updatePlayerInfo, updateLeaderboard]);
 
   if (!isClient) {
     return (
@@ -334,6 +387,7 @@ export default function Home() {
             isLoading={isLoading}
             pointValues={pointValues}
             playerStats={playerStats}
+            onRefreshBalance={() => updateYoyoBalance(userAddress)}
           />
           
           <div className="min-h-[500px]">

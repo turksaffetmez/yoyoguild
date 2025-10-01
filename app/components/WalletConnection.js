@@ -13,7 +13,8 @@ const WalletConnection = ({
   dailyLimit,
   isLoading,
   pointValues,
-  playerStats
+  playerStats,
+  onRefreshBalance
 }) => {
   const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
@@ -55,6 +56,7 @@ const WalletConnection = ({
     try {
       const newBalance = await checkYoyoBalance(userAddress);
       setDisplayYoyoBalance(newBalance);
+      console.log('✅ YOYO balance refreshed:', newBalance);
     } catch (error) {
       console.error("Failed to refresh YOYO balance:", error);
     } finally {
@@ -62,8 +64,10 @@ const WalletConnection = ({
     }
   };
 
+  // OTOMATİK YOYO BALANCE GÜNCELLEME
   useEffect(() => {
     if (walletConnected && userAddress) {
+      console.log('🔄 Auto-refreshing YOYO balance on connect');
       refreshYoyoBalance();
     }
   }, [walletConnected, userAddress]);
