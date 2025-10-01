@@ -38,36 +38,38 @@ a {
   text-decoration: none;
 }
 
-/* ... mevcut stilleriniz aynı kalsın ... */
-
-/* ✅ SADECE SPLASH ELEMENTLERİNİ GİZLE */
-iframe[src*="splash"],
-iframe[src*="loading"],
-[class*="splash"]:not(.farcaster-mini-app),
-[class*="Splash"]:not(.farcaster-mini-app),
-[class*="loading"]:not(.farcaster-mini-app),
-[class*="Loading"]:not(.farcaster-mini-app),
-[data-farcaster-loading],
-[class*="farcaster-loading"] {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-/* ✅ BODY'yi göster - KRİTİK */
-body {
-  visibility: visible !important;
-  opacity: 1 !important;
+::-webkit-scrollbar-track {
+  background: #1e293b;
 }
 
-/* ✅ Mini App'i göster */
+::-webkit-scrollbar-thumb {
+  background: #6366f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4f46e5;
+}
+
+/* Farcaster Mini App Styles */
 .farcaster-mini-app {
-  visibility: visible !important;
-  opacity: 1 !important;
-  display: block !important;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%) !important;
 }
 
-/* Mobile optimization for Mini App */
+.farcaster-mini-app .max-w-6xl {
+  border-radius: 12px !important;
+  margin: 8px !important;
+}
+
+.farcaster-mini-app footer {
+  display: none !important;
+}
+
+/* Mobile optimization */
 @media (max-width: 400px) {
   .farcaster-mini-app {
     padding: 4px !important;
@@ -75,9 +77,5 @@ body {
   
   .farcaster-mini-app .p-6 {
     padding: 1rem !important;
-  }
-  
-  .farcaster-mini-app .text-2xl {
-    font-size: 1.25rem !important;
   }
 }
