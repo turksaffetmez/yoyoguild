@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { ethers } from "ethers";
 import { contractAddress, abi } from "./utils/contract";
 import { useGameState } from "./hooks/useGameState";
@@ -9,8 +9,6 @@ import WalletConnection from "./components/WalletConnection";
 import GameBoard from "./components/GameBoard";
 import Leaderboard from "./components/Leaderboard";
 import HomeContent from "./components/HomeContent";
-import FarcasterWallet from "./components/FarcasterWallet";
-import FarcasterMiniApp from "./components/FarcasterMiniApp";
 import MetaTags from "./components/MetaTags";
 import Image from "next/image";
 
@@ -25,14 +23,11 @@ export default function Home() {
     leaderboard, setLeaderboard,
     yoyoBalanceAmount, setYoyoBalanceAmount,
     isMobile, setIsMobile,
-    showWalletOptions, setShowWalletOptions,
     gamesPlayedToday, setGamesPlayedToday,
     dailyLimit, setDailyLimit,
     isLoading, setIsLoading,
     connectionError, setConnectionError,
     pointValues, setPointValues,
-    isFarcasterMiniApp, setIsFarcasterMiniApp,
-    currentEnvironment, setCurrentEnvironment,
     playerStats, setPlayerStats,
     isClient,
     gameState, setGameState,
@@ -48,6 +43,27 @@ export default function Home() {
     connectWallet: connectContractWallet,
     disconnectWallet: disconnectContractWallet
   } = useContract(provider, isClient);
+
+  const [farcasterSDK, setFarcasterSDK] = useState(null);
+
+  // Farcaster SDK Initialization
+  useEffect(() => {
+    if (!isClient) return;
+
+    const initializeFarcasterSDK = async () => {
+      try {
+        // Farcaster Mini App SDK - Official integration
+        const { sdk } = await import('@farcaster/miniapp-sdk');
+        await sdk.actions.ready();
+        setFarcasterSDK(sdk);
+        console.log('✅ Farcaster SDK initialized');
+      } catch (error) {
+        console.log('Farcaster SDK not available:', error);
+      }
+    };
+
+    initializeFarcasterSDK();
+  }, [isClient]);
 
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
@@ -68,34 +84,113 @@ export default function Home() {
     await updateContractLeaderboard(contract, setLeaderboard);
   }, [contract, updateContractLeaderboard, setLeaderboard]);
 
-  const connectWallet = useCallback(async (walletType = 'standard', farcasterAddress = null) => {
-    await connectContractWallet(
-      walletType,
-      farcasterAddress,
-      isMobile,
-      setShowWalletOptions,
-      setProvider,
-      setContract,
-      setUserAddress,
-      setWalletConnected,
-      checkYoyoBalance,
-      setYoyoBalanceAmount,
-      getContractPointValues,
-      setPointValues,
-      updatePlayerInfo,
-      updateLeaderboard,
-      refreshPlayerData,
-      isFarcasterMiniApp,
-      points,
-      setConnectionError,
-      setIsLoading
-    );
-  }, [
-    connectContractWallet, isMobile, setShowWalletOptions, setProvider, setContract,
-    setUserAddress, setWalletConnected, checkYoyoBalance, setYoyoBalanceAmount,
-    getContractPointValues, setPointValues, updatePlayerInfo, updateLeaderboard,
-    refreshPlayerData, isFarcasterMiniApp, points, setConnectionError, setIsLoading
-  ]);
+  // UNIVERSAL WALLET CONNECTION - Tek sistem
+  const connectWallet = useCallback(async () => {
+    setIsLoading(true);
+    setConnectionError("");
+
+    try {
+      console.log('🔗 Attempting universal wallet connection...');
+
+      // 1. ÖNCE FARCASTER SDK DENEYELİM
+      if (farcasterSDK?.actions?.connectWallet) {
+        try {
+          console.log('🎯 Trying Farcaster SDK...');
+          const accounts = await farcasterSDK.actions.connectWallet();
+          if (accounts && accounts[0]) {
+            console.log('✅ Farcaster SDK connected:', accounts[0]);
+            await handleWalletConnection('farcaster', accounts[0]);
+            return;
+          }
+        } catch (error) {
+          console.log('Farcaster SDK failed:', error);
+        }
+      }
+
+      // 2. SONRA BASE EMBEDDED WALLET
+      if (window.ethereum) {
+        try {
+          console.log('🟡 Trying Base embedded wallet...');
+          const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts'
+          });
+          if (accounts && accounts[0]) {
+            console.log('✅ Base wallet connected:', accounts[0]);
+            await handleWalletConnection('base', accounts[0]);
+            return;
+          }
+        } catch (error) {
+          console.log('Base wallet failed:', error);
+        }
+      }
+
+      // 3. SON ÇARE: STANDARD ETHEREUM
+      if (window.ethereum) {
+        try {
+          console.log('🌐 Trying standard Ethereum...');
+          const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts'
+          });
+          if (accounts && accounts[0]) {
+            console.log('✅ Ethereum connected:', accounts[0]);
+            await handleWalletConnection('ethereum', accounts[0]);
+            return;
+          }
+        } catch (error) {
+          console.log('Ethereum failed:', error);
+        }
+      }
+
+      // HİÇBİRİ ÇALIŞMAZSA
+      throw new Error('No wallet found. Please make sure you have a wallet installed.');
+
+    } catch (error) {
+      console.error('❌ All connection methods failed:', error);
+      setConnectionError(error.message || 'Connection failed');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [farcasterSDK, setIsLoading, setConnectionError]);
+
+  const handleWalletConnection = async (walletType, address) => {
+    try {
+      let providerInstance;
+      let signer;
+
+      if (window.ethereum) {
+        providerInstance = new ethers.BrowserProvider(window.ethereum);
+        signer = await providerInstance.getSigner();
+      } else {
+        providerInstance = new ethers.JsonRpcProvider('https://mainnet.base.org');
+        signer = null;
+      }
+
+      const contractInstance = signer 
+        ? new ethers.Contract(contractAddress, abi, signer)
+        : new ethers.Contract(contractAddress, abi, providerInstance);
+
+      setProvider(providerInstance);
+      setContract(contractInstance);
+      setUserAddress(address);
+      setWalletConnected(true);
+
+      // Fetch initial data
+      const balance = await checkYoyoBalance(address);
+      setYoyoBalanceAmount(balance);
+
+      const pointVals = await getContractPointValues(contractInstance);
+      setPointValues(pointVals);
+
+      await updatePlayerInfo(address);
+      await updateLeaderboard();
+
+      console.log('✅ Wallet connection completed successfully');
+
+    } catch (error) {
+      console.error('❌ Wallet setup failed:', error);
+      throw error;
+    }
+  };
 
   const disconnectWallet = useCallback(() => {
     disconnectContractWallet(
@@ -129,76 +224,13 @@ export default function Home() {
     setGameState,
     setIsLoading,
     setConnectionError,
-    isFarcasterMiniApp,
     points
   );
 
-  // ✅ OTOMATİK BAĞLANMA - Sadece Base ve Farcaster için (Web browser'da YOK)
-  useEffect(() => {
-    if (!isClient || walletConnected || isLoading) return;
-
-    const autoConnectByEnvironment = async () => {
-      console.log('🌍 Auto-connect for environment:', currentEnvironment);
-      
-      try {
-        switch (currentEnvironment) {
-          case 'farcaster':
-            console.log('🎯 Attempting Farcaster auto-connect...');
-            // Farcaster için SDK ile bağlanmayı dene
-            if (window.farcaster?.actions?.connectWallet) {
-              try {
-                const accounts = await window.farcaster.actions.connectWallet();
-                if (accounts && accounts[0]) {
-                  await connectWallet('farcaster', accounts[0]);
-                  return;
-                }
-              } catch (error) {
-                console.log('Farcaster SDK auto-connect failed:', error);
-              }
-            }
-            break;
-            
-          case 'base':
-            console.log('🟡 Attempting Base app auto-connect...');
-            // Base app için embedded wallet bağlantısı
-            if (window.ethereum) {
-              try {
-                const accounts = await window.ethereum.request({
-                  method: 'eth_requestAccounts'
-                });
-                if (accounts && accounts[0]) {
-                  await connectWallet('embedded', accounts[0]);
-                  return;
-                }
-              } catch (error) {
-                console.log('Base app auto-connect failed:', error);
-              }
-            }
-            break;
-            
-          default:
-            console.log('🌐 Browser environment - no auto-connect');
-            // Normal browser'da otomatik bağlanma YOK
-            break;
-        }
-      } catch (error) {
-        console.log('⚠️ Auto-connect failed:', error);
-      }
-    };
-
-    // Sadece Base ve Farcaster'da otomatik bağlan
-    if (currentEnvironment === 'farcaster' || currentEnvironment === 'base') {
-      const timer = setTimeout(autoConnectByEnvironment, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isClient, walletConnected, currentEnvironment, connectWallet, isLoading]);
-
-  // ✅ SAYFA YÜKLENDİĞİNDE OTOMATİK REFRESH
+  // Auto-refresh data
   useEffect(() => {
     if (!isClient || !walletConnected || !contract || !userAddress) return;
 
-    console.log('🔄 Auto-refreshing player data...');
-    
     const autoRefresh = async () => {
       try {
         await refreshPlayerData(
@@ -232,9 +264,8 @@ export default function Home() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4 ${isFarcasterMiniApp ? 'farcaster-mini-app' : ''}`}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
       <MetaTags />
-      <FarcasterMiniApp />
       
       <div className="w-full max-w-6xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-3xl shadow-2xl overflow-hidden border border-purple-500/30 backdrop-blur-sm">
         <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 text-white py-6 px-6 text-center relative overflow-hidden">
@@ -289,11 +320,6 @@ export default function Home() {
             </div>
           )}
           
-          {/* FarcasterWallet - Sadece uygulamalarda göster */}
-          {(currentEnvironment === 'farcaster' || currentEnvironment === 'base') && (
-            <FarcasterWallet onConnect={connectWallet} />
-          )}
-          
           <WalletConnection
             walletConnected={walletConnected}
             userAddress={userAddress}
@@ -307,7 +333,6 @@ export default function Home() {
             isLoading={isLoading}
             pointValues={pointValues}
             playerStats={playerStats}
-            currentEnvironment={currentEnvironment}
           />
           
           <div className="min-h-[500px]">
@@ -346,11 +371,9 @@ export default function Home() {
           </div>
         </div>
         
-        {!isFarcasterMiniApp && (
-          <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
-            <p>YoYo Guild Battle | Base Mainnet</p>
-          </footer>
-        )}
+        <footer className="bg-slate-900/80 text-gray-400 py-4 text-center border-t border-slate-700/50 backdrop-blur-sm">
+          <p>YoYo Guild Battle | Base Mainnet</p>
+        </footer>
       </div>
 
       {isLoading && (

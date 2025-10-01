@@ -13,8 +13,7 @@ const WalletConnection = ({
   dailyLimit,
   isLoading,
   pointValues,
-  playerStats,
-  currentEnvironment
+  playerStats
 }) => {
   const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
@@ -78,68 +77,30 @@ const WalletConnection = ({
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const showMaintenanceMessage = () => {
-    alert("Wallet connection is currently only available in Base and Farcaster apps. Please use the mobile apps to play.");
-  };
-
-  // Web browser'da maintenance mod, uygulamalarda normal
-  const isMaintenanceMode = currentEnvironment === 'browser';
-
   return (
     <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 mb-6 border border-slate-600 shadow-lg">
       {!walletConnected ? (
         <div className="text-center">
-          <h3 className="text-xl font-bold text-white mb-4">
-            {isMaintenanceMode ? "Play in Base or Farcaster App" : "Connect Your Wallet to Start Battling!"}
-          </h3>
+          <h3 className="text-xl font-bold text-white mb-4">Connect Your Wallet to Start Battling!</h3>
           
-          {isMaintenanceMode ? (
-            // Web browser'da maintenance mesajı
-            <>
-              <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 mb-4">
-                <p className="text-yellow-400 text-sm">
-                  🚫 Wallet connection is currently only available in Base and Farcaster mobile apps.
-                </p>
-                <p className="text-yellow-300 text-xs mt-2">
-                  Please download the apps to play YoYo Guild Battle!
-                </p>
+          <button
+            onClick={onConnect}
+            disabled={isLoading}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+          >
+            {isLoading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Connecting...</span>
               </div>
-              <div className="flex justify-center space-x-4 mt-4">
-                <a 
-                  href="https://base.org" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-                >
-                  Get Base App
-                </a>
-                <a 
-                  href="https://farcaster.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-                >
-                  Get Farcaster
-                </a>
-              </div>
-            </>
-          ) : (
-            // Base/Farcaster'da normal bağlanma butonu
-            <button
-              onClick={onConnect}
-              disabled={isLoading}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
-            >
-              {isLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Connecting...</span>
-                </div>
-              ) : (
-                'Connect Wallet'
-              )}
-            </button>
-          )}
+            ) : (
+              'Connect Wallet'
+            )}
+          </button>
+          
+          <p className="text-gray-300 text-sm">
+            Works with Farcaster, Base, and other Ethereum wallets
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -149,10 +110,6 @@ const WalletConnection = ({
               <span className="text-white font-semibold">Connected</span>
               <span className="bg-purple-600 px-3 py-1 rounded-full text-sm font-mono">
                 {formatAddress(userAddress)}
-              </span>
-              <span className="bg-blue-500 px-2 py-1 rounded-full text-xs">
-                {currentEnvironment === 'farcaster' ? 'Farcaster' : 
-                 currentEnvironment === 'base' ? 'Base' : 'Wallet'}
               </span>
             </div>
             

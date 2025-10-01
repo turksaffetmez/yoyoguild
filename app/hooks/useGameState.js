@@ -10,26 +10,6 @@ const STORAGE_KEYS = {
   LAST_UPDATE: 'yoyo_last_update'
 };
 
-const detectEnvironment = () => {
-  if (typeof window === 'undefined') return 'browser';
-  
-  const ua = navigator.userAgent.toLowerCase();
-  const url = window.location.href.toLowerCase();
-  
-  // Farcaster/Warpcast
-  if (ua.includes('warpcast') || ua.includes('farcaster') || window.self !== window.top) {
-    return 'farcaster';
-  }
-  
-  // Base App
-  if (ua.includes('base') || url.includes('base.org')) {
-    return 'base';
-  }
-  
-  // Normal Browser
-  return 'browser';
-};
-
 export const useGameState = () => {
   const [walletConnected, setWalletConnected] = useState(false);
   const [userAddress, setUserAddress] = useState(() => {
@@ -57,7 +37,6 @@ export const useGameState = () => {
     return 0;
   });
   const [isMobile, setIsMobile] = useState(false);
-  const [showWalletOptions, setShowWalletOptions] = useState(false);
   const [gamesPlayedToday, setGamesPlayedToday] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEYS.GAMES_PLAYED);
@@ -79,8 +58,6 @@ export const useGameState = () => {
     winYoyo: 500,
     lose: 10
   });
-  const [isFarcasterMiniApp, setIsFarcasterMiniApp] = useState(false);
-  const [currentEnvironment, setCurrentEnvironment] = useState('browser');
   const [playerStats, setPlayerStats] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEYS.PLAYER_STATS);
@@ -190,27 +167,6 @@ export const useGameState = () => {
     setIsClient(true);
   }, []);
 
-  // Environment detection
-  useEffect(() => {
-    if (!isClient) return;
-    
-    const environment = detectEnvironment();
-    setCurrentEnvironment(environment);
-    
-    console.log('🌍 Detected environment:', environment);
-    
-    const isEmbedded = window.self !== window.top;
-    const isWarpcastUA = /Farcaster|Warpcast/i.test(navigator.userAgent);
-    
-    const shouldActivateMiniApp = isEmbedded || isWarpcastUA || environment === 'base';
-    
-    setIsFarcasterMiniApp(shouldActivateMiniApp);
-    
-    if (shouldActivateMiniApp) {
-      document.body.classList.add('farcaster-mini-app');
-    }
-  }, [isClient]);
-
   useEffect(() => {
     if (!isClient) return;
     const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -229,14 +185,11 @@ export const useGameState = () => {
     leaderboard, setLeaderboard,
     yoyoBalanceAmount, setYoyoBalanceAmount,
     isMobile, setIsMobile,
-    showWalletOptions, setShowWalletOptions,
     gamesPlayedToday, setGamesPlayedToday,
     dailyLimit, setDailyLimit,
     isLoading, setIsLoading,
     connectionError, setConnectionError,
     pointValues, setPointValues,
-    isFarcasterMiniApp, setIsFarcasterMiniApp,
-    currentEnvironment, setCurrentEnvironment,
     playerStats, setPlayerStats,
     isClient, setIsClient,
     gameState, setGameState,
