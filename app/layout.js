@@ -15,7 +15,7 @@ export default function RootLayout({ children }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>YoYo Guild Battle - Blockchain Battle Arena</title>
-        
+        <script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@0.1.4/dist.js" />
         {/* ACİL FARCASTER READY FIX */}
         <script
           dangerouslySetInnerHTML={{
