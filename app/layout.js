@@ -1,5 +1,5 @@
 import './globals.css'
-import FarcasterSDK from './components/FarcasterSDK'
+import FarcasterMiniAppSDK from './components/FarcasterMiniAppSDK'
 
 export const metadata = {
   title: 'YoYo Guild Battle - Blockchain Battle Arena',
@@ -11,64 +11,29 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {/* SIMPLE FARCASTER READY SOLUTION */}
+        {/* SIMPLE READY FALLBACK */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // SIMPLE FARCASTER READY - No complex SDK loading
+              // SIMPLE READY FALLBACK
               (function() {
-                console.log('🚀 SIMPLE: Starting Farcaster ready process...');
+                console.log('🚀 Fallback ready initialized');
                 
-                const sendFarcasterReady = function() {
-                  try {
-                    // 1. Önce SDK'yı dene (eğer Farcaster yüklemişse)
-                    let sdkCalled = false;
-                    
-                    if (window.farcaster?.actions?.ready) {
-                      window.farcaster.actions.ready();
-                      console.log('✅ Layout: sdk.actions.ready() called');
-                      sdkCalled = true;
-                    }
-                    else if (window.farcaster?.ready) {
-                      window.farcaster.ready();
-                      console.log('✅ Layout: farcaster.ready() called');
-                      sdkCalled = true;
-                    }
-                    
-                    // 2. Farcaster formatında ready mesajı gönder
-                    if (window.parent !== window) {
-                      const readyMsg = {
-                        type: 'ready',
-                        data: {
-                          version: '1.0.0',
-                          app: 'YoYo Guild Battle',
-                          sdk: sdkCalled,
-                          timestamp: Date.now()
-                        }
-                      };
-                      window.parent.postMessage(readyMsg, '*');
-                      console.log('📨 Layout ready sent, SDK:', sdkCalled);
-                    }
-                    
-                    // 3. SDK yoksa bilgi ver
-                    if (!sdkCalled) {
-                      console.log('ℹ️ Layout: No SDK found, Farcaster should provide it');
-                    }
-                  } catch(error) {
-                    console.error('❌ Layout ready error:', error);
+                const sendFallbackReady = function() {
+                  if (window.parent !== window) {
+                    window.parent.postMessage({ 
+                      type: 'ready',
+                      data: { version: '1.0.0' }
+                    }, '*');
+                    console.log('📨 Fallback ready sent');
                   }
                 };
                 
                 // Hemen gönder
-                sendFarcasterReady();
+                sendFallbackReady();
                 
-                // Multiple attempts - Farcaster yavaş yüklenebilir
-                [100, 500, 1000, 2000, 3000, 5000].forEach(timeout => {
-                  setTimeout(sendFarcasterReady, timeout);
-                });
-                
-                // Final attempt
-                setTimeout(sendFarcasterReady, 10000);
+                // 2 saniye sonra tekrar (SDK yüklenmezse)
+                setTimeout(sendFallbackReady, 2000);
               })();
             `
           }}
@@ -117,7 +82,7 @@ export default function RootLayout({ children }) {
         <link rel="icon" href="/images/logo.png" />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-        <FarcasterSDK />
+        <FarcasterMiniAppSDK />
         <main className="min-h-screen">
           {children}
         </main>
