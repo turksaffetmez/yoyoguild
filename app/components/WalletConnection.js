@@ -114,12 +114,12 @@ const WalletConnection = ({
                   Get Base App
                 </a>
                 <a 
-                  href="https://warpcast.com" 
+                  href="https://farcaster.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
                 >
-                  Get Warpcast
+                  Get Farcaster
                 </a>
               </div>
             </>
