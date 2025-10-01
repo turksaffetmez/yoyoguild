@@ -1,40 +1,29 @@
 {
   "accountAssociation": {
     "header": "eyJmaWQiOjk5Mjk1NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweEQ3NDk0NGY3MEU1MTE2RDZBMkU2NjQzN2U1OGQ0MTYxYUVBMTRBYjAifQ",
-    "payload": "eyJkb21haW4iOiJ5b3lvZ3VpbGQudmVyY2VsLmFwcCJ9",
-    "signature": "6XA1QvELELcK2S2um1PoevADp/y9SouXIHEa/qHVdw5kIXJUUaizcLnwzrx/S6ctQKKXsJ3fQ5/nC2+gNt64Mxw="
+    "payload": "eyJkb21haW4iOiJodHRwczovL3lveW9ndWlsZC52ZXJjZWwuYXBwIn0",
+    "signature": "SqTiytwQufGeE73ii+4knPOEJf0ExQnJu/2NoDXro+8fN6UrS93wYTPbdhV8PPNI+an18aypVFATi2iifSZRIxw="
   },
-  "baseBuilder": {
-    "allowedAddresses": ["0x5beFBa4634D09B7868C438f9380Dd9205a1A24Aa"]
-  },
-  "miniapp": {
-    "version": "next",
+  "frame": {
     "name": "YoYo Guild Battle",
-    "homeUrl": "https://yoyoguild.vercel.app",
+    "version": "1",
     "iconUrl": "https://yoyoguild.vercel.app/images/logo.png",
+    "homeUrl": "https://yoyoguild.vercel.app",
+    "imageUrl": "https://yoyoguild.vercel.app/images/baseapp.png",
     "splashImageUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
     "splashBackgroundColor": "#000000",
-    "webhookUrl": "https://yoyoguild.vercel.app/api/webhook",
-    "subtitle": "Battle Earn YoYo",
-    "description": "Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
+    "subtitle": "Battle Arena on Base",
+    "description": "Battle Tevans, earn points, win YOYO! Join the YoYo Guild and dominate the battlefield!",
     "screenshotUrls": [
       "https://yoyoguild.vercel.app/images/ss1.png",
       "https://yoyoguild.vercel.app/images/ss2.png",
       "https://yoyoguild.vercel.app/images/ss3.png"
     ],
     "primaryCategory": "games",
-    "tags": [
-      "gaming",
-      "battle",
-      "yoyo",
-      "tevaera",
-      "base"
-    ],
+    "tags": ["gaming", "battle", "yoyo", "tevaera", "base", "nft", "points"],
     "heroImageUrl": "https://yoyoguild.vercel.app/images/baseapp.png",
-    "tagline": "Battle Tevans, earn YOYO!",
     "ogTitle": "YoYo Guild Battle",
     "ogDescription": "Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
-    "ogImageUrl": "https://yoyoguild.vercel.app/images/baseapp.png",
-    "noindex": false
+    "ogImageUrl": "https://yoyoguild.vercel.app/images/baseapp.png"
   }
 }
