@@ -33,7 +33,7 @@ export const useContract = (provider, isClient) => {
   };
 
   const getPointValues = async (contract) => {
-    if (!contract) return { winNormal: 10, winYoyo: 15, lose: 5 };
+    if (!contract) return { winNormal: 250, winYoyo: 500, lose: 10 };
     
     try {
       const winNormal = await contract.WIN_POINTS();
@@ -47,7 +47,7 @@ export const useContract = (provider, isClient) => {
       };
     } catch (error) {
       console.error("Failed to get point values:", error);
-      return { winNormal: 10, winYoyo: 15, lose: 5 };
+      return { winNormal: 250, winYoyo: 500, lose: 10 };
     }
   };
 
@@ -141,8 +141,9 @@ export const useContract = (provider, isClient) => {
       let signer;
       let address;
 
+      // FARCASTER EMBEDDED WALLET
       if ((walletType === 'farcaster' || walletType === 'embedded') && farcasterAddress) {
-        console.log('🎯 Using Farcaster embedded wallet');
+        console.log('🎯 Using embedded wallet');
         address = farcasterAddress;
         
         if (window.ethereum) {
@@ -153,9 +154,10 @@ export const useContract = (provider, isClient) => {
           signer = null;
         }
       }
+      // STANDARD WALLET
       else {
         if (!window.ethereum) {
-          throw new Error('No wallet found. Please install a wallet like MetaMask, Rabby, or use a wallet-enabled browser.');
+          throw new Error('No wallet found.');
         }
 
         const accounts = await window.ethereum.request({
@@ -217,19 +219,7 @@ export const useContract = (provider, isClient) => {
     } catch (error) {
       console.error('❌ Wallet connection failed:', error);
       if (setConnectionError) {
-        let errorMessage = 'Connection failed: ';
-        
-        if (error.code === 4001) {
-          errorMessage += 'User rejected the connection';
-        } else if (error.code === -32002) {
-          errorMessage += 'Connection request already pending';
-        } else if (error.message.includes('No wallet found')) {
-          errorMessage += 'No wallet found. Please install a wallet or use a wallet-enabled browser.';
-        } else {
-          errorMessage += error.message || 'Unknown error occurred';
-        }
-        
-        setConnectionError(errorMessage);
+        setConnectionError('Connection failed: ' + (error.message || 'Unknown error occurred'));
       }
       throw error;
     } finally {

@@ -50,7 +50,7 @@ export const useGameLogic = (
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsLoading(true);
 
-      // ✅ GÜNCELLENMİŞ GAS LİMİT: 50.000
+      // ✅ GAS LİMİT: 50.000
       const tx = await contract.playGame({
         gasLimit: 50000,
       });

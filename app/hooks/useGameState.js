@@ -1,13 +1,107 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
+const STORAGE_KEYS = {
+  USER_ADDRESS: 'yoyo_user_address',
+  PLAYER_STATS: 'yoyo_player_stats', 
+  POINTS: 'yoyo_points',
+  GAMES_PLAYED: 'yoyo_games_played',
+  DAILY_LIMIT: 'yoyo_daily_limit',
+  YOYO_BALANCE: 'yoyo_balance',
+  LAST_UPDATE: 'yoyo_last_update'
+};
+
+const detectEnvironment = () => {
+  if (typeof window === 'undefined') return 'browser';
+  
+  const ua = navigator.userAgent.toLowerCase();
+  const url = window.location.href.toLowerCase();
+  
+  // Farcaster/Warpcast
+  if (ua.includes('warpcast') || ua.includes('farcaster') || window.self !== window.top) {
+    return 'farcaster';
+  }
+  
+  // Base App
+  if (ua.includes('base') || url.includes('base.org')) {
+    return 'base';
+  }
+  
+  // Normal Browser
+  return 'browser';
+};
 
 export const useGameState = () => {
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [userAddress, setUserAddress] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(STORAGE_KEYS.USER_ADDRESS) || "";
+    }
+    return "";
+  });
+  const [contract, setContract] = useState(null);
+  const [points, setPoints] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEYS.POINTS);
+      return saved ? parseInt(saved) : 0;
+    }
+    return 0;
+  });
+  const [provider, setProvider] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [yoyoBalanceAmount, setYoyoBalanceAmount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEYS.YOYO_BALANCE);
+      return saved ? parseFloat(saved) : 0;
+    }
+    return 0;
+  });
+  const [isMobile, setIsMobile] = useState(false);
+  const [showWalletOptions, setShowWalletOptions] = useState(false);
+  const [gamesPlayedToday, setGamesPlayedToday] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEYS.GAMES_PLAYED);
+      return saved ? parseInt(saved) : 0;
+    }
+    return 0;
+  });
+  const [dailyLimit, setDailyLimit] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEYS.DAILY_LIMIT);
+      return saved ? parseInt(saved) : 20;
+    }
+    return 20;
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState("");
   const [pointValues, setPointValues] = useState({
     winNormal: 250,
     winYoyo: 500,
     lose: 10
   });
   const [isFarcasterMiniApp, setIsFarcasterMiniApp] = useState(false);
+  const [currentEnvironment, setCurrentEnvironment] = useState('browser');
+  const [playerStats, setPlayerStats] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEYS.PLAYER_STATS);
+      return saved ? JSON.parse(saved) : {
+        totalGames: 0,
+        totalWins: 0,
+        totalLosses: 0,
+        winRate: 0,
+        winStreak: 0,
+        maxWinStreak: 0
+      };
+    }
+    return {
+      totalGames: 0,
+      totalWins: 0,
+      totalLosses: 0,
+      winRate: 0,
+      winStreak: 0,
+      maxWinStreak: 0
+    };
+  });
   const [isClient, setIsClient] = useState(false);
 
   const [gameState, setGameState] = useState({
@@ -41,16 +135,74 @@ export const useGameState = () => {
   });
 
   useEffect(() => {
-    setIsClient(true);
+    if (!isClient) return;
+    
+    localStorage.setItem(STORAGE_KEYS.USER_ADDRESS, userAddress);
+    localStorage.setItem(STORAGE_KEYS.POINTS, points.toString());
+    localStorage.setItem(STORAGE_KEYS.GAMES_PLAYED, gamesPlayedToday.toString());
+    localStorage.setItem(STORAGE_KEYS.DAILY_LIMIT, dailyLimit.toString());
+    localStorage.setItem(STORAGE_KEYS.YOYO_BALANCE, yoyoBalanceAmount.toString());
+    localStorage.setItem(STORAGE_KEYS.PLAYER_STATS, JSON.stringify(playerStats));
+    localStorage.setItem(STORAGE_KEYS.LAST_UPDATE, Date.now().toString());
+  }, [userAddress, points, gamesPlayedToday, dailyLimit, yoyoBalanceAmount, playerStats, isClient]);
+
+  const refreshPlayerData = useCallback(async (contract, address, checkYoyoBalance, setPoints, setGamesPlayedToday, setDailyLimit, setPlayerStats, setYoyoBalanceAmount) => {
+    if (!contract || !address) return;
+    
+    try {
+      console.log('🔄 Refreshing player data from contract...');
+      
+      const [
+        totalPoints, 
+        gamesToday, 
+        limit, 
+        hasYoyoBoost,
+        totalGames,
+        totalWins, 
+        totalLosses,
+        winStreak,
+        maxWinStreak,
+        winRate
+      ] = await contract.getPlayerInfo(address);
+      
+      setPoints(Number(totalPoints));
+      setGamesPlayedToday(Number(gamesToday));
+      setDailyLimit(Number(limit));
+      
+      setPlayerStats({
+        totalGames: Number(totalGames),
+        totalWins: Number(totalWins),
+        totalLosses: Number(totalLosses),
+        winRate: Number(winRate),
+        winStreak: Number(winStreak),
+        maxWinStreak: Number(maxWinStreak)
+      });
+      
+      const yoyoBalance = await checkYoyoBalance(address);
+      setYoyoBalanceAmount(yoyoBalance);
+      
+    } catch (error) {
+      console.error("❌ Failed to refresh player data:", error);
+    }
   }, []);
 
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Environment detection
+  useEffect(() => {
     if (!isClient) return;
+    
+    const environment = detectEnvironment();
+    setCurrentEnvironment(environment);
+    
+    console.log('🌍 Detected environment:', environment);
     
     const isEmbedded = window.self !== window.top;
     const isWarpcastUA = /Farcaster|Warpcast/i.test(navigator.userAgent);
     
-    const shouldActivateMiniApp = isEmbedded || isWarpcastUA;
+    const shouldActivateMiniApp = isEmbedded || isWarpcastUA || environment === 'base';
     
     setIsFarcasterMiniApp(shouldActivateMiniApp);
     
@@ -59,11 +211,36 @@ export const useGameState = () => {
     }
   }, [isClient]);
 
+  useEffect(() => {
+    if (!isClient) return;
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    setIsMobile(mobile);
+  }, [isClient]);
+
+  const remainingGames = dailyLimit - gamesPlayedToday;
+
   return {
+    walletConnected, setWalletConnected,
+    userAddress, setUserAddress,
+    contract, setContract,
+    points, setPoints,
+    provider, setProvider,
     activeTab, setActiveTab,
+    leaderboard, setLeaderboard,
+    yoyoBalanceAmount, setYoyoBalanceAmount,
+    isMobile, setIsMobile,
+    showWalletOptions, setShowWalletOptions,
+    gamesPlayedToday, setGamesPlayedToday,
+    dailyLimit, setDailyLimit,
+    isLoading, setIsLoading,
+    connectionError, setConnectionError,
     pointValues, setPointValues,
     isFarcasterMiniApp, setIsFarcasterMiniApp,
+    currentEnvironment, setCurrentEnvironment,
+    playerStats, setPlayerStats,
     isClient, setIsClient,
-    gameState, setGameState
+    gameState, setGameState,
+    remainingGames,
+    refreshPlayerData
   };
 };
