@@ -55,9 +55,9 @@ export const useGameState = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [connectionError, setConnectionError] = useState("");
   const [pointValues, setPointValues] = useState({
-    winNormal: 250,
-    winYoyo: 500,
-    lose: 10
+    winNormal: 250,    // DÜZELTİLDİ: 10 → 250
+    winYoyo: 500,      // DÜZELTİLDİ: 15 → 500
+    lose: 10           // DÜZELTİLDİ: 5 → 10
   });
   const [isFarcasterMiniApp, setIsFarcasterMiniApp] = useState(false);
   const [playerStats, setPlayerStats] = useState(() => {
@@ -169,7 +169,6 @@ export const useGameState = () => {
     setIsClient(true);
   }, []);
 
-  // Basit Farcaster detection
   useEffect(() => {
     if (!isClient) return;
     

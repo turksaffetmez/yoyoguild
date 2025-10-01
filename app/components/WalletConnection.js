@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
 
 const WalletConnection = ({
   walletConnected,
@@ -16,61 +15,10 @@ const WalletConnection = ({
   playerStats
 }) => {
   const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
-  const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
 
-  const YOYO_TOKEN_ADDRESS = "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1";
-  const YOYO_TOKEN_ABI = [
-    "function balanceOf(address owner) view returns (uint256)",
-    "function decimals() view returns (uint8)",
-    "function symbol() view returns (string)"
-  ];
-
-  const checkYoyoBalance = async (address) => {
-    if (!address) return 0;
-    try {
-      let provider;
-      
-      if (window.ethereum) {
-        provider = new ethers.BrowserProvider(window.ethereum);
-      } else {
-        provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
-      }
-
-      const yoyoContract = new ethers.Contract(YOYO_TOKEN_ADDRESS, YOYO_TOKEN_ABI, provider);
-      const balance = await yoyoContract.balanceOf(address);
-      const decimals = await yoyoContract.decimals();
-      const formattedBalance = Number(ethers.formatUnits(balance, decimals));
-      
-      return formattedBalance;
-    } catch (error) {
-      console.error("YOYO balance check failed:", error);
-      return 0;
-    }
+  const showMaintenanceMessage = () => {
+    alert("Wallet connection is under maintenance. It will be available soon.");
   };
-
-  const refreshYoyoBalance = async () => {
-    if (!userAddress) return;
-    
-    setIsRefreshingBalance(true);
-    try {
-      const newBalance = await checkYoyoBalance(userAddress);
-      setDisplayYoyoBalance(newBalance);
-    } catch (error) {
-      console.error("Failed to refresh YOYO balance:", error);
-    } finally {
-      setIsRefreshingBalance(false);
-    }
-  };
-
-  useEffect(() => {
-    if (walletConnected && userAddress) {
-      refreshYoyoBalance();
-    }
-  }, [walletConnected, userAddress]);
-
-  useEffect(() => {
-    setDisplayYoyoBalance(yoyoBalanceAmount);
-  }, [yoyoBalanceAmount]);
 
   const formatAddress = (address) => {
     if (!address) return "";
@@ -84,25 +32,15 @@ const WalletConnection = ({
           <h3 className="text-xl font-bold text-white mb-4">Connect Your Wallet to Start Battling!</h3>
           
           <button
-            onClick={onConnect}
-            disabled={isLoading}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+            onClick={showMaintenanceMessage}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 mb-3"
           >
-            {isLoading ? (
-              <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Connecting...</span>
-              </div>
-            ) : (
-              'Connect Wallet'
-            )}
+            Connect Wallet
           </button>
           
-          {isMobile && (
-            <p className="text-gray-400 mt-2 text-sm">
-              Make sure your wallet app is installed
-            </p>
-          )}
+          <p className="text-yellow-400 text-sm mt-2">
+            ⚠️ Wallet connection under maintenance
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -116,13 +54,6 @@ const WalletConnection = ({
             </div>
             
             <div className="flex items-center space-x-3">
-              <button
-                onClick={refreshYoyoBalance}
-                disabled={isRefreshingBalance}
-                className="bg-green-600 px-3 py-2 rounded-lg text-white hover:bg-green-500 transition-colors text-sm disabled:opacity-50"
-              >
-                {isRefreshingBalance ? '🔄' : '🔄 Balance'}
-              </button>
               <button
                 onClick={onDisconnect}
                 className="bg-red-600 px-4 py-2 rounded-lg text-white hover:bg-red-500 transition-colors text-sm"
@@ -146,16 +77,7 @@ const WalletConnection = ({
             </div>
             
             <div className="bg-slate-900/50 p-4 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div className="text-slate-400 text-sm">YOYO Balance</div>
-                <button 
-                  onClick={refreshYoyoBalance}
-                  disabled={isRefreshingBalance}
-                  className="text-xs text-green-400 hover:text-green-300 disabled:opacity-50"
-                >
-                  {isRefreshingBalance ? '...' : '↻'}
-                </button>
-              </div>
+              <div className="text-slate-400 text-sm">YOYO Balance</div>
               <div className="text-2xl font-bold text-purple-400">
                 {displayYoyoBalance > 0 ? displayYoyoBalance.toFixed(2) : '0'} YOYO
               </div>
