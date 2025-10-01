@@ -14,7 +14,8 @@ const GameBoard = ({
   remainingGames,
   dailyLimit,
   isLoading,
-  pointValues
+  pointValues,
+  playerStats
 }) => {
   const [countdown, setCountdown] = useState(0);
   const [fightAnimation, setFightAnimation] = useState(false);
@@ -29,7 +30,11 @@ const GameBoard = ({
   }, [gameState.gamePhase, gameState.countdown]);
 
   const handleGameStart = (selectedIndex) => {
-    onConnectWallet();
+    if (!walletConnected) {
+      onConnectWallet();
+      return;
+    }
+    onStartGame(selectedIndex);
   };
 
   const getWinChance = () => {
@@ -45,6 +50,23 @@ const GameBoard = ({
   };
 
   const renderGamePhase = () => {
+    if (!walletConnected) {
+      return (
+        <div className="text-center space-y-6">
+          <h2 className="text-3xl font-bold text-white mb-2">Choose Your Tevan</h2>
+          <p className="text-gray-300 mb-4">Connect your wallet to start battling!</p>
+          
+          <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 max-w-md mx-auto">
+            <p className="text-yellow-400 text-sm">
+              {navigator.userAgent.toLowerCase().includes('base') || navigator.userAgent.toLowerCase().includes('farcaster') 
+                ? "Connect your wallet to start playing!" 
+                : "Please use Base or Farcaster app to play YoYo Guild Battle!"}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     switch (gameState.gamePhase) {
       case "idle":
         return (
@@ -108,35 +130,29 @@ const GameBoard = ({
             <div className="bg-gray-800/50 rounded-xl p-4 max-w-md mx-auto">
               <div className="text-sm text-gray-300 space-y-2">
                 <div className="flex justify-between">
-                  <span>Wallet Status:</span>
-                  <span className="text-yellow-400">Not Connected</span>
+                  <span>Remaining Games Today:</span>
+                  <span className={remainingGames > 0 ? "text-green-400" : "text-red-400"}>
+                    {remainingGames}/{dailyLimit}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>YOYO Boost:</span>
-                  <span className="text-yellow-400">Not Active</span>
+                  <span className={yoyoBalanceAmount > 0 ? "text-green-400" : "text-yellow-400"}>
+                    {yoyoBalanceAmount > 0 ? "Active (+10%)" : "Not Active"}
+                  </span>
                 </div>
                 <div className="flex justify-between text-blue-400">
-                  <span>Connect wallet to play!</span>
+                  <span>Total Points:</span>
+                  <span>{points.toLocaleString()}</span>
                 </div>
               </div>
             </div>
           </div>
         );
 
-      // Diğer game phase'ler aynı kalabilir, sadece butonlar maintenance mesajı göstersin
+      // Diğer game phase'ler aynı kalıyor...
       default:
-        return (
-          <div className="text-center space-y-8">
-            <h2 className="text-3xl font-bold text-white mb-4">Game Demo</h2>
-            <p className="text-gray-300">Wallet connection is under maintenance.</p>
-            <button
-              onClick={onStartNewGame}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
-            >
-              Back to Selection
-            </button>
-          </div>
-        );
+        return null;
     }
   };
 

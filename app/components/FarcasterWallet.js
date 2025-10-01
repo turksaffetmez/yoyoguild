@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 
 const FarcasterWallet = ({ onConnect }) => {
   const [isFarcaster, setIsFarcaster] = useState(false);
+  const [isBase, setIsBase] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -12,25 +13,28 @@ const FarcasterWallet = ({ onConnect }) => {
   useEffect(() => {
     if (!isClient) return;
 
-    const checkFarcaster = () => {
+    const checkEnvironment = () => {
+      const ua = navigator.userAgent.toLowerCase();
+      
       const isWarpcast = 
-        navigator.userAgent.includes('Warpcast') ||
-        navigator.userAgent.includes('Farcaster') ||
-        window.location.href.includes('warpcast') ||
-        document.referrer?.includes('warpcast') ||
+        ua.includes('warpcast') || 
+        ua.includes('farcaster') || 
         window.self !== window.top;
       
+      const isBaseApp = ua.includes('base') || window.location.href.includes('base.org');
+      
       setIsFarcaster(isWarpcast);
+      setIsBase(isBaseApp);
     };
 
-    checkFarcaster();
+    checkEnvironment();
   }, [isClient]);
 
   const connectFarcasterWallet = async () => {
     if (!isClient) return;
     
     try {
-      console.log('🎯 Connecting to Farcaster wallet...');
+      console.log('🎯 Connecting to embedded wallet...');
       
       // Önce Farcaster SDK'yı dene
       if (window.farcaster?.actions?.connectWallet) {
@@ -54,7 +58,7 @@ const FarcasterWallet = ({ onConnect }) => {
           });
           console.log('✅ Ethereum connect success:', accounts);
           if (accounts && accounts[0] && onConnect) {
-            onConnect('ethereum', accounts[0]);
+            onConnect('embedded', accounts[0]);
             return;
           }
         } catch (directError) {
@@ -63,16 +67,16 @@ const FarcasterWallet = ({ onConnect }) => {
       }
       
       // Hiçbiri çalışmazsa
-      alert('Cannot connect to wallet. Please make sure you have a wallet available.');
+      alert('Cannot connect to wallet. Please make sure you have a wallet available in the app.');
       
     } catch (error) {
-      console.error('Farcaster connect error:', error);
+      console.error('Wallet connect error:', error);
       alert('Connection failed: ' + (error.message || 'Unknown error'));
     }
   };
 
-  // Sadece browser'da ve Farcaster environment'ında değilse göster
-  if (!isClient || isFarcaster) return null;
+  // Sadece Farcaster veya Base uygulamalarında göster
+  if (!isClient || (!isFarcaster && !isBase)) return null;
 
   return (
     <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-2xl p-4 mb-4 border border-purple-500/30">
@@ -81,11 +85,11 @@ const FarcasterWallet = ({ onConnect }) => {
           onClick={connectFarcasterWallet}
           className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-semibold w-full mb-2"
         >
-          Connect Farcaster Wallet
+          {isFarcaster ? "Connect Farcaster Wallet" : "Connect Base Wallet"}
         </button>
         
         <p className="text-gray-300 text-xs">
-          Use Farcaster's built-in wallet
+          {isFarcaster ? "Use Farcaster's built-in wallet" : "Use Base's embedded wallet"}
         </p>
       </div>
     </div>

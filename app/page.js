@@ -133,7 +133,7 @@ export default function Home() {
     points
   );
 
-  // ✅ OTOMATİK BAĞLANMA - Sadece Base ve Farcaster için
+  // ✅ OTOMATİK BAĞLANMA - Sadece Base ve Farcaster için (Web browser'da YOK)
   useEffect(() => {
     if (!isClient || walletConnected || isLoading) return;
 
@@ -178,7 +178,7 @@ export default function Home() {
             
           default:
             console.log('🌐 Browser environment - no auto-connect');
-            // Normal browser'da otomatik bağlanma yok
+            // Normal browser'da otomatik bağlanma YOK
             break;
         }
       } catch (error) {
@@ -222,45 +222,6 @@ export default function Home() {
     
     return () => clearInterval(interval);
   }, [isClient, walletConnected, contract, userAddress, refreshPlayerData, checkYoyoBalance, updateLeaderboard]);
-
-  // Eski bağlı cüzdan kontrolü (sadece daha önce bağlanmışsa)
-  useEffect(() => {
-    if (!isClient || typeof window.ethereum === 'undefined' || walletConnected) return;
-    
-    const checkWalletConnection = async () => {
-      try {
-        const accounts = await window.ethereum.request({
-          method: 'eth_accounts'
-        });
-
-        if (accounts.length > 0) {
-          const newProvider = new ethers.BrowserProvider(window.ethereum);
-          setProvider(newProvider);
-          
-          const signer = await newProvider.getSigner();
-          const address = await signer.getAddress();
-          const contractInstance = new ethers.Contract(contractAddress, abi, signer);
-          
-          setContract(contractInstance);
-          setUserAddress(address);
-          setWalletConnected(true);
-          
-          const yoyoBalance = await checkYoyoBalance(address);
-          setYoyoBalanceAmount(yoyoBalance);
-          
-          const pointVals = await getContractPointValues(contractInstance);
-          setPointValues(pointVals);
-          
-          await updatePlayerInfo(address);
-          await updateLeaderboard();
-        }
-      } catch (err) {
-        console.error("Auto-connection error:", err);
-      }
-    };
-    
-    checkWalletConnection();
-  }, [isClient, walletConnected]);
 
   if (!isClient) {
     return (
@@ -328,8 +289,10 @@ export default function Home() {
             </div>
           )}
           
-          {/* FarcasterWallet - Sadece browser'da göster (manuel bağlanma için) */}
-          {currentEnvironment === 'browser' && <FarcasterWallet onConnect={connectWallet} />}
+          {/* FarcasterWallet - Sadece uygulamalarda göster */}
+          {(currentEnvironment === 'farcaster' || currentEnvironment === 'base') && (
+            <FarcasterWallet onConnect={connectWallet} />
+          )}
           
           <WalletConnection
             walletConnected={walletConnected}

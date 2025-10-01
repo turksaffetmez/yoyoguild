@@ -79,30 +79,49 @@ const WalletConnection = ({
   };
 
   const showMaintenanceMessage = () => {
-    alert("Wallet connection is under maintenance. It will be available soon.");
+    alert("Wallet connection is currently only available in Base and Farcaster apps. Please use the mobile apps to play.");
   };
 
-  // Browser'da maintenance mod, diğerlerinde normal
+  // Web browser'da maintenance mod, uygulamalarda normal
   const isMaintenanceMode = currentEnvironment === 'browser';
 
   return (
     <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 mb-6 border border-slate-600 shadow-lg">
       {!walletConnected ? (
         <div className="text-center">
-          <h3 className="text-xl font-bold text-white mb-4">Connect Your Wallet to Start Battling!</h3>
+          <h3 className="text-xl font-bold text-white mb-4">
+            {isMaintenanceMode ? "Play in Base or Farcaster App" : "Connect Your Wallet to Start Battling!"}
+          </h3>
           
           {isMaintenanceMode ? (
-            // Browser'da maintenance mesajı
+            // Web browser'da maintenance mesajı
             <>
-              <button
-                onClick={showMaintenanceMessage}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 mb-3"
-              >
-                Connect Wallet
-              </button>
-              <p className="text-yellow-400 text-sm mt-2">
-                ⚠️ Wallet connection under maintenance
-              </p>
+              <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 mb-4">
+                <p className="text-yellow-400 text-sm">
+                  🚫 Wallet connection is currently only available in Base and Farcaster mobile apps.
+                </p>
+                <p className="text-yellow-300 text-xs mt-2">
+                  Please download the apps to play YoYo Guild Battle!
+                </p>
+              </div>
+              <div className="flex justify-center space-x-4 mt-4">
+                <a 
+                  href="https://base.org" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                >
+                  Get Base App
+                </a>
+                <a 
+                  href="https://warpcast.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                >
+                  Get Warpcast
+                </a>
+              </div>
             </>
           ) : (
             // Base/Farcaster'da normal bağlanma butonu
@@ -120,12 +139,6 @@ const WalletConnection = ({
                 'Connect Wallet'
               )}
             </button>
-          )}
-          
-          {isMobile && (
-            <p className="text-gray-400 mt-2 text-sm">
-              Make sure your wallet app is installed
-            </p>
           )}
         </div>
       ) : (
