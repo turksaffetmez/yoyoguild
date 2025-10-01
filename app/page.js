@@ -33,6 +33,7 @@ export default function Home() {
     connectionError, setConnectionError,
     pointValues, setPointValues,
     isFarcasterMiniApp, setIsFarcasterMiniApp,
+    currentEnvironment, setCurrentEnvironment,
     playerStats, setPlayerStats,
     isClient,
     gameState, setGameState,
@@ -137,6 +138,64 @@ export default function Home() {
     points
   );
 
+  // ✅ OTOMATİK BAĞLANMA - Environment'a göre
+  useEffect(() => {
+    if (!isClient || walletConnected || isLoading) return;
+
+    const autoConnectByEnvironment = async () => {
+      console.log('🌍 Auto-connect for environment:', currentEnvironment);
+      
+      try {
+        switch (currentEnvironment) {
+          case 'farcaster':
+            console.log('🎯 Attempting Farcaster auto-connect...');
+            // FarcasterWallet component'i otomatik bağlanacak
+            break;
+            
+          case 'base':
+            console.log('🟡 Attempting Base app auto-connect...');
+            // Base app için embedded wallet bağlantısı
+            if (window.ethereum) {
+              const accounts = await window.ethereum.request({
+                method: 'eth_requestAccounts'
+              });
+              if (accounts && accounts[0]) {
+                await connectWallet('embedded', accounts[0]);
+              }
+            }
+            break;
+            
+          case 'metamask':
+            console.log('🦊 Attempting MetaMask auto-connect...');
+            // MetaMask otomatik bağlanma
+            if (window.ethereum?.isMetaMask) {
+              const accounts = await window.ethereum.request({
+                method: 'eth_accounts'
+              });
+              if (accounts && accounts.length > 0) {
+                await connectWallet('standard');
+              }
+            }
+            break;
+            
+          case 'browser':
+          default:
+            console.log('🌐 Browser environment - no auto-connect');
+            // Normal browser'da otomatik bağlanma yok
+            break;
+        }
+      } catch (error) {
+        console.log('⚠️ Auto-connect failed:', error);
+        // Otomatik bağlanma başarısız olduğunda sessizce devam et
+      }
+    };
+
+    // 2 saniye sonra otomatik bağlanmayı dene
+    const timer = setTimeout(autoConnectByEnvironment, 2000);
+    
+    return () => clearTimeout(timer);
+  }, [isClient, walletConnected, currentEnvironment, connectWallet, isLoading]);
+
   // ✅ SAYFA YÜKLENDİĞİNDE OTOMATİK REFRESH
   useEffect(() => {
     if (!isClient || !walletConnected || !contract || !userAddress) return;
@@ -169,9 +228,9 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [isClient, walletConnected, contract, userAddress, refreshPlayerData, checkYoyoBalance, updateLeaderboard]);
 
-  // Auto-connect wallet on page load
+  // Eski auto-connect (sadece daha önce bağlanmışsa)
   useEffect(() => {
-    if (!isClient || typeof window.ethereum === 'undefined') return;
+    if (!isClient || typeof window.ethereum === 'undefined' || walletConnected) return;
     
     const checkWalletConnection = async () => {
       try {
@@ -206,7 +265,7 @@ export default function Home() {
     };
     
     checkWalletConnection();
-  }, [isClient]);
+  }, [isClient, walletConnected]);
 
   if (!isClient) {
     return (
@@ -229,7 +288,9 @@ export default function Home() {
             <div>
               <h1 className="text-4xl font-bold">YoYo Guild Battle</h1>
               <p className="text-sm opacity-90 mt-1">
-                {isFarcasterMiniApp ? "🎯 Farcaster Mini App" : "Blockchain Battle Arena"}
+                {isFarcasterMiniApp ? "🎯 Farcaster Mini App" : 
+                 currentEnvironment === 'base' ? "🟡 Base App" :
+                 currentEnvironment === 'metamask' ? "🦊 MetaMask" : "Blockchain Battle Arena"}
               </p>
             </div>
           </div>
@@ -274,6 +335,7 @@ export default function Home() {
             </div>
           )}
           
+          {/* FarcasterWallet - Debug bilgileri kaldırıldı, otomatik bağlanma eklendi */}
           <FarcasterWallet onConnect={connectWallet} />
           
           <WalletConnection

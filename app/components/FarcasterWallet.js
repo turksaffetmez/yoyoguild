@@ -5,7 +5,7 @@ const FarcasterWallet = ({ onConnect }) => {
   const [isFarcaster, setIsFarcaster] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const [debugInfo, setDebugInfo] = useState({});
+  const [autoConnecting, setAutoConnecting] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -15,46 +15,89 @@ const FarcasterWallet = ({ onConnect }) => {
     if (!isClient) return;
 
     const checkFarcaster = () => {
-      // Farcaster environment detection
+      // Geliştirilmiş Farcaster environment detection
       const isWarpcast = 
         navigator.userAgent.includes('Warpcast') ||
+        navigator.userAgent.includes('Farcaster') ||
         window.location.href.includes('warpcast') ||
         document.referrer?.includes('warpcast') ||
-        window.parent !== window;
+        window.self !== window.top;
       
       const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       
       setIsFarcaster(isWarpcast);
       setIsMobile(isMobileDevice);
       
-      // Debug information
-      setDebugInfo({
-        isWarpcast,
-        isMobile: isMobileDevice,
-        userAgent: navigator.userAgent,
-        hasParent: window.parent !== window,
-        farcaster: !!window.farcaster,
-        ethereum: !!window.ethereum,
-        farcasterProvider: !!window.farcasterProvider
-      });
-      
       console.log('🔍 Farcaster Detection:', {
         isWarpcast,
         isMobile: isMobileDevice,
         userAgent: navigator.userAgent,
-        parent: window.parent !== window
+        parent: window.self !== window.top
       });
     };
 
     checkFarcaster();
   }, [isClient]);
 
-  // Farcaster embedded wallet bağlantısı
+  // Otomatik Farcaster bağlantısı
+  useEffect(() => {
+    if (!isClient || !isFarcaster || autoConnecting) return;
+
+    const autoConnectFarcaster = async () => {
+      setAutoConnecting(true);
+      console.log('🎯 Attempting auto-connect in Farcaster environment...');
+      
+      try {
+        // Method 1: Farcaster Mini App SDK
+        if (window.farcaster?.actions?.connectWallet) {
+          try {
+            const accounts = await window.farcaster.actions.connectWallet();
+            console.log('✅ Farcaster SDK auto-connect success:', accounts);
+            if (accounts && accounts[0] && onConnect) {
+              onConnect('farcaster', accounts[0]);
+              return;
+            }
+          } catch (sdkError) {
+            console.log('Farcaster SDK auto-connect failed:', sdkError);
+          }
+        }
+        
+        // Method 2: EIP-6963 Provider
+        if (window.ethereum) {
+          try {
+            const accounts = await window.ethereum.request({
+              method: 'eth_requestAccounts'
+            });
+            console.log('✅ EIP-6963 auto-connect success:', accounts);
+            if (accounts && accounts[0] && onConnect) {
+              onConnect('embedded', accounts[0]);
+              return;
+            }
+          } catch (eipError) {
+            console.log('EIP-6963 auto-connect failed:', eipError);
+          }
+        }
+        
+        console.log('⚠️ Auto-connect not available, showing manual button');
+      } catch (error) {
+        console.error('❌ Auto-connect error:', error);
+      } finally {
+        setAutoConnecting(false);
+      }
+    };
+
+    // 1 saniye sonra otomatik bağlanmayı dene
+    const timer = setTimeout(autoConnectFarcaster, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [isClient, isFarcaster, onConnect, autoConnecting]);
+
+  // Farcaster embedded wallet bağlantısı (manuel)
   const connectFarcasterWallet = async () => {
     if (!isClient) return;
     
     try {
-      console.log('🎯 Connecting to Farcaster embedded wallet...');
+      console.log('🎯 Manually connecting to Farcaster wallet...');
       
       // Method 1: Farcaster Mini App SDK
       if (window.farcaster?.actions?.connectWallet) {
@@ -86,7 +129,7 @@ const FarcasterWallet = ({ onConnect }) => {
         }
       }
       
-      // Method 3: Direct ethereum request (fallback)
+      // Method 3: Direct ethereum request
       if (window.ethereum) {
         try {
           const accounts = await window.ethereum.request({
@@ -99,40 +142,6 @@ const FarcasterWallet = ({ onConnect }) => {
           }
         } catch (directError) {
           console.log('Direct ethereum connect failed:', directError);
-        }
-      }
-      
-      // Method 4: Farcaster specific provider
-      if (window.farcasterProvider) {
-        try {
-          const accounts = await window.farcasterProvider.request({
-            method: 'eth_requestAccounts'
-          });
-          console.log('✅ Farcaster provider connect success:', accounts);
-          if (accounts && accounts[0] && onConnect) {
-            onConnect('farcaster_provider', accounts[0]);
-            return;
-          }
-        } catch (fcError) {
-          console.log('Farcaster provider connect failed:', fcError);
-        }
-      }
-      
-      // Method 5: Check for multiple providers
-      if (window.ethereum?.providers) {
-        for (let provider of window.ethereum.providers) {
-          try {
-            const accounts = await provider.request({
-              method: 'eth_requestAccounts'
-            });
-            console.log('✅ Multi-provider connect success:', accounts);
-            if (accounts && accounts[0] && onConnect) {
-              onConnect('multi_provider', accounts[0]);
-              return;
-            }
-          } catch (multiError) {
-            console.log('Multi-provider connect failed:', multiError);
-          }
         }
       }
       
@@ -154,60 +163,30 @@ const FarcasterWallet = ({ onConnect }) => {
           {isMobile ? "📱 Farcaster Wallet" : "🎯 Farcaster Detected"}
         </h3>
         
-        {/* Debug Info */}
-        <div className="bg-black/20 rounded-lg p-3 mb-3 text-xs">
-          <div className="text-gray-300 space-y-1 text-left">
-            <div className="flex justify-between">
-              <span>Farcaster SDK:</span>
-              <span>{debugInfo.farcaster ? '✅ Available' : '❌ Not found'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Ethereum Provider:</span>
-              <span>{debugInfo.ethereum ? '✅ Available' : '❌ Not found'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Mobile Device:</span>
-              <span>{debugInfo.isMobile ? '✅ Yes' : '❌ No'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Embedded:</span>
-              <span>{debugInfo.hasParent ? '✅ Yes' : '❌ No'}</span>
+        {/* Basitleştirilmiş UI - Debug bilgileri kaldırıldı */}
+        {autoConnecting ? (
+          <div className="bg-blue-500/20 rounded-lg p-3 mb-3">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <span className="text-blue-300 text-sm">Auto-connecting...</span>
             </div>
           </div>
-        </div>
-        
-        <button
-          onClick={connectFarcasterWallet}
-          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-semibold w-full mb-2"
-        >
-          {isMobile ? "Connect Farcaster Wallet" : "Connect in Farcaster"}
-        </button>
-        
-        <p className="text-gray-300 text-xs mt-1">
-          {isMobile 
-            ? "Use Farcaster's built-in wallet" 
-            : "Connect using Farcaster environment"
-          }
-        </p>
-        
-        {/* Manual Address Input for Testing */}
-        {debugInfo.farcaster && !debugInfo.ethereum && (
-          <div className="mt-3 p-2 bg-yellow-500/20 rounded-lg">
-            <p className="text-yellow-400 text-xs mb-1">
-              ⚠️ No wallet provider detected
-            </p>
+        ) : (
+          <>
             <button
-              onClick={() => {
-                const testAddress = prompt('Enter test address for debugging:');
-                if (testAddress && onConnect) {
-                  onConnect('debug', testAddress);
-                }
-              }}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-xs"
+              onClick={connectFarcasterWallet}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-semibold w-full mb-2"
             >
-              Debug: Manual Address
+              {isMobile ? "Connect Farcaster Wallet" : "Connect Wallet"}
             </button>
-          </div>
+            
+            <p className="text-gray-300 text-xs">
+              {isMobile 
+                ? "Use Farcaster's built-in wallet" 
+                : "Connect using Farcaster environment"
+              }
+            </p>
+          </>
         )}
       </div>
     </div>

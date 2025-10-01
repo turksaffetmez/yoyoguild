@@ -128,7 +128,7 @@ export const useContract = (provider, isClient) => {
     }
   };
 
-  // Wallet bağlantısı - FARCASTER DESTEKLİ
+  // Wallet bağlantısı - GELİŞTİRİLMİŞ OTOMATİK BAĞLANMA
   const connectWallet = async (
     walletType = 'standard', 
     farcasterAddress = null,
@@ -173,6 +173,19 @@ export const useContract = (provider, isClient) => {
           console.log('⚠️ Using read-only mode in Farcaster');
         }
       }
+      // BASE APP WALLET
+      else if (walletType === 'base' && farcasterAddress) {
+        console.log('🟡 Using Base app embedded wallet');
+        address = farcasterAddress;
+        
+        if (window.ethereum) {
+          providerInstance = new ethers.BrowserProvider(window.ethereum);
+          signer = await providerInstance.getSigner();
+        } else {
+          providerInstance = new ethers.JsonRpcProvider('https://mainnet.base.org');
+          signer = null;
+        }
+      }
       // DEBUG MODE (manual address)
       else if (walletType === 'debug' && farcasterAddress) {
         console.log('🐛 Using debug mode with address:', farcasterAddress);
@@ -180,18 +193,23 @@ export const useContract = (provider, isClient) => {
         providerInstance = new ethers.JsonRpcProvider('https://mainnet.base.org');
         signer = null;
       }
-      // STANDARD WALLET (MetaMask/Rabby)
+      // STANDARD WALLET (MetaMask/Rabby) - OTOMATİK
       else {
         if (!window.ethereum) {
           throw new Error('No Ethereum wallet found. Please install MetaMask or Rabby.');
         }
 
-        // Accounts request
+        // Accounts request - otomatik bağlanma için
         const accounts = await window.ethereum.request({
-          method: 'eth_requestAccounts'
+          method: walletType === 'autoconnect' ? 'eth_accounts' : 'eth_requestAccounts'
         });
 
         if (!accounts || accounts.length === 0) {
+          if (walletType === 'autoconnect') {
+            // Otomatik bağlanma başarısız, sessizce çık
+            console.log('ℹ️ No previously connected accounts found');
+            return;
+          }
           throw new Error('No accounts found. Please connect your wallet.');
         }
 

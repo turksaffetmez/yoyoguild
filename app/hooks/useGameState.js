@@ -12,6 +12,32 @@ const STORAGE_KEYS = {
   LAST_UPDATE: 'yoyo_last_update'
 };
 
+// Environment detection fonksiyonu
+const detectEnvironment = () => {
+  if (typeof window === 'undefined') return 'browser';
+  
+  const ua = navigator.userAgent.toLowerCase();
+  const url = window.location.href.toLowerCase();
+  
+  // Farcaster/Warpcast
+  if (ua.includes('warpcast') || ua.includes('farcaster') || window.self !== window.top) {
+    return 'farcaster';
+  }
+  
+  // Base App
+  if (ua.includes('base') || url.includes('base.org')) {
+    return 'base';
+  }
+  
+  // MetaMask Browser
+  if (window.ethereum?.isMetaMask && !window.ethereum?.isRabby) {
+    return 'metamask';
+  }
+  
+  // Normal Browser
+  return 'browser';
+};
+
 export const useGameState = () => {
   // State'ler - localStorage'dan başlangıç değerlerini al
   const [walletConnected, setWalletConnected] = useState(false);
@@ -63,6 +89,7 @@ export const useGameState = () => {
     lose: 10
   });
   const [isFarcasterMiniApp, setIsFarcasterMiniApp] = useState(false);
+  const [currentEnvironment, setCurrentEnvironment] = useState('browser');
   const [playerStats, setPlayerStats] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEYS.PLAYER_STATS);
@@ -179,9 +206,14 @@ export const useGameState = () => {
     setIsClient(true);
   }, []);
 
-  // Farcaster Mini App detection - BASİTLEŞTİRİLMİŞ
+  // Environment detection - GELİŞTİRİLMİŞ
   useEffect(() => {
     if (!isClient) return;
+    
+    const environment = detectEnvironment();
+    setCurrentEnvironment(environment);
+    
+    console.log('🌍 Detected environment:', environment);
     
     const isEmbedded = window.self !== window.top;
     const isWarpcastUA = /Farcaster|Warpcast/i.test(navigator.userAgent);
@@ -223,6 +255,7 @@ export const useGameState = () => {
     connectionError, setConnectionError,
     pointValues, setPointValues,
     isFarcasterMiniApp, setIsFarcasterMiniApp,
+    currentEnvironment, setCurrentEnvironment,
     playerStats, setPlayerStats,
     isClient, setIsClient,
     gameState, setGameState,
