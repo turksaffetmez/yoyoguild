@@ -1,23 +1,32 @@
 {
-  "name": "YoYo Guild Battle",
-  "short_name": "YoYo Battle",
-  "description": "Blockchain Battle Arena on Base",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#8B5CF6",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "/images/logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/images/logo.png", 
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ],
-  "categories": ["games", "entertainment"]
+  "frame": {
+    "name": "YoYo Guild Battle",
+    "version": "1",
+    "iconUrl": "https://yoyoguild.vercel.app/images/logo.png",
+    "homeUrl": "https://yoyoguild.vercel.app",
+    "splashImageUrl": "https://yoyoguild.vercel.app/images/yoyo.png",
+    "splashBackgroundColor": "#000000",
+    "subtitle": "Battle Earn YoYo",
+    "description": "Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
+    "screenshotUrls": [
+      "https://yoyoguild.vercel.app/images/ss1.png"
+    ],
+    "primaryCategory": "games",
+    "tags": [
+      "gaming",
+      "battle",
+      "yoyo",
+      "tevaera",
+      "base"
+    ],
+    "heroImageUrl": "https://yoyoguild.vercel.app/images/baseapp.png",
+    "ogTitle": "YoYo Guild Battle",
+    "ogDescription": "Battle Arena on Base - Battle Tevans, earn points, win YOYO!",
+    "ogImageUrl": "https://yoyoguild.vercel.app/images/baseapp.png"
+  },
+  "accountAssociation": {
+    "header": "eyJmaWQiOjk5Mjk1NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweEQ3NDk0NGY3MEU1MTE2RDZBMkU2NjQzN2U1OGQ0MTYxYUVBMTRBYjAifQ",
+    "payload": "eyJkb21haW4iOiJodHRwczovL3lveW9ndWlsZC52ZXJjZWwuYXBwIn0",
+    "signature": "SqTiytwQufGeE73ii+4knPOEJf0ExQnJu/2NoDXro+8fN6UrS93wYTPbdhV8PPNI+an18aypVFATi2iifSZRIxw="
+  }
 }
