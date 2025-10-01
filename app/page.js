@@ -51,6 +51,12 @@ export default function Home() {
     loadLeaderboard();
   }, []);
 
+  // ADRES KISALTMA FONKSİYONU
+  const formatAddress = (address) => {
+    if (!address) return "";
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
       <div className="w-full max-w-6xl bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-3xl shadow-2xl overflow-hidden border border-purple-500/30 backdrop-blur-sm">
@@ -114,9 +120,9 @@ export default function Home() {
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 overflow-hidden">
               {/* TABLE HEADER */}
               <div className="grid grid-cols-12 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 font-semibold">
-                <div className="col-span-1 text-center">Rank</div>
-                <div className="col-span-8">Player Address</div>
-                <div className="col-span-3 text-right">Total Points</div>
+                <div className="col-span-1 text-center text-sm">Rank</div>
+                <div className="col-span-7 text-sm">Player Address</div>
+                <div className="col-span-4 text-right text-sm">Total Points</div>
               </div>
               
               {/* PLAYER LIST */}
@@ -129,13 +135,15 @@ export default function Home() {
                       {index === 1 && <span className="text-gray-300 text-lg">🥈</span>}
                       {index === 2 && <span className="text-orange-400 text-lg">🥉</span>}
                       {index > 2 && (
-                        <span className="text-gray-400 font-bold">{index + 1}</span>
+                        <span className="text-gray-400 font-bold text-sm">{index + 1}</span>
                       )}
                     </div>
                     
-                    {/* ADDRESS - TAM GÖSTERİM */}
-                    <div className="col-span-8 font-mono text-sm flex items-center">
-                      <span className="text-blue-300">{player.address}</span>
+                    {/* ADDRESS - KISALTILMIŞ */}
+                    <div className="col-span-7 font-mono text-sm flex items-center">
+                      <span className="text-blue-300 bg-blue-500/20 px-3 py-1 rounded-lg">
+                        {formatAddress(player.address)}
+                      </span>
                       {index < 3 && (
                         <span className="ml-3 text-xs bg-purple-500/30 px-2 py-1 rounded whitespace-nowrap">
                           Top {index + 1}
@@ -144,10 +152,10 @@ export default function Home() {
                     </div>
                     
                     {/* POINTS */}
-                    <div className="col-span-3 text-right font-bold text-yellow-400">
+                    <div className="col-span-4 text-right font-bold text-yellow-400">
                       {player.points.toLocaleString()} pts
                       {index === 0 && player.points > 0 && (
-                        <span className="text-green-400 text-xs ml-2">👑 Winner</span>
+                        <span className="text-green-400 text-xs ml-2">👑</span>
                       )}
                     </div>
                   </div>
