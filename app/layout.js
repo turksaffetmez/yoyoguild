@@ -62,6 +62,7 @@ export default function RootLayout({ children }) {
         <meta name="twitter:image" content="https://yoyoguild.vercel.app/images/baseapp.png" />
         
         <link rel="icon" href="/images/logo.png" />
+		<link rel="farcaster-manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
         <FarcasterSDK />
