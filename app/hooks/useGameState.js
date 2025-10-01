@@ -1,7 +1,5 @@
-// app/hooks/useGameState.js
 import { useState, useEffect, useCallback } from 'react';
 
-// Local Storage key'leri
 const STORAGE_KEYS = {
   USER_ADDRESS: 'yoyo_user_address',
   PLAYER_STATS: 'yoyo_player_stats', 
@@ -12,34 +10,7 @@ const STORAGE_KEYS = {
   LAST_UPDATE: 'yoyo_last_update'
 };
 
-// Environment detection fonksiyonu
-const detectEnvironment = () => {
-  if (typeof window === 'undefined') return 'browser';
-  
-  const ua = navigator.userAgent.toLowerCase();
-  const url = window.location.href.toLowerCase();
-  
-  // Farcaster/Warpcast
-  if (ua.includes('warpcast') || ua.includes('farcaster') || window.self !== window.top) {
-    return 'farcaster';
-  }
-  
-  // Base App
-  if (ua.includes('base') || url.includes('base.org')) {
-    return 'base';
-  }
-  
-  // MetaMask Browser
-  if (window.ethereum?.isMetaMask && !window.ethereum?.isRabby) {
-    return 'metamask';
-  }
-  
-  // Normal Browser
-  return 'browser';
-};
-
 export const useGameState = () => {
-  // State'ler - localStorage'dan başlangıç değerlerini al
   const [walletConnected, setWalletConnected] = useState(false);
   const [userAddress, setUserAddress] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -89,7 +60,6 @@ export const useGameState = () => {
     lose: 10
   });
   const [isFarcasterMiniApp, setIsFarcasterMiniApp] = useState(false);
-  const [currentEnvironment, setCurrentEnvironment] = useState('browser');
   const [playerStats, setPlayerStats] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEYS.PLAYER_STATS);
@@ -143,7 +113,6 @@ export const useGameState = () => {
     isWinner: false
   });
 
-  // ✅ STATE'LERİ LOCALSTORAGE'A OTOMATİK KAYDET
   useEffect(() => {
     if (!isClient) return;
     
@@ -154,11 +123,8 @@ export const useGameState = () => {
     localStorage.setItem(STORAGE_KEYS.YOYO_BALANCE, yoyoBalanceAmount.toString());
     localStorage.setItem(STORAGE_KEYS.PLAYER_STATS, JSON.stringify(playerStats));
     localStorage.setItem(STORAGE_KEYS.LAST_UPDATE, Date.now().toString());
-    
-    console.log('💾 State saved to localStorage');
   }, [userAddress, points, gamesPlayedToday, dailyLimit, yoyoBalanceAmount, playerStats, isClient]);
 
-  // ✅ SAYFA YÜKLENDİĞİNDE CONTRACT'TAN GÜNCEL VERİLERİ AL
   const refreshPlayerData = useCallback(async (contract, address, checkYoyoBalance, setPoints, setGamesPlayedToday, setDailyLimit, setPlayerStats, setYoyoBalanceAmount) => {
     if (!contract || !address) return;
     
@@ -178,7 +144,6 @@ export const useGameState = () => {
         winRate
       ] = await contract.getPlayerInfo(address);
       
-      // ✅ STATE'LERİ GÜNCELLE - Contract'tan gelen verilerle
       setPoints(Number(totalPoints));
       setGamesPlayedToday(Number(gamesToday));
       setDailyLimit(Number(limit));
@@ -195,31 +160,23 @@ export const useGameState = () => {
       const yoyoBalance = await checkYoyoBalance(address);
       setYoyoBalanceAmount(yoyoBalance);
       
-      console.log('✅ Player data refreshed from contract');
     } catch (error) {
       console.error("❌ Failed to refresh player data:", error);
     }
   }, []);
 
-  // Client-side kontrolü
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Environment detection - GELİŞTİRİLMİŞ
+  // Basit Farcaster detection
   useEffect(() => {
     if (!isClient) return;
     
-    const environment = detectEnvironment();
-    setCurrentEnvironment(environment);
-    
-    console.log('🌍 Detected environment:', environment);
-    
     const isEmbedded = window.self !== window.top;
     const isWarpcastUA = /Farcaster|Warpcast/i.test(navigator.userAgent);
-    const isBaseApp = /Base/i.test(navigator.userAgent) || window.location.href.includes('base.org');
     
-    const shouldActivateMiniApp = isEmbedded || isWarpcastUA || isBaseApp;
+    const shouldActivateMiniApp = isEmbedded || isWarpcastUA;
     
     setIsFarcasterMiniApp(shouldActivateMiniApp);
     
@@ -228,7 +185,6 @@ export const useGameState = () => {
     }
   }, [isClient]);
 
-  // Mobile detection
   useEffect(() => {
     if (!isClient) return;
     const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -238,7 +194,6 @@ export const useGameState = () => {
   const remainingGames = dailyLimit - gamesPlayedToday;
 
   return {
-    // State'ler
     walletConnected, setWalletConnected,
     userAddress, setUserAddress,
     contract, setContract,
@@ -255,15 +210,10 @@ export const useGameState = () => {
     connectionError, setConnectionError,
     pointValues, setPointValues,
     isFarcasterMiniApp, setIsFarcasterMiniApp,
-    currentEnvironment, setCurrentEnvironment,
     playerStats, setPlayerStats,
     isClient, setIsClient,
     gameState, setGameState,
-    
-    // Computed values
     remainingGames,
-    
-    // Functions
     refreshPlayerData
   };
 };

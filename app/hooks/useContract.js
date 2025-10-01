@@ -2,7 +2,6 @@ import { ethers } from 'ethers';
 import { contractAddress, abi } from '../utils/contract';
 
 export const useContract = (provider, isClient) => {
-  // YOYO Token Address ve ABI
   const YOYO_TOKEN_ADDRESS = "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1";
   const YOYO_TOKEN_ABI = [
     "function balanceOf(address owner) view returns (uint256)",
@@ -10,7 +9,6 @@ export const useContract = (provider, isClient) => {
     "function symbol() view returns (string)"
   ];
 
-  // YOYO balance kontrolü
   const checkYoyoBalance = async (address) => {
     if (!address) return 0;
     try {
@@ -27,7 +25,6 @@ export const useContract = (provider, isClient) => {
       const decimals = await yoyoContract.decimals();
       const formattedBalance = Number(ethers.formatUnits(balance, decimals));
       
-      console.log(`YOYO Balance for ${address}: ${formattedBalance}`);
       return formattedBalance;
     } catch (error) {
       console.error("YOYO balance check failed:", error);
@@ -35,7 +32,6 @@ export const useContract = (provider, isClient) => {
     }
   };
 
-  // Point values getir
   const getPointValues = async (contract) => {
     if (!contract) return { winNormal: 10, winYoyo: 15, lose: 5 };
     
@@ -55,7 +51,6 @@ export const useContract = (provider, isClient) => {
     }
   };
 
-  // Player info güncelle
   const updatePlayerInfo = async (contract, address, checkYoyoBalance, setPoints, setGamesPlayedToday, setDailyLimit, setPlayerStats, setYoyoBalanceAmount) => {
     if (!contract || !address) return;
     
@@ -74,7 +69,6 @@ export const useContract = (provider, isClient) => {
       if (setDailyLimit) setDailyLimit(Number(dailyLimit));
       if (setYoyoBalanceAmount) setYoyoBalanceAmount(yoyoBalance);
       
-      // Player stats
       if (setPlayerStats && stats) {
         const totalGames = Number(stats.totalGames) || 0;
         const totalWins = Number(stats.totalWins) || 0;
@@ -92,19 +86,11 @@ export const useContract = (provider, isClient) => {
         });
       }
       
-      console.log('✅ Player info updated:', { 
-        points: Number(points), 
-        gamesPlayed: Number(gamesPlayed),
-        dailyLimit: Number(dailyLimit),
-        yoyoBalance 
-      });
-      
     } catch (error) {
       console.error("Failed to update player info:", error);
     }
   };
 
-  // Leaderboard güncelle
   const updateLeaderboard = async (contract, setLeaderboard) => {
     if (!contract) return;
     
@@ -121,14 +107,12 @@ export const useContract = (provider, isClient) => {
         .slice(0, 100);
       
       if (setLeaderboard) setLeaderboard(leaderboardData);
-      console.log('✅ Leaderboard updated:', leaderboardData.length, 'players');
       
     } catch (error) {
       console.error("Failed to update leaderboard:", error);
     }
   };
 
-  // Wallet bağlantısı - GELİŞTİRİLMİŞ OTOMATİK BAĞLANMA
   const connectWallet = async (
     walletType = 'standard', 
     farcasterAddress = null,
@@ -151,33 +135,16 @@ export const useContract = (provider, isClient) => {
     setIsLoading
   ) => {
     try {
-      console.log('🔗 Connecting wallet:', { walletType, farcasterAddress, isFarcasterMiniApp });
+      console.log('🔗 Connecting wallet:', { walletType });
       
       let providerInstance;
       let signer;
       let address;
 
-      // FARCASTER EMBEDDED WALLET
       if ((walletType === 'farcaster' || walletType === 'embedded') && farcasterAddress) {
         console.log('🎯 Using Farcaster embedded wallet');
         address = farcasterAddress;
         
-        // Farcaster environment'da ethereum provider'ı kullan
-        if (window.ethereum) {
-          providerInstance = new ethers.BrowserProvider(window.ethereum);
-          signer = await providerInstance.getSigner();
-        } else {
-          // Fallback: Read-only provider (Farcaster'da wallet olmayabilir)
-          providerInstance = new ethers.JsonRpcProvider('https://mainnet.base.org');
-          signer = null;
-          console.log('⚠️ Using read-only mode in Farcaster');
-        }
-      }
-      // BASE APP WALLET
-      else if (walletType === 'base' && farcasterAddress) {
-        console.log('🟡 Using Base app embedded wallet');
-        address = farcasterAddress;
-        
         if (window.ethereum) {
           providerInstance = new ethers.BrowserProvider(window.ethereum);
           signer = await providerInstance.getSigner();
@@ -186,30 +153,22 @@ export const useContract = (provider, isClient) => {
           signer = null;
         }
       }
-      // DEBUG MODE (manual address)
       else if (walletType === 'debug' && farcasterAddress) {
         console.log('🐛 Using debug mode with address:', farcasterAddress);
         address = farcasterAddress;
         providerInstance = new ethers.JsonRpcProvider('https://mainnet.base.org');
         signer = null;
       }
-      // STANDARD WALLET (MetaMask/Rabby) - OTOMATİK
       else {
         if (!window.ethereum) {
           throw new Error('No Ethereum wallet found. Please install MetaMask or Rabby.');
         }
 
-        // Accounts request - otomatik bağlanma için
         const accounts = await window.ethereum.request({
-          method: walletType === 'autoconnect' ? 'eth_accounts' : 'eth_requestAccounts'
+          method: 'eth_requestAccounts'
         });
 
         if (!accounts || accounts.length === 0) {
-          if (walletType === 'autoconnect') {
-            // Otomatik bağlanma başarısız, sessizce çık
-            console.log('ℹ️ No previously connected accounts found');
-            return;
-          }
           throw new Error('No accounts found. Please connect your wallet.');
         }
 
@@ -218,12 +177,10 @@ export const useContract = (provider, isClient) => {
         signer = await providerInstance.getSigner();
       }
 
-      // Contract instance oluştur
       const contractInstance = signer 
         ? new ethers.Contract(contractAddress, abi, signer)
         : new ethers.Contract(contractAddress, abi, providerInstance);
 
-      // State'leri güncelle
       if (setProvider) setProvider(providerInstance);
       if (setContract) setContract(contractInstance);
       if (setUserAddress) setUserAddress(address);
@@ -231,13 +188,6 @@ export const useContract = (provider, isClient) => {
       if (setShowWalletOptions) setShowWalletOptions(false);
       if (setConnectionError) setConnectionError('');
 
-      console.log('✅ Wallet connected successfully:', { 
-        address, 
-        walletType,
-        hasSigner: !!signer 
-      });
-
-      // Balance ve diğer verileri getir
       if (checkYoyoBalance) {
         const balance = await checkYoyoBalance(address);
         if (setYoyoBalanceAmount) setYoyoBalanceAmount(balance);
@@ -293,7 +243,6 @@ export const useContract = (provider, isClient) => {
     }
   };
 
-  // Wallet disconnect
   const disconnectWallet = (
     setWalletConnected,
     setUserAddress,
@@ -316,7 +265,6 @@ export const useContract = (provider, isClient) => {
     if (setLeaderboard) setLeaderboard([]);
     if (setPlayerStats) setPlayerStats(null);
     
-    // Reset game state
     if (setGameState) {
       setGameState({
         gamePhase: "idle",

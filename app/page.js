@@ -15,7 +15,6 @@ import MetaTags from "./components/MetaTags";
 import Image from "next/image";
 
 export default function Home() {
-  // State management
   const {
     walletConnected, setWalletConnected,
     userAddress, setUserAddress,
@@ -33,16 +32,13 @@ export default function Home() {
     connectionError, setConnectionError,
     pointValues, setPointValues,
     isFarcasterMiniApp, setIsFarcasterMiniApp,
-    currentEnvironment, setCurrentEnvironment,
     playerStats, setPlayerStats,
     isClient,
     gameState, setGameState,
     remainingGames,
-    connectMobileWallet,
     refreshPlayerData
   } = useGameState();
 
-  // Contract functions
   const {
     checkYoyoBalance,
     getPointValues: getContractPointValues,
@@ -52,7 +48,6 @@ export default function Home() {
     disconnectWallet: disconnectContractWallet
   } = useContract(provider, isClient);
 
-  // Wrapper functions
   const updatePlayerInfo = useCallback(async (address) => {
     if (!contract || !address) return;
     await updateContractPlayerInfo(
@@ -115,7 +110,6 @@ export default function Home() {
     );
   }, [disconnectContractWallet, setWalletConnected, setUserAddress, setContract, setPoints, setYoyoBalanceAmount, setGamesPlayedToday, setLeaderboard, setPlayerStats, setGameState]);
 
-  // Game logic
   const {
     startGame,
     resetGame,
@@ -138,69 +132,10 @@ export default function Home() {
     points
   );
 
-  // ✅ OTOMATİK BAĞLANMA - Environment'a göre
-  useEffect(() => {
-    if (!isClient || walletConnected || isLoading) return;
-
-    const autoConnectByEnvironment = async () => {
-      console.log('🌍 Auto-connect for environment:', currentEnvironment);
-      
-      try {
-        switch (currentEnvironment) {
-          case 'farcaster':
-            console.log('🎯 Attempting Farcaster auto-connect...');
-            // FarcasterWallet component'i otomatik bağlanacak
-            break;
-            
-          case 'base':
-            console.log('🟡 Attempting Base app auto-connect...');
-            // Base app için embedded wallet bağlantısı
-            if (window.ethereum) {
-              const accounts = await window.ethereum.request({
-                method: 'eth_requestAccounts'
-              });
-              if (accounts && accounts[0]) {
-                await connectWallet('embedded', accounts[0]);
-              }
-            }
-            break;
-            
-          case 'metamask':
-            console.log('🦊 Attempting MetaMask auto-connect...');
-            // MetaMask otomatik bağlanma
-            if (window.ethereum?.isMetaMask) {
-              const accounts = await window.ethereum.request({
-                method: 'eth_accounts'
-              });
-              if (accounts && accounts.length > 0) {
-                await connectWallet('standard');
-              }
-            }
-            break;
-            
-          case 'browser':
-          default:
-            console.log('🌐 Browser environment - no auto-connect');
-            // Normal browser'da otomatik bağlanma yok
-            break;
-        }
-      } catch (error) {
-        console.log('⚠️ Auto-connect failed:', error);
-        // Otomatik bağlanma başarısız olduğunda sessizce devam et
-      }
-    };
-
-    // 2 saniye sonra otomatik bağlanmayı dene
-    const timer = setTimeout(autoConnectByEnvironment, 2000);
-    
-    return () => clearTimeout(timer);
-  }, [isClient, walletConnected, currentEnvironment, connectWallet, isLoading]);
-
-  // ✅ SAYFA YÜKLENDİĞİNDE OTOMATİK REFRESH
   useEffect(() => {
     if (!isClient || !walletConnected || !contract || !userAddress) return;
 
-    console.log('🔄 Auto-refreshing player data on page load...');
+    console.log('🔄 Auto-refreshing player data...');
     
     const autoRefresh = async () => {
       try {
@@ -221,14 +156,12 @@ export default function Home() {
     };
 
     autoRefresh();
-
-    // Her 30 saniyede bir otomatik refresh
     const interval = setInterval(autoRefresh, 30000);
     
     return () => clearInterval(interval);
   }, [isClient, walletConnected, contract, userAddress, refreshPlayerData, checkYoyoBalance, updateLeaderboard]);
 
-  // Eski auto-connect (sadece daha önce bağlanmışsa)
+  // Sadece daha önce bağlanmışsa kontrol et (otomatik bağlanma YOK)
   useEffect(() => {
     if (!isClient || typeof window.ethereum === 'undefined' || walletConnected) return;
     
@@ -288,9 +221,7 @@ export default function Home() {
             <div>
               <h1 className="text-4xl font-bold">YoYo Guild Battle</h1>
               <p className="text-sm opacity-90 mt-1">
-                {isFarcasterMiniApp ? "🎯 Farcaster Mini App" : 
-                 currentEnvironment === 'base' ? "🟡 Base App" :
-                 currentEnvironment === 'metamask' ? "🦊 MetaMask" : "Blockchain Battle Arena"}
+                Battle ! Earn $YoYo !
               </p>
             </div>
           </div>
@@ -335,7 +266,6 @@ export default function Home() {
             </div>
           )}
           
-          {/* FarcasterWallet - Debug bilgileri kaldırıldı, otomatik bağlanma eklendi */}
           <FarcasterWallet onConnect={connectWallet} />
           
           <WalletConnection
