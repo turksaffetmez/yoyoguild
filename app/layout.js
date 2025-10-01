@@ -11,13 +11,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {/* MANUEL FARCASTER SDK YÜKLEME - MULTIPLE SOURCES */}
+        {/* MANUEL FARCASTER SDK YÜKLEME - MODULE FORMAT */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // MANUEL FARCASTER SDK YÜKLEME - MULTIPLE SOURCES
+              // MANUEL FARCASTER SDK YÜKLEME - MODULE FORMAT
               (function() {
-                console.log('🚀 MANUEL: Loading Farcaster SDK from multiple sources...');
+                console.log('🚀 MANUEL: Loading Farcaster SDK as module...');
                 
                 // Eğer SDK zaten yüklüyse, hemen ready çağır
                 if (window.farcaster) {
@@ -26,38 +26,48 @@ export default function RootLayout({ children }) {
                   return;
                 }
                 
-                // Farklı SDK URL'leri deneyelim
-                const sdkSources = [
-                  'https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@0.1.4/dist.js',
-                  'https://unpkg.com/@farcaster/frame-sdk@0.1.4/dist.js',
-                  'https://esm.sh/@farcaster/frame-sdk@0.1.4'
-                ];
-                
-                let currentSourceIndex = 0;
-                
-                function tryLoadSDK() {
-                  if (currentSourceIndex >= sdkSources.length) {
-                    console.error('❌ All SDK sources failed, using fallback');
-                    sendEmergencyReady();
-                    return;
+                // Module olarak SDK yükle
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.innerHTML = \\`
+                  import { sdk } from 'https://esm.sh/@farcaster/frame-sdk@0.1.4';
+                  window.farcaster = sdk;
+                  console.log('✅ Farcaster SDK loaded as module');
+                  
+                  // Ready çağır
+                  if (window.farcaster?.actions?.ready) {
+                    window.farcaster.actions.ready();
+                    console.log('✅ sdk.actions.ready() called from module');
                   }
-                  
-                  const source = sdkSources[currentSourceIndex];
-                  console.log('📥 Trying SDK source:', source);
-                  
-                  const script = document.createElement('script');
-                  script.src = source;
-                  script.async = true;
-                  script.onload = function() {
-                    console.log('✅ Farcaster SDK loaded successfully from:', source);
+                \\`;
+                
+                script.onerror = function() {
+                  console.error('❌ Failed to load SDK as module');
+                  sendEmergencyReady();
+                };
+                
+                document.head.appendChild(script);
+                
+                // Fallback: Eğer module yüklenmezse, classic script dene
+                setTimeout(() => {
+                  if (!window.farcaster) {
+                    console.log('🔄 Module failed, trying classic script...');
+                    loadClassicSDK();
+                  }
+                }, 2000);
+                
+                function loadClassicSDK() {
+                  const classicScript = document.createElement('script');
+                  classicScript.src = 'https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@0.1.4/dist.js';
+                  classicScript.onload = function() {
+                    console.log('✅ Classic SDK loaded');
                     callFarcasterReady();
                   };
-                  script.onerror = function() {
-                    console.error('❌ Failed to load from:', source);
-                    currentSourceIndex++;
-                    tryLoadSDK(); // Bir sonraki source'u dene
+                  classicScript.onerror = function() {
+                    console.error('❌ Classic SDK also failed');
+                    sendEmergencyReady();
                   };
-                  document.head.appendChild(script);
+                  document.head.appendChild(classicScript);
                 }
                 
                 // Ready çağırma fonksiyonu
@@ -80,13 +90,6 @@ export default function RootLayout({ children }) {
                       called = true;
                     }
                     
-                    // FORMAT 3: Global farcaster
-                    if (!called && typeof farcaster !== 'undefined' && farcaster?.ready) {
-                      farcaster.ready();
-                      console.log('✅ farcaster.ready() (global) called successfully');
-                      called = true;
-                    }
-                    
                     if (!called) {
                       console.warn('⚠️ SDK loaded but no ready method found');
                       sendEmergencyReady();
@@ -100,7 +103,6 @@ export default function RootLayout({ children }) {
                 // Acil ready mesajı (fallback)
                 function sendEmergencyReady() {
                   if (window.parent !== window) {
-                    // Farcaster'ın beklediği formatı kullan
                     const readyMsg = {
                       type: 'ready',
                       data: {
@@ -111,9 +113,6 @@ export default function RootLayout({ children }) {
                     console.log('📨 Emergency ready sent with Farcaster format');
                   }
                 }
-                
-                // SDK yüklemeyi başlat
-                tryLoadSDK();
               })();
             `
           }}

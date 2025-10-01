@@ -1,12 +1,11 @@
 (function() {
-  console.log('🚀 YoYo Mini App - Farcaster Format Ready');
+  console.log('🚀 YoYo Mini App - Ultimate Ready Solution');
   
-  const sendFarcasterReady = function() {
+  const sendUltimateReady = function() {
     try {
-      // 1. Önce SDK'yı dene
       let sdkCalled = false;
       
-      // Tüm olası SDK formatları
+      // 1. SDK READY ÇAĞIR (tüm formatlar)
       if (window.farcaster?.actions?.ready) {
         window.farcaster.actions.ready();
         console.log('✅ ready.js: sdk.actions.ready() called');
@@ -23,33 +22,49 @@
         sdkCalled = true;
       }
       
-      // 2. Farcaster formatında ready mesajı gönder
+      // 2. FARCASTER FORMATINDA READY MESAJI
       if (window.parent !== window) {
         const readyMsg = {
           type: 'ready',
           data: {
             version: '1.0.0',
-            sdk: sdkCalled
+            app: 'YoYo Guild Battle',
+            readyjs: true,
+            sdkCalled: sdkCalled,
+            timestamp: Date.now()
           }
         };
         window.parent.postMessage(readyMsg, '*');
-        console.log('📨 Farcaster format ready sent, SDK:', sdkCalled);
+        console.log('📨 ready.js: Farcaster format ready sent, SDK:', sdkCalled);
       }
       
-      // 3. SDK yoksa uyarı
+      // 3. SDK DURUMU
       if (!sdkCalled) {
-        console.warn('⚠️ ready.js: No SDK found');
+        console.log('ℹ️ ready.js: No SDK available, using message-only approach');
+        
+        // SDK yoksa window object'i kontrol et
+        console.log('🔍 Window objects:');
+        console.log('- farcaster:', window.farcaster);
+        console.log('- Farcaster:', window.Farcaster);
+        console.log('- fc:', window.fc);
       }
     } catch(e) {
-      console.error('ready.js error:', e);
+      console.error('❌ ready.js error:', e);
     }
   };
 
-  // Hemen gönder
-  sendFarcasterReady();
+  // ACİL - hemen gönder
+  sendUltimateReady();
   
-  // Multiple attempts
-  [100, 500, 1000, 2000, 3000, 5000].forEach(timeout => {
-    setTimeout(sendFarcasterReady, timeout);
+  // Farcaster yavaşlığı için çoklu deneme
+  const intervals = [100, 300, 600, 1000, 2000, 3000, 5000, 8000, 10000];
+  intervals.forEach(timeout => {
+    setTimeout(sendUltimateReady, timeout);
   });
+
+  // 15 saniye sonra final attempt
+  setTimeout(() => {
+    console.log('🎯 ready.js: Final attempt after 15s');
+    sendUltimateReady();
+  }, 15000);
 })();
