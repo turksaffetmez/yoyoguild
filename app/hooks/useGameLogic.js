@@ -1,4 +1,3 @@
-// app/hooks/useGameLogic.js
 import { useCallback } from 'react';
 
 export const useGameLogic = (
@@ -26,9 +25,8 @@ export const useGameLogic = (
     }
 
     try {
-      console.log('🎮 Starting game in Base App...', { selectedIndex });
+      console.log('🎮 Starting game...', { selectedIndex });
 
-      // Günlük limit kontrolü
       const currentInfo = await contract.getPlayerInfo(userAddress);
       const dailyGamesPlayed = Number(currentInfo[1]);
       const dailyLimit = Number(currentInfo[2]);
@@ -41,7 +39,6 @@ export const useGameLogic = (
         return;
       }
 
-      // Oyun başlıyor
       setGameState(prev => ({ 
         ...prev, 
         isLoading: true, 
@@ -53,9 +50,9 @@ export const useGameLogic = (
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsLoading(true);
 
-      // ✅ BASE APP İÇİN YÜKSEK GAS LİMİT
+      // ✅ ARTIRILMIŞ GAS LİMİT
       const tx = await contract.playGame({
-        gasLimit: 500000, // Artırılmış gas limit
+        gasLimit: 300000, // Base app için optimize edilmiş gas limit
       });
       
       console.log('📨 Transaction sent:', tx.hash);
@@ -69,7 +66,6 @@ export const useGameLogic = (
         throw new Error("Transaction reverted");
       }
 
-      // State güncelleme
       const updatedInfo = await contract.getPlayerInfo(userAddress);
       const newGamesPlayed = Number(updatedInfo[1]);
       const newTotalPoints = Number(updatedInfo[0]);
@@ -85,7 +81,6 @@ export const useGameLogic = (
 
       console.log('📊 Points comparison:', { oldTotalPoints, newTotalPoints, pointsEarned });
 
-      // Event parsing
       try {
         const gamePlayedEvent = receipt.logs.find(log => {
           try {
@@ -110,7 +105,6 @@ export const useGameLogic = (
         console.log('⚠️ Event parsing failed');
       }
 
-      // Countdown animasyonu
       for (let i = 3; i > 0; i--) {
         setGameState(prev => ({ ...prev, countdown: i }));
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -118,7 +112,6 @@ export const useGameLogic = (
 
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Son güncelleme
       await updatePlayerInfo(userAddress);
 
       const winnerIndex = isWinner ? selectedIndex : (selectedIndex === 0 ? 1 : 0);
@@ -131,11 +124,9 @@ export const useGameLogic = (
         isWinner: isWinner
       }));
 
-      // YOYO balance güncelleme
       const newYoyoBalance = await checkYoyoBalance(userAddress);
       setYoyoBalanceAmount(newYoyoBalance);
 
-      // Farcaster mesajı
       if (isFarcasterMiniApp) {
         window.parent.postMessage({ 
           type: 'GAME_RESULT', 
@@ -155,11 +146,11 @@ export const useGameLogic = (
       if (err.reason) {
         errorMessage += err.reason;
       } else if (err.message.includes("revert")) {
-        errorMessage += "Daily limit reached or out of gas";
+        errorMessage += "Daily limit reached or transaction reverted";
       } else if (err.message.includes("user rejected")) {
         errorMessage += "User rejected transaction";
       } else if (err.message.includes("gas")) {
-        errorMessage += "Gas error - try again with higher gas";
+        errorMessage += "Gas error - try again";
       } else {
         errorMessage += err.message;
       }

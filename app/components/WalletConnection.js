@@ -18,7 +18,6 @@ const WalletConnection = ({
   const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
 
-  // YOYO Token Address ve ABI
   const YOYO_TOKEN_ADDRESS = "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1";
   const YOYO_TOKEN_ABI = [
     "function balanceOf(address owner) view returns (uint256)",
@@ -26,7 +25,6 @@ const WalletConnection = ({
     "function symbol() view returns (string)"
   ];
 
-  // YOYO balance kontrolü
   const checkYoyoBalance = async (address) => {
     if (!address) return 0;
     try {
@@ -35,7 +33,6 @@ const WalletConnection = ({
       if (window.ethereum) {
         provider = new ethers.BrowserProvider(window.ethereum);
       } else {
-        // Fallback: Public RPC
         provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
       }
 
@@ -44,7 +41,6 @@ const WalletConnection = ({
       const decimals = await yoyoContract.decimals();
       const formattedBalance = Number(ethers.formatUnits(balance, decimals));
       
-      console.log(`YOYO Balance for ${address}: ${formattedBalance}`);
       return formattedBalance;
     } catch (error) {
       console.error("YOYO balance check failed:", error);
@@ -52,7 +48,6 @@ const WalletConnection = ({
     }
   };
 
-  // Balance refresh fonksiyonu
   const refreshYoyoBalance = async () => {
     if (!userAddress) return;
     
@@ -82,33 +77,11 @@ const WalletConnection = ({
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const detectWallet = () => {
-    if (window.ethereum) {
-      if (window.ethereum.isMetaMask) return 'MetaMask';
-      if (window.ethereum.isRabby) return 'Rabby';
-      if (window.ethereum.isCoinbaseWallet) return 'Coinbase';
-      if (window.ethereum.isTrust) return 'Trust Wallet';
-      return 'Ethereum Wallet';
-    }
-    return null;
-  };
-
-  const currentWallet = detectWallet();
-
   return (
     <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 mb-6 border border-slate-600 shadow-lg">
       {!walletConnected ? (
         <div className="text-center">
           <h3 className="text-xl font-bold text-white mb-4">Connect Your Wallet to Start Battling!</h3>
-          
-          {/* Wallet Detected Indicator */}
-          {currentWallet && (
-            <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mb-4">
-              <p className="text-blue-400 text-sm">
-                {currentWallet} detected
-              </p>
-            </div>
-          )}
           
           <button
             onClick={onConnect}
@@ -121,7 +94,7 @@ const WalletConnection = ({
                 <span>Connecting...</span>
               </div>
             ) : (
-              `Connect ${currentWallet || 'Wallet'}`
+              'Connect Wallet'
             )}
           </button>
           
@@ -140,11 +113,6 @@ const WalletConnection = ({
               <span className="bg-purple-600 px-3 py-1 rounded-full text-sm font-mono">
                 {formatAddress(userAddress)}
               </span>
-              {currentWallet && (
-                <span className="bg-blue-500 px-2 py-1 rounded-full text-xs">
-                  {currentWallet}
-                </span>
-              )}
             </div>
             
             <div className="flex items-center space-x-3">
@@ -164,7 +132,6 @@ const WalletConnection = ({
             </div>
           </div>
 
-          {/* İstatistikler Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-slate-600">
             <div className="bg-slate-900/50 p-4 rounded-xl">
               <div className="text-slate-400 text-sm">Total Points</div>
@@ -214,7 +181,6 @@ const WalletConnection = ({
             </div>
           </div>
 
-          {/* Detaylı İstatistikler */}
           {playerStats && playerStats.totalGames > 0 && (
             <div className="bg-slate-900/30 rounded-xl p-3 border border-slate-600">
               <div className="grid grid-cols-3 gap-4 text-center text-sm">

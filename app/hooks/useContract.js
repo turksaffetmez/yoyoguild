@@ -153,15 +153,9 @@ export const useContract = (provider, isClient) => {
           signer = null;
         }
       }
-      else if (walletType === 'debug' && farcasterAddress) {
-        console.log('🐛 Using debug mode with address:', farcasterAddress);
-        address = farcasterAddress;
-        providerInstance = new ethers.JsonRpcProvider('https://mainnet.base.org');
-        signer = null;
-      }
       else {
         if (!window.ethereum) {
-          throw new Error('No Ethereum wallet found. Please install MetaMask or Rabby.');
+          throw new Error('No wallet found. Please install a wallet like MetaMask, Rabby, or use a wallet-enabled browser.');
         }
 
         const accounts = await window.ethereum.request({
@@ -229,8 +223,8 @@ export const useContract = (provider, isClient) => {
           errorMessage += 'User rejected the connection';
         } else if (error.code === -32002) {
           errorMessage += 'Connection request already pending';
-        } else if (error.message.includes('No Ethereum wallet')) {
-          errorMessage += 'No wallet found. Please install MetaMask or Rabby.';
+        } else if (error.message.includes('No wallet found')) {
+          errorMessage += 'No wallet found. Please install a wallet or use a wallet-enabled browser.';
         } else {
           errorMessage += error.message || 'Unknown error occurred';
         }
@@ -274,8 +268,8 @@ export const useContract = (provider, isClient) => {
         pointsEarned: 0,
         countdown: 3,
         images: [
-          { id: 1, url: "/images/tevan1.png", name: "Tevan Warrior" },
-          { id: 2, url: "/images/tevan2.png", name: "Tevan Mage" }
+          { id: 1, url: "/images/tevans1.png", name: "Tevan #1" },
+          { id: 2, url: "/images/tevans2.png", name: "Tevan #2" }
         ]
       });
     }

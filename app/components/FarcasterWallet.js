@@ -32,7 +32,7 @@ const FarcasterWallet = ({ onConnect }) => {
     try {
       console.log('🎯 Connecting to Farcaster wallet...');
       
-      // Method 1: Farcaster Mini App SDK
+      // Önce Farcaster SDK'yı dene
       if (window.farcaster?.actions?.connectWallet) {
         try {
           const accounts = await window.farcaster.actions.connectWallet();
@@ -46,7 +46,7 @@ const FarcasterWallet = ({ onConnect }) => {
         }
       }
       
-      // Method 2: Direct ethereum request
+      // Sonra normal Ethereum provider'ı dene
       if (window.ethereum) {
         try {
           const accounts = await window.ethereum.request({
@@ -62,8 +62,8 @@ const FarcasterWallet = ({ onConnect }) => {
         }
       }
       
-      console.error('❌ All connection methods failed');
-      alert('Cannot connect to wallet. Please try again or use a browser with MetaMask.');
+      // Hiçbiri çalışmazsa
+      alert('Cannot connect to wallet. Please make sure you have a wallet available in the Farcaster app.');
       
     } catch (error) {
       console.error('Farcaster connect error:', error);
