@@ -18,6 +18,24 @@ const GameBoard = ({
 }) => {
   const [countdown, setCountdown] = useState(0);
   const [fightAnimation, setFightAnimation] = useState(false);
+  const [wrongNetwork, setWrongNetwork] = useState(false);
+
+  // Base Mainnet chainId
+  const BASE_CHAIN_ID = '0x2105';
+
+  // Ağ kontrolü
+  const checkNetwork = async () => {
+    if (!window.ethereum) return false;
+    
+    try {
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      setWrongNetwork(chainId !== BASE_CHAIN_ID);
+      return chainId === BASE_CHAIN_ID;
+    } catch (error) {
+      console.error('Network check failed:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     if (gameState.gamePhase === "fighting" && gameState.countdown > 0) {
@@ -28,9 +46,23 @@ const GameBoard = ({
     }
   }, [gameState.gamePhase, gameState.countdown]);
 
-  const handleGameStart = (selectedIndex) => {
+  // Ağ kontrolü yap
+  useEffect(() => {
+    if (walletConnected) {
+      checkNetwork();
+    }
+  }, [walletConnected]);
+
+  const handleGameStart = async (selectedIndex) => {
     if (!walletConnected) {
       onConnectWallet();
+      return;
+    }
+    
+    // Ağ kontrolü
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
+      alert("Please switch to Base Mainnet to play YoYo Guild Battle!");
       return;
     }
     
@@ -60,6 +92,17 @@ const GameBoard = ({
         return (
           <div className="text-center space-y-6">
             <h2 className="text-3xl font-bold text-white mb-2">Choose Your Tevan</h2>
+            
+            {/* Wrong Network Warning */}
+            {wrongNetwork && (
+              <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 mb-4">
+                <p className="text-red-400 font-semibold">⚠️ Wrong Network Detected</p>
+                <p className="text-red-300 text-sm mt-1">
+                  Please switch to Base Mainnet in your wallet to start playing
+                </p>
+              </div>
+            )}
+
             <p className="text-gray-300 mb-2">
               Win rate: <span className="text-yellow-400">{getWinChance()}%</span>
               {yoyoBalanceAmount > 0 && <span className="text-green-400 ml-2">(+10% YOYO Boost!)</span>}
@@ -73,8 +116,8 @@ const GameBoard = ({
                 <div 
                   className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 ${isMobile ? 'w-full' : 'p-6'} border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
                     gameState.selectedImage === 0 ? 'border-yellow-400 scale-105' : 'border-gray-600'
-                  }`}
-                  onClick={() => handleGameStart(0)}
+                  } ${wrongNetwork ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => !wrongNetwork && handleGameStart(0)}
                 >
                   <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                     <Image
@@ -86,6 +129,9 @@ const GameBoard = ({
                   </div>
                   <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white mb-2`}>{gameState.images[0].name}</h3>
                   <div className="text-sm text-gray-400">Win Chance: {getWinChance()}%</div>
+                  {wrongNetwork && (
+                    <div className="text-red-400 text-xs mt-2">Switch to Base Network</div>
+                  )}
                 </div>
               </div>
 
@@ -97,8 +143,8 @@ const GameBoard = ({
                 <div 
                   className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 ${isMobile ? 'w-full' : 'p-6'} border-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:border-purple-500 ${
                     gameState.selectedImage === 1 ? 'border-yellow-400 scale-105' : 'border-gray-600'
-                  }`}
-                  onClick={() => handleGameStart(1)}
+                  } ${wrongNetwork ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => !wrongNetwork && handleGameStart(1)}
                 >
                   <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} mx-auto mb-4 relative`}>
                     <Image
@@ -110,6 +156,9 @@ const GameBoard = ({
                   </div>
                   <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white mb-2`}>{gameState.images[1].name}</h3>
                   <div className="text-sm text-gray-400">Win Chance: {getWinChance()}%</div>
+                  {wrongNetwork && (
+                    <div className="text-red-400 text-xs mt-2">Switch to Base Network</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -128,6 +177,12 @@ const GameBoard = ({
                     {yoyoBalanceAmount > 0 ? "Active (+10%)" : "Not Active"}
                   </span>
                 </div>
+                <div className="flex justify-between">
+                  <span>Network:</span>
+                  <span className={wrongNetwork ? "text-red-400" : "text-green-400"}>
+                    {wrongNetwork ? "Wrong Network" : "✓ Base Mainnet"}
+                  </span>
+                </div>
                 <div className="flex justify-between text-blue-400">
                   <span>Total Points:</span>
                   <span>{points.toLocaleString()}</span>
@@ -137,6 +192,7 @@ const GameBoard = ({
           </div>
         );
 
+      // ... Diğer gamePhase caseleri aynı kalacak, sadece "idle" değişti
       case "selecting":
         return (
           <div className="text-center space-y-8">
@@ -269,10 +325,11 @@ const GameBoard = ({
 
             <button
               onClick={onStartNewGame}
-              disabled={remainingGames <= 0}
+              disabled={remainingGames <= 0 || wrongNetwork}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {remainingGames > 0 ? 'Battle Again!' : 'Daily Limit Reached'}
+              {wrongNetwork ? 'Switch to Base Network' : 
+               remainingGames > 0 ? 'Battle Again!' : 'Daily Limit Reached'}
             </button>
           </div>
         );
@@ -292,6 +349,22 @@ const GameBoard = ({
           className="btn-primary"
         >
           Connect Wallet to Play
+        </button>
+      </div>
+    );
+  }
+
+  if (wrongNetwork) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-3xl font-bold text-red-400 mb-4">Wrong Network!</h2>
+        <p className="text-gray-300 mb-4">Please switch to <strong>Base Mainnet</strong> to play YoYo Guild Battle.</p>
+        <p className="text-yellow-400 mb-6">Current network is not supported for this game.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="btn-primary"
+        >
+          Refresh After Switching Network
         </button>
       </div>
     );

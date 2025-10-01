@@ -17,6 +17,12 @@ const WalletConnection = ({
 }) => {
   const [displayYoyoBalance, setDisplayYoyoBalance] = useState(0);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
+  const [wrongNetwork, setWrongNetwork] = useState(false);
+  const [currentChainId, setCurrentChainId] = useState(null);
+
+  // Base Mainnet chainId
+  const BASE_CHAIN_ID = '0x2105'; // Base Mainnet
+  const BASE_CHAIN_NAME = 'Base Mainnet';
 
   // YOYO Token Address ve ABI
   const YOYO_TOKEN_ADDRESS = "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1";
@@ -25,6 +31,76 @@ const WalletConnection = ({
     "function decimals() view returns (uint8)",
     "function symbol() view returns (string)"
   ];
+
+  // Ağ kontrolü
+  const checkNetwork = async () => {
+    if (!window.ethereum) return;
+    
+    try {
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      setCurrentChainId(chainId);
+      setWrongNetwork(chainId !== BASE_CHAIN_ID);
+    } catch (error) {
+      console.error('Network check failed:', error);
+    }
+  };
+
+  // Ağ değişikliğini dinle
+  useEffect(() => {
+    if (!window.ethereum) return;
+
+    checkNetwork();
+
+    // Ağ değiştiğinde kontrol et
+    const handleChainChanged = (chainId) => {
+      checkNetwork();
+    };
+
+    window.ethereum.on('chainChanged', handleChainChanged);
+    
+    return () => {
+      if (window.ethereum.removeListener) {
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
+  }, []);
+
+  // Ağ değiştirme fonksiyonu
+  const switchToBaseNetwork = async () => {
+    if (!window.ethereum) return;
+    
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: BASE_CHAIN_ID }],
+      });
+    } catch (switchError) {
+      // Eğer zincir wallet'ta yoksa, ekle
+      if (switchError.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: BASE_CHAIN_ID,
+                chainName: 'Base Mainnet',
+                rpcUrls: ['https://mainnet.base.org'],
+                blockExplorerUrls: ['https://basescan.org'],
+                nativeCurrency: {
+                  name: 'Ethereum',
+                  symbol: 'ETH',
+                  decimals: 18,
+                },
+              },
+            ],
+          });
+        } catch (addError) {
+          console.error('Base network eklenemedi:', addError);
+        }
+      }
+      console.error('Network switch failed:', switchError);
+    }
+  };
 
   // YOYO balance kontrolü
   const checkYoyoBalance = async (address) => {
@@ -35,7 +111,6 @@ const WalletConnection = ({
       if (window.ethereum) {
         provider = new ethers.BrowserProvider(window.ethereum);
       } else {
-        // Fallback: Public RPC
         provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
       }
 
@@ -70,6 +145,7 @@ const WalletConnection = ({
   useEffect(() => {
     if (walletConnected && userAddress) {
       refreshYoyoBalance();
+      checkNetwork();
     }
   }, [walletConnected, userAddress]);
 
@@ -97,6 +173,26 @@ const WalletConnection = ({
 
   return (
     <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 mb-6 border border-slate-600 shadow-lg">
+      {/* WRONG NETWORK UYARISI */}
+      {wrongNetwork && walletConnected && (
+        <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-red-400 font-semibold">⚠️ Wrong Network</p>
+              <p className="text-red-300 text-sm mt-1">
+                Please switch to <strong>{BASE_CHAIN_NAME}</strong> to play YoYo Guild Battle
+              </p>
+            </div>
+            <button
+              onClick={switchToBaseNetwork}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+            >
+              Switch to Base
+            </button>
+          </div>
+        </div>
+      )}
+
       {!walletConnected ? (
         <div className="text-center">
           <h3 className="text-xl font-bold text-white mb-4">Connect Your Wallet to Start Battling!</h3>
@@ -106,6 +202,9 @@ const WalletConnection = ({
             <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mb-4">
               <p className="text-blue-400 text-sm">
                 {currentWallet} detected
+              </p>
+              <p className="text-blue-300 text-xs mt-1">
+                Make sure you're on <strong>Base Mainnet</strong>
               </p>
             </div>
           )}
@@ -127,7 +226,7 @@ const WalletConnection = ({
           
           {isMobile && (
             <p className="text-gray-400 mt-2 text-sm">
-              Make sure your wallet app is installed
+              Make sure your wallet app is installed and on Base network
             </p>
           )}
         </div>
@@ -135,8 +234,10 @@ const WalletConnection = ({
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-white font-semibold">Connected</span>
+              <div className={`w-3 h-3 rounded-full animate-pulse ${wrongNetwork ? 'bg-red-400' : 'bg-green-400'}`}></div>
+              <span className="text-white font-semibold">
+                {wrongNetwork ? 'Wrong Network' : 'Connected'}
+              </span>
               <span className="bg-purple-600 px-3 py-1 rounded-full text-sm font-mono">
                 {formatAddress(userAddress)}
               </span>
@@ -145,9 +246,22 @@ const WalletConnection = ({
                   {currentWallet}
                 </span>
               )}
+              {!wrongNetwork && (
+                <span className="bg-green-500 px-2 py-1 rounded-full text-xs">
+                  ✓ Base Network
+                </span>
+              )}
             </div>
             
             <div className="flex items-center space-x-3">
+              {wrongNetwork && (
+                <button
+                  onClick={switchToBaseNetwork}
+                  className="bg-red-500 px-3 py-2 rounded-lg text-white hover:bg-red-600 transition-colors text-sm"
+                >
+                  🔄 Switch Network
+                </button>
+              )}
               <button
                 onClick={refreshYoyoBalance}
                 disabled={isRefreshingBalance}
@@ -257,6 +371,11 @@ const WalletConnection = ({
               }`}>
                 {displayYoyoBalance > 0 ? "🎯 Boost Active (+10% Win)" : "No YOYO Boost"}
               </div>
+              {!wrongNetwork && (
+                <div className="bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-full">
+                  ✓ Base Network
+                </div>
+              )}
             </div>
           </div>
         </div>
