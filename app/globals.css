@@ -110,17 +110,22 @@ a {
   font-size: 1.75rem !important;
 }
 
-/* ✅ FARCASTER SPLASH SCREEN FORCE HIDE - KRİTİK */
-body::before,
-body::after,
+/* 🚨 NUCLEAR SPLASH SCREEN REMOVAL - KRİTİK */
+/* Tüm splash/loading elementlerini KALDIR */
+iframe,
 [class*="splash"],
 [class*="Splash"],
-iframe[src*="splash"],
-div[style*="splash"],
-div[class*="loading"],
-div[class*="Loading"],
+[class*="loading"],
+[class*="Loading"],
 [data-farcaster-loading],
-[class*="farcaster-loading"] {
+[class*="farcaster-loading"],
+[style*="splash"],
+[style*="loading"],
+div[style*="background"][style*="fixed"],
+div[style*="z-index: 9999"],
+div[style*="z-index: 99999"],
+div[style*="position: fixed"][style*="top: 0"],
+div[style*="width: 100%"][style*="height: 100%"] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
@@ -131,19 +136,31 @@ div[class*="Loading"],
   z-index: -9999 !important;
 }
 
-/* ✅ Force show main content */
-body {
+/* 🚨 FORCE SHOW - Her şeyi GÖSTER */
+body,
+html {
   visibility: visible !important;
   opacity: 1 !important;
   overflow: auto !important;
+  display: block !important;
+  position: relative !important;
 }
 
-/* ✅ Farcaster container override */
+body * {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+/* 🚨 ÖZEL FARCASTER OVERRIDE */
 .farcaster-mini-app {
-  animation: farcasterShow 0.1s forwards !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  animation: farcasterInstantShow 0.001s forwards !important;
 }
 
-@keyframes farcasterShow {
+@keyframes farcasterInstantShow {
   0% {
     opacity: 0;
     visibility: hidden;
@@ -154,11 +171,35 @@ body {
   }
 }
 
-/* ✅ Emergency override for Farcaster bug */
-@media (min-width: 1px) {
-  .farcaster-mini-app {
-    animation-duration: 0.01s !important;
-    animation-delay: 0s !important;
+/* 🚨 EMERGENCY MOBILE FIX */
+@media (max-width: 768px) {
+  body {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  /* Mobilde tüm overlay'leri kaldır */
+  [class*="overlay"],
+  [class*="Overlay"],
+  [class*="modal"],
+  [class*="Modal"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+
+/* 🚨 ULTRA EMERGENCY - Tüm engelleri kaldır */
+@media all {
+  body,
+  .farcaster-mini-app,
+  #__next,
+  main,
+  [data-reactroot] {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+    position: relative !important;
+    z-index: 1 !important;
   }
 }
 

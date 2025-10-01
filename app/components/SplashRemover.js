@@ -1,46 +1,64 @@
-// SplashRemover.js - BUNUNLA DEĞİŞTİRİN
+// components/SplashRemover.js - BUNUNLA DEĞİŞTİRİN
 "use client";
 import { useEffect } from 'react';
 
 export default function SplashRemover() {
   useEffect(() => {
-    console.log('🚨 ULTRA SPLASH REMOVER ACTIVATED');
+    console.log('🚨 NUCLEAR SPLASH REMOVER ACTIVATED');
     
-    // NÜKLEER seçenek: Tüm iframe'leri kaldır
-    const nuclearOption = () => {
+    const nuclearRemoval = () => {
       try {
-        // 1. Tüm iframe'leri kaldır
+        // 1. TÜM iframe'leri kaldır
         document.querySelectorAll('iframe').forEach(iframe => {
-          if (iframe.src?.includes('farcaster') || iframe.src?.includes('splash')) {
+          if (iframe.src?.includes('farcaster') || iframe.src?.includes('warpcast') || 
+              iframe.className?.includes('splash') || iframe.style.display !== 'none') {
             iframe.remove();
-            console.log('🗑️ Removed farcaster iframe');
+            console.log('🗑️ Removed iframe');
           }
         });
         
-        // 2. Body'yi force göster
+        // 2. TÜM splash/loading elementlerini kaldır
+        document.querySelectorAll('div, section, main, body').forEach(el => {
+          const html = el.outerHTML?.toLowerCase() || '';
+          const style = el.style?.cssText?.toLowerCase() || '';
+          const className = el.className?.toLowerCase() || '';
+          
+          if (html.includes('splash') || html.includes('loading') || 
+              style.includes('splash') || style.includes('loading') ||
+              className.includes('splash') || className.includes('loading') ||
+              el.id?.includes('splash') || el.id?.includes('loading')) {
+            el.remove();
+            console.log('🗑️ Removed splash element');
+          }
+        });
+        
+        // 3. BODY'yi FORCE göster
         document.body.style.visibility = 'visible';
         document.body.style.opacity = '1';
         document.body.style.display = 'block';
         document.body.style.overflow = 'auto';
+        document.body.style.position = 'relative';
         
-        // 3. Tüm elementleri göster
+        // 4. Tüm children'ları göster
         document.querySelectorAll('*').forEach(el => {
           el.style.visibility = 'visible';
           el.style.opacity = '1';
+          el.style.display = 'block';
         });
         
         console.log('✅ NUCLEAR SPLASH REMOVAL COMPLETE');
-      } catch (e) {
-        console.error('Nuclear option failed:', e);
+        
+      } catch (error) {
+        console.warn('Nuclear removal warning:', error);
       }
     };
 
     // HEMEN uygula
-    nuclearOption();
+    nuclearRemoval();
     
-    // Çoklu deneme
-    [100, 500, 1000, 2000, 3000, 5000, 8000, 15000].forEach(timeout => {
-      setTimeout(nuclearOption, timeout);
+    // Farcaster çok yavaş - çoklu deneme
+    [10, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 8000, 10000, 15000, 20000].forEach(timeout => {
+      setTimeout(nuclearRemoval, timeout);
     });
 
   }, []);

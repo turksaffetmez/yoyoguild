@@ -1,38 +1,46 @@
-// public/ready.js - BU ŞEKİLDE OLSUN:
+// public/ready.js - BUNUNLA DEĞİŞTİRİN
 (function() {
-  console.log('🚀 YoYo Mini App Loading...');
+  console.log('🚀 ULTRA READY - YoYo Mini App');
   
-  // Mini App için ready mesajı
-  const sendMiniAppReady = function() {
+  const ultraReady = function() {
     try {
-      // 1. Parent frame'e ready gönder
+      // 1. Ready mesajı
+      const msg = { 
+        type: 'ready', 
+        version: '1.0.0',
+        app: 'YoYo Guild Battle', 
+        ultra: true,
+        timestamp: Date.now()
+      };
+      
       if (window.parent !== window) {
-        const msg = { 
-          type: 'ready', 
-          version: '1.0.0',
-          app: 'YoYo Guild Battle',
-          isMiniApp: true,
-          timestamp: Date.now()
-        };
         window.parent.postMessage(msg, '*');
-        console.log('📨 Mini App Ready sent:', msg);
+        console.log('🚨 ULTRA READY SENT:', msg);
       }
       
-      // 2. Farcaster SDK ready
+      // 2. Farcaster SDK
       if (typeof window.farcaster !== 'undefined') {
         window.farcaster.ready();
         console.log('✅ farcaster.ready() called');
       }
-    } catch(e) {
-      console.error('Ready error:', e);
+      
+      // 3. SPLASH KAPATMA
+      document.querySelectorAll('iframe, [class*="splash"], [class*="loading"]').forEach(el => {
+        el.remove();
+      });
+      document.body.style.visibility = 'visible';
+      
+    } catch (e) {
+      console.error('Ultra ready error:', e);
     }
   };
 
-  // Hemen gönder
-  sendMiniAppReady();
+  // ACİL - hemen çalıştır
+  ultraReady();
   
-  // Warpcast yavaş yükleniyor, çoklu deneme
-  [100, 500, 1000, 2000, 3000, 5000, 8000].forEach(timeout => {
-    setTimeout(sendMiniAppReady, timeout);
+  // Warpcast çok yavaş - çoklu deneme
+  [10, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 8000, 15000].forEach(timeout => {
+    setTimeout(ultraReady, timeout);
   });
+
 })();
