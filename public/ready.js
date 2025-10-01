@@ -1,49 +1,39 @@
 (function() {
-  console.log('🚀 YoYo Mini App - Waiting for Farcaster SDK');
+  console.log('🚀 YoYo Mini App - Simplified Ready');
   
-  const initializeApp = function() {
+  const sendReady = function() {
     try {
-      // SDK kontrolü
-      let sdkCalled = false;
-      
-      // 1. YENİ SDK - sdk.actions.ready()
-      if (window.farcaster && window.farcaster.actions) {
-        window.farcaster.actions.ready();
-        console.log('✅ sdk.actions.ready() called from ready.js');
-        sdkCalled = true;
-      }
-      // 2. ESKİ SDK - farcaster.ready()
-      else if (window.farcaster && window.farcaster.ready) {
-        window.farcaster.ready();
-        console.log('✅ farcaster.ready() called from ready.js');
-        sdkCalled = true;
-      }
-      
-      // 3. READY MESAJI (her zaman gönder)
+      // Basit ready mesajı - SDK olmasa bile
       if (window.parent !== window) {
         window.parent.postMessage({
           type: 'ready',
-          version: '1.0.0',
+          version: '1.0.0', 
           app: 'YoYo Guild Battle',
-          sdkReady: sdkCalled
+          simplified: true,
+          timestamp: Date.now()
         }, '*');
-        console.log('📨 Ready message sent, SDK called:', sdkCalled);
+        console.log('📨 Simplified ready message sent');
       }
       
-      // SDK yoksa uyarı
-      if (!sdkCalled) {
-        console.warn('⚠️ Farcaster SDK not available in ready.js');
+      // SDK varsa kullan
+      if (window.farcaster?.actions?.ready) {
+        window.farcaster.actions.ready();
+        console.log('✅ sdk.actions.ready() called');
+      }
+      else if (window.farcaster?.ready) {
+        window.farcaster.ready();
+        console.log('✅ farcaster.ready() called');
       }
     } catch(e) {
       console.error('Ready error:', e);
     }
   };
 
-  // Hemen dene
-  initializeApp();
+  // Hemen gönder
+  sendReady();
   
-  // SDK yüklenmesi için çoklu deneme
-  [100, 500, 1000, 2000, 3000, 5000, 8000].forEach(timeout => {
-    setTimeout(initializeApp, timeout);
+  // Multiple attempts
+  [100, 500, 1000, 2000].forEach(timeout => {
+    setTimeout(sendReady, timeout);
   });
 })();

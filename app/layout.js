@@ -15,7 +15,7 @@ export default function RootLayout({ children }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>YoYo Guild Battle - Blockchain Battle Arena</title>
-        <script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@0.1.4/dist.js" />
+        
         {/* ACİL FARCASTER READY FIX */}
         <script
           dangerouslySetInnerHTML={{
@@ -34,11 +34,21 @@ export default function RootLayout({ children }) {
                     window.farcaster.ready();
                     console.log('✅ EMERGENCY: farcaster.ready() called from layout');
                   }
+                  // SDK YOK - sadece ready mesajı
+                  else {
+                    console.log('⚠️ EMERGENCY: No Farcaster SDK found in layout');
+                  }
                   
-                  // READY MESAJI
+                  // READY MESAJI (her durumda gönder)
                   if (window.parent !== window) {
-                    window.parent.postMessage({ type: 'ready', version: '1.0.0' }, '*');
-                    console.log('📨 Emergency ready message sent');
+                    window.parent.postMessage({ 
+                      type: 'ready', 
+                      version: '1.0.0',
+                      app: 'YoYo Guild Battle',
+                      layout: true,
+                      timestamp: Date.now()
+                    }, '*');
+                    console.log('📨 Emergency ready message sent from layout');
                   }
                 } catch(e) {
                   console.error('Emergency ready error:', e);
