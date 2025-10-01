@@ -43,48 +43,23 @@ export default function RootLayout({ children }) {
         <title>YoYo Guild Battle - Blockchain Battle Arena</title>
         
         {/* ACİL READY FIX - Splash screen için */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // ACİL READY FIX - Splash screen için
-              if (window.parent !== window.self) {
-                console.log('🚀 EMERGENCY: Sending immediate ready from layout');
-                
-                // Acil ready mesajı
-                const emergencyReady = () => {
-                  const msg = { 
-                    type: 'ready', 
-                    version: '1.0.0', 
-                    app: 'YoYo Guild Battle',
-                    timestamp: Date.now(),
-                    emergency: true 
-                  };
-                  window.parent.postMessage(msg, '*');
-                  console.log('📨 Emergency ready sent:', msg.timestamp);
-                };
-                
-                // HEMEN gönder
-                emergencyReady();
-                
-                // Hızlı aralıklarla tekrarla
-                [50, 150, 300, 600, 1000, 2000, 3000, 5000].forEach(timeout => {
-                  setTimeout(emergencyReady, timeout);
-                });
-              }
-
-              // Sayfa yüklendikten sonra da ready gönder
-              window.addEventListener('load', () => {
-                if (window.parent !== window.self) {
-                  setTimeout(() => {
-                    const msg = { type: 'ready', version: '1.0.0', event: 'page_load' };
-                    window.parent.postMessage(msg, '*');
-                    console.log('📨 Ready sent after page load');
-                  }, 100);
-                }
-              });
-            `
-          }}
-        />
+<script
+  dangerouslySetInnerHTML={{
+    __html: `
+      // ACİL FIX: Force ready immediately
+      (function(){
+        console.log('🚨 LAYOUT EMERGENCY READY');
+        try {
+          const msg = { type: 'ready', version: '1.0.0', layout: true, ts: ${Date.now()} };
+          if (window.parent !== window) {
+            window.parent.postMessage(msg, '*');
+            console.log('📨 Layout ready sent');
+          }
+        } catch(e) {}
+      })();
+    `
+  }}
+/>
         
         {/* CRITICAL - Open Graph Tags for Base Preview */}
         <meta property="og:title" content="YoYo Guild Battle" />
