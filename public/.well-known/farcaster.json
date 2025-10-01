@@ -2,7 +2,7 @@
   "accountAssociation": {
     "header": "eyJmaWQiOjk5Mjk1NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweEQ3NDk0NGY3MEU1MTE2RDZBMkU2NjQzN2U1OGQ0MTYxYUVBMTRBYjAifQ",
     "payload": "eyJkb21haW4iOiJodHRwczovL3lveW9ndWlsZC52ZXJjZWwuYXBwIn0",
-    "signature": "SqTiytwQufGeE73ii+4knPOEJf0ExQnJu/2NoDXro+8fN6UrS93wYTPbdhV8PPNI+an18aypVFATi2iifSZRIxw="
+    "signature": "MHg4MWIxNjBlOTY0NTQzN2QxNDI4MTk1MTVlYThiZGNiODJmM2Y2N2E1M2M1MTYxODJiZjBlOGMwZTkyYTNkN2ZmNjExODBhMjNjZTBiNGI5Nzg1OWEwNWM2YTI5ZDE0YzA2NGRkNDJmMDYyZDBmZTU0ZDJmNzlkMDFmMThiMzM3NDFi"
   },
   "frame": {
     "name": "YoYo Guild Battle",
