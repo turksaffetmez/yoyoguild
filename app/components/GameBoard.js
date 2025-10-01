@@ -322,26 +322,15 @@ const GameBoard = ({
               </div>
             </div>
 
-            {/* YENİ "BATTLE AGAIN!" BUTONU - DAHA BELİRGİN */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <button
-                onClick={onStartNewGame}
-                disabled={remainingGames <= 0 || wrongNetwork}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg px-8 py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 min-w-[200px]"
-              >
-                {wrongNetwork ? 'Switch to Base Network' : 
-                 remainingGames > 0 ? '⚔️ Battle Again!' : 'Daily Limit Reached'}
-              </button>
-              
-              {remainingGames > 0 && !wrongNetwork && (
-                <button
-                  onClick={onResetGame}
-                  className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 border border-gray-500"
-                >
-                  Change Tevan
-                </button>
-              )}
-            </div>
+            {/* SADECE "BATTLE AGAIN!" BUTONU - DAHA BELİRGİN */}
+            <button
+              onClick={onStartNewGame}
+              disabled={remainingGames <= 0 || wrongNetwork}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg px-8 py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 min-w-[200px]"
+            >
+              {wrongNetwork ? 'Switch to Base Network' : 
+               remainingGames > 0 ? '⚔️ Battle Again!' : 'Daily Limit Reached'}
+            </button>
           </div>
         );
 
