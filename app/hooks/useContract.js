@@ -9,6 +9,7 @@ export const useContract = (provider, isClient) => {
     "function symbol() view returns (string)"
   ];
 
+  // Optimize edilmiş YOYO balance kontrolü
   const checkYoyoBalance = async (address) => {
     if (!address) return 0;
     try {
@@ -21,10 +22,13 @@ export const useContract = (provider, isClient) => {
       }
 
       const yoyoContract = new ethers.Contract(YOYO_TOKEN_ADDRESS, YOYO_TOKEN_ABI, providerInstance);
-      const balance = await yoyoContract.balanceOf(address);
-      const decimals = await yoyoContract.decimals();
-      const formattedBalance = Number(ethers.formatUnits(balance, decimals));
+      const [balance, decimals] = await Promise.all([
+        yoyoContract.balanceOf(address),
+        yoyoContract.decimals()
+      ]);
       
+      const formattedBalance = Number(ethers.formatUnits(balance, decimals));
+      console.log(`💰 YOYO Balance: ${formattedBalance} for ${address}`);
       return formattedBalance;
     } catch (error) {
       console.error("YOYO balance check failed:", error);
@@ -32,13 +36,16 @@ export const useContract = (provider, isClient) => {
     }
   };
 
+  // Point values getir - optimize edilmiş
   const getPointValues = async (contract) => {
     if (!contract) return { winNormal: 250, winYoyo: 500, lose: 10 };
     
     try {
-      const winNormal = await contract.WIN_POINTS();
-      const winYoyo = await contract.WIN_YOYO_POINTS();
-      const lose = await contract.LOSE_POINTS();
+      const [winNormal, winYoyo, lose] = await Promise.all([
+        contract.WIN_POINTS(),
+        contract.WIN_YOYO_POINTS(),
+        contract.LOSE_POINTS()
+      ]);
       
       return {
         winNormal: Number(winNormal),
@@ -46,51 +53,59 @@ export const useContract = (provider, isClient) => {
         lose: Number(lose)
       };
     } catch (error) {
-      console.error("Failed to get point values:", error);
+      console.error("Failed to get point values, using defaults:", error);
       return { winNormal: 250, winYoyo: 500, lose: 10 };
     }
   };
 
+  // Optimize edilmiş player info güncelleme
   const updatePlayerInfo = async (contract, address, checkYoyoBalance, setPoints, setGamesPlayedToday, setDailyLimit, setPlayerStats, setYoyoBalanceAmount) => {
     if (!contract || !address) return;
     
     try {
-      const [points, gamesPlayed, dailyLimit, stats] = await Promise.all([
-        contract.getPoints(address),
-        contract.getGamesPlayedToday(address),
-        contract.dailyGameLimit(),
-        contract.getPlayerStats(address)
+      const [playerInfo, yoyoBalance] = await Promise.all([
+        contract.getPlayerInfo(address),
+        checkYoyoBalance(address)
       ]);
 
-      const yoyoBalance = await checkYoyoBalance(address);
-      
-      if (setPoints) setPoints(Number(points));
-      if (setGamesPlayedToday) setGamesPlayedToday(Number(gamesPlayed));
-      if (setDailyLimit) setDailyLimit(Number(dailyLimit));
+      const [
+        totalPoints, 
+        gamesToday, 
+        limit, 
+        hasYoyoBoost,
+        totalGames,
+        totalWins, 
+        totalLosses,
+        winStreak,
+        maxWinStreak,
+        winRate
+      ] = playerInfo;
+
+      // Batch state updates
+      if (setPoints) setPoints(Number(totalPoints));
+      if (setGamesPlayedToday) setGamesPlayedToday(Number(gamesToday));
+      if (setDailyLimit) setDailyLimit(Number(limit));
       if (setYoyoBalanceAmount) setYoyoBalanceAmount(yoyoBalance);
       
-      if (setPlayerStats && stats) {
-        const totalGames = Number(stats.totalGames) || 0;
-        const totalWins = Number(stats.totalWins) || 0;
-        const totalLosses = Number(stats.totalLosses) || 0;
-        const winStreak = Number(stats.winStreak) || 0;
-        
-        const winRate = totalGames > 0 ? Math.round((totalWins / totalGames) * 100) : 0;
-        
+      if (setPlayerStats) {
         setPlayerStats({
-          totalGames,
-          totalWins,
-          totalLosses,
-          winRate,
-          winStreak
+          totalGames: Number(totalGames),
+          totalWins: Number(totalWins),
+          totalLosses: Number(totalLosses),
+          winRate: Number(winRate),
+          winStreak: Number(winStreak),
+          maxWinStreak: Number(maxWinStreak)
         });
       }
       
+      console.log('✅ Player info updated successfully');
+      
     } catch (error) {
-      console.error("Failed to update player info:", error);
+      console.error("❌ Failed to update player info:", error);
     }
   };
 
+  // Optimize edilmiş leaderboard güncelleme
   const updateLeaderboard = async (contract, setLeaderboard) => {
     if (!contract) return;
     
@@ -107,12 +122,14 @@ export const useContract = (provider, isClient) => {
         .slice(0, 100);
       
       if (setLeaderboard) setLeaderboard(leaderboardData);
+      console.log('🏆 Leaderboard updated:', leaderboardData.length, 'players');
       
     } catch (error) {
       console.error("Failed to update leaderboard:", error);
     }
   };
 
+  // Optimize edilmiş wallet bağlantısı
   const connectWallet = async (
     walletType = 'standard', 
     farcasterAddress = null,
@@ -141,7 +158,7 @@ export const useContract = (provider, isClient) => {
       let signer;
       let address;
 
-      // FARCASTER EMBEDDED WALLET
+      // FARCASTER veya BASE EMBEDDED WALLET
       if ((walletType === 'farcaster' || walletType === 'embedded') && farcasterAddress) {
         console.log('🎯 Using embedded wallet');
         address = farcasterAddress;
@@ -157,7 +174,7 @@ export const useContract = (provider, isClient) => {
       // STANDARD WALLET
       else {
         if (!window.ethereum) {
-          throw new Error('No wallet found.');
+          throw new Error('No Ethereum wallet found. Please install MetaMask, Rabby, or use a wallet-enabled browser.');
         }
 
         const accounts = await window.ethereum.request({
@@ -177,6 +194,7 @@ export const useContract = (provider, isClient) => {
         ? new ethers.Contract(contractAddress, abi, signer)
         : new ethers.Contract(contractAddress, abi, providerInstance);
 
+      // State'leri güncelle
       if (setProvider) setProvider(providerInstance);
       if (setContract) setContract(contractInstance);
       if (setUserAddress) setUserAddress(address);
@@ -184,42 +202,39 @@ export const useContract = (provider, isClient) => {
       if (setShowWalletOptions) setShowWalletOptions(false);
       if (setConnectionError) setConnectionError('');
 
-      if (checkYoyoBalance) {
-        const balance = await checkYoyoBalance(address);
-        if (setYoyoBalanceAmount) setYoyoBalanceAmount(balance);
-      }
+      console.log('✅ Wallet connected successfully:', { address, walletType });
 
-      if (getPointValues && setPointValues) {
-        const pointVals = await getPointValues(contractInstance);
-        setPointValues(pointVals);
-      }
-
-      if (updatePlayerInfo) {
-        await updatePlayerInfo(
-          contractInstance, 
-          address, 
-          checkYoyoBalance, 
+      // Parallel data fetching
+      await Promise.all([
+        checkYoyoBalance && checkYoyoBalance(address).then(balance => {
+          if (setYoyoBalanceAmount) setYoyoBalanceAmount(balance);
+        }),
+        getPointValues && getPointValues(contractInstance).then(pointVals => {
+          if (setPointValues) setPointValues(pointVals);
+        }),
+        updatePlayerInfo && updatePlayerInfo(
+          contractInstance, address, checkYoyoBalance, 
           null, null, null, null, null
-        );
-      }
-
-      if (updateLeaderboard) {
-        await updateLeaderboard(contractInstance, null);
-      }
-
-      if (refreshPlayerData) {
-        await refreshPlayerData(
-          contractInstance,
-          address,
-          checkYoyoBalance,
-          null, null, null, null, null
-        );
-      }
+        ),
+        updateLeaderboard && updateLeaderboard(contractInstance, null)
+      ]);
 
     } catch (error) {
       console.error('❌ Wallet connection failed:', error);
       if (setConnectionError) {
-        setConnectionError('Connection failed: ' + (error.message || 'Unknown error occurred'));
+        let errorMessage = 'Connection failed: ';
+        
+        if (error.code === 4001) {
+          errorMessage += 'User rejected the connection';
+        } else if (error.code === -32002) {
+          errorMessage += 'Connection request already pending';
+        } else if (error.message.includes('No Ethereum wallet')) {
+          errorMessage += 'No wallet found. Please install a wallet.';
+        } else {
+          errorMessage += error.message || 'Unknown error occurred';
+        }
+        
+        setConnectionError(errorMessage);
       }
       throw error;
     } finally {

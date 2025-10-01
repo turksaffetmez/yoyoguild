@@ -52,7 +52,6 @@ export default function Home() {
 
     const initializeFarcasterSDK = async () => {
       try {
-        // Farcaster Mini App SDK - Official integration
         const { sdk } = await import('@farcaster/miniapp-sdk');
         await sdk.actions.ready();
         setFarcasterSDK(sdk);
@@ -84,7 +83,7 @@ export default function Home() {
     await updateContractLeaderboard(contract, setLeaderboard);
   }, [contract, updateContractLeaderboard, setLeaderboard]);
 
-  // UNIVERSAL WALLET CONNECTION - Tek sistem
+  // UNIVERSAL WALLET CONNECTION
   const connectWallet = useCallback(async () => {
     setIsLoading(true);
     setConnectionError("");
@@ -175,10 +174,12 @@ export default function Home() {
       setWalletConnected(true);
 
       // Fetch initial data
-      const balance = await checkYoyoBalance(address);
-      setYoyoBalanceAmount(balance);
+      const [balance, pointVals] = await Promise.all([
+        checkYoyoBalance(address),
+        getContractPointValues(contractInstance)
+      ]);
 
-      const pointVals = await getContractPointValues(contractInstance);
+      setYoyoBalanceAmount(balance);
       setPointValues(pointVals);
 
       await updatePlayerInfo(address);
