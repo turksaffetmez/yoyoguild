@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { ethers } from 'ethers'; // ✅ EKLENDİ
 
 export const useGameLogic = (
   walletConnected,
@@ -53,7 +54,7 @@ export const useGameLogic = (
 
       // ✅ OPTIMIZE EDİLMİŞ GAS AYARLARI
       const tx = await contract.playGame({
-        gasLimit: 100000, // Base için optimize edilmiş gas limit
+        gasLimit: 100000,
         maxPriorityFeePerGas: ethers.parseUnits('1', 'gwei'),
         maxFeePerGas: ethers.parseUnits('1.5', 'gwei'),
       });
@@ -88,7 +89,7 @@ export const useGameLogic = (
 
       console.log('📊 Points comparison:', { oldTotalPoints, newTotalPoints, pointsEarned });
 
-      // Event parsing - daha güvenli
+      // Event parsing
       try {
         const gamePlayedEvent = receipt.logs.find(log => {
           try {
@@ -105,7 +106,6 @@ export const useGameLogic = (
           pointsEarned = Number(parsedLog.args.points);
           console.log('🎯 Event result:', { isWinner, pointsEarned });
         } else {
-          // Event bulunamazsa points karşılaştırması yap
           isWinner = pointsEarned > 0;
           console.log('⚠️ No event found, using points comparison');
         }
@@ -148,7 +148,6 @@ export const useGameLogic = (
       
       let errorMessage = "Transaction failed: ";
       
-      // Detaylı hata mesajları
       if (err.reason) {
         errorMessage += err.reason;
       } else if (err.message.includes("user rejected")) {
@@ -167,7 +166,6 @@ export const useGameLogic = (
       
       setConnectionError(errorMessage);
       
-      // Hata durumunda player info'yu güncelle
       if (userAddress) {
         try {
           await updatePlayerInfo(userAddress);

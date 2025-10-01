@@ -19,24 +19,29 @@ const Leaderboard = () => {
       setIsLoading(true);
       setError('');
 
-      // Read-only provider oluştur (wallet bağlı olması gerekmez)
-      let provider;
+      console.log('🏆 Loading leaderboard...');
       
-      if (window.ethereum) {
-        // MetaMask/Rabby varsa onu kullan
-        provider = new ethers.BrowserProvider(window.ethereum);
-      } else {
-        // Public RPC kullan
-        provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
-      }
-
-      // Read-only contract instance
+      // Base RPC provider
+      const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
       const contract = new ethers.Contract(contractAddress, abi, provider);
       
+      // Önce contract bağlantısını test et
+      try {
+        const dailyLimit = await contract.DAILY_LIMIT();
+        console.log('✅ Contract connection test passed:', dailyLimit);
+      } catch (testError) {
+        console.error('❌ Contract connection failed:', testError);
+        throw new Error('Contract connection failed. Please check contract address and ABI.');
+      }
+      
       // Leaderboard'u getir
+      console.log('📊 Fetching leaderboard data...');
       const [addresses, points] = await contract.getTopPlayers();
       
+      console.log('📋 Raw leaderboard data:', { addresses, points });
+      
       if (!addresses || addresses.length === 0) {
+        console.log('ℹ️ No leaderboard data found');
         setLeaderboard([]);
         setIsLoading(false);
         return;
@@ -52,11 +57,12 @@ const Leaderboard = () => {
         .filter(player => player.points > 0)
         .slice(0, 100);
       
+      console.log('✅ Processed leaderboard:', leaderboardData);
       setLeaderboard(leaderboardData);
       
     } catch (err) {
-      console.error("Failed to load leaderboard:", err);
-      setError("Leaderboard yüklenirken hata oluştu. Lütfen tekrar deneyin.");
+      console.error("❌ Failed to load leaderboard:", err);
+      setError("Leaderboard yüklenirken hata oluştu: " + (err.message || 'Bilinmeyen hata'));
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +88,6 @@ const Leaderboard = () => {
           Real-time points ranking - Top 100 players
         </p>
         
-        {/* Refresh Button */}
         <button
           onClick={refreshLeaderboard}
           disabled={isLoading}
@@ -97,7 +102,7 @@ const Leaderboard = () => {
           <p className="text-red-400">{error}</p>
           <button 
             onClick={refreshLeaderboard}
-            className="text-red-300 text-sm mt-2 hover:text-white"
+            className="mt-2 bg-red-600 px-4 py-2 rounded-lg text-white hover:bg-red-700 transition-colors"
           >
             Try Again
           </button>
@@ -119,14 +124,12 @@ const Leaderboard = () => {
         </div>
       ) : (
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 overflow-hidden">
-          {/* Header - Mobil uyumlu */}
           <div className={`grid ${isMobile ? 'grid-cols-10' : 'grid-cols-12'} bg-gradient-to-r from-purple-600 to-blue-600 text-white p-3 font-semibold`}>
             <div className={`${isMobile ? 'col-span-1' : 'col-span-1'} text-center text-sm`}>Rank</div>
             <div className={`${isMobile ? 'col-span-6' : 'col-span-7'} text-sm`}>Player</div>
             <div className={`${isMobile ? 'col-span-3' : 'col-span-4'} text-right text-sm`}>Points</div>
           </div>
           
-          {/* List - Mobil uyumlu */}
           <div className="divide-y divide-gray-700 max-h-[600px] overflow-y-auto">
             {leaderboard.map((player, index) => (
               <div key={`${player.address}-${index}`} className={`grid ${isMobile ? 'grid-cols-10' : 'grid-cols-12'} p-3 hover:bg-gray-700/50 transition-colors`}>
@@ -159,9 +162,6 @@ const Leaderboard = () => {
       <div className="bg-gray-800/50 rounded-xl p-4 text-center">
         <p className="text-gray-400 text-sm">
           The leaderboard is updated in real time. The top 100 players receive $YoYo equivalent to the points they have collected! 🏅
-        </p>
-        <p className="text-gray-400 text-sm mt-2">
-          Leaderboard updates automatically after each battle.
         </p>
         <p className="text-green-400 text-xs mt-2">
           {leaderboard.length} players competing

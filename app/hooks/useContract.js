@@ -31,7 +31,6 @@ export const useContract = () => {
     if (!contract) return { winNormal: 250, winYoyo: 500, lose: 10 };
     
     try {
-      // Contract'tan point değerlerini al
       const [winNormal, winYoyo, lose] = await Promise.all([
         contract.WIN_POINTS_NORMAL(),
         contract.WIN_POINTS_YOYO(),
@@ -69,7 +68,6 @@ export const useContract = () => {
         winRate
       ] = playerInfo;
 
-      // State'leri güncelle
       if (setPoints) setPoints(Number(totalPoints));
       if (setGamesPlayedToday) setGamesPlayedToday(Number(gamesToday));
       if (setDailyLimit) setDailyLimit(Number(limit));
@@ -143,7 +141,6 @@ export const useContract = () => {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
-      // Contract instance oluştur
       const contractInstance = new ethers.Contract(contractAddress, abi, signer);
 
       setProvider(provider);
