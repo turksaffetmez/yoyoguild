@@ -11,52 +11,76 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <script src="/ready.js" />
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>YoYo Guild Battle - Blockchain Battle Arena</title>
-        
-        {/* ACİL FARCASTER READY FIX */}
+        {/* MANUEL FARCASTER SDK YÜKLEME - EN KRİTİK KISIM */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // ACİL FARCASTER READY FIX
+              // MANUEL FARCASTER SDK YÜKLEME
               (function() {
-                console.log('🚀 EMERGENCY: Calling sdk.actions.ready() from layout');
-                try {
-                  // YENİ SDK - sdk.actions.ready()
-                  if (window.farcaster?.actions?.ready) {
-                    window.farcaster.actions.ready();
-                    console.log('✅ EMERGENCY: sdk.actions.ready() called from layout');
+                console.log('🚀 MANUEL: Loading Farcaster SDK...');
+                
+                // Eğer SDK zaten yüklüyse, hemen ready çağır
+                if (window.farcaster) {
+                  console.log('✅ SDK already loaded, calling ready immediately');
+                  callFarcasterReady();
+                  return;
+                }
+                
+                // Manuel olarak SDK yükle
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/@farcaster/frame-sdk@0.1.4/dist.js';
+                script.async = true;
+                script.onload = function() {
+                  console.log('✅ Farcaster SDK manually loaded successfully');
+                  callFarcasterReady();
+                };
+                script.onerror = function() {
+                  console.error('❌ Failed to load Farcaster SDK');
+                  sendEmergencyReady();
+                };
+                document.head.appendChild(script);
+                
+                // Ready çağırma fonksiyonu
+                function callFarcasterReady() {
+                  try {
+                    if (window.farcaster?.actions?.ready) {
+                      window.farcaster.actions.ready();
+                      console.log('✅ sdk.actions.ready() called successfully');
+                    } else if (window.farcaster?.ready) {
+                      window.farcaster.ready();
+                      console.log('✅ farcaster.ready() called successfully');
+                    } else {
+                      console.warn('⚠️ SDK loaded but no ready method found');
+                      sendEmergencyReady();
+                    }
+                  } catch (error) {
+                    console.error('❌ Error calling ready:', error);
+                    sendEmergencyReady();
                   }
-                  // ESKİ SDK - farcaster.ready()
-                  else if (window.farcaster?.ready) {
-                    window.farcaster.ready();
-                    console.log('✅ EMERGENCY: farcaster.ready() called from layout');
-                  }
-                  // SDK YOK - sadece ready mesajı
-                  else {
-                    console.log('⚠️ EMERGENCY: No Farcaster SDK found in layout');
-                  }
-                  
-                  // READY MESAJI (her durumda gönder)
+                }
+                
+                // Acil ready mesajı (fallback)
+                function sendEmergencyReady() {
                   if (window.parent !== window) {
                     window.parent.postMessage({ 
                       type: 'ready', 
                       version: '1.0.0',
                       app: 'YoYo Guild Battle',
-                      layout: true,
+                      manual: true,
                       timestamp: Date.now()
                     }, '*');
-                    console.log('📨 Emergency ready message sent from layout');
+                    console.log('📨 Emergency ready sent (manual fallback)');
                   }
-                } catch(e) {
-                  console.error('Emergency ready error:', e);
                 }
               })();
             `
           }}
         />
+
+        <script src="/ready.js" />
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>YoYo Guild Battle - Blockchain Battle Arena</title>
         
         {/* FARCASTER FRAME TAGS */}
         <meta property="fc:frame" content="vNext" />

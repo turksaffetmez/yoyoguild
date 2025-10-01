@@ -3,73 +3,66 @@ import { useEffect } from 'react';
 
 export default function FarcasterSDK() {
   useEffect(() => {
-    console.log('🎯 FarcasterSDK - Checking for SDK...');
+    console.log('🎯 FarcasterSDK Component - Double checking ready...');
     
-    const checkAndCallSDK = () => {
+    // Double check ready çağrısı
+    const doubleCheckReady = () => {
       try {
         // YENİ SDK - sdk.actions.ready()
         if (window.farcaster?.actions?.ready) {
           window.farcaster.actions.ready();
-          console.log('✅ sdk.actions.ready() called successfully');
+          console.log('✅ Double check: sdk.actions.ready() called');
           return true;
         }
         // ESKİ SDK - farcaster.ready()
         else if (window.farcaster?.ready) {
           window.farcaster.ready();
-          console.log('✅ farcaster.ready() called successfully');
+          console.log('✅ Double check: farcaster.ready() called');
           return true;
         }
         // SDK BULUNAMADI
         else {
-          console.log('🔍 Farcaster SDK not found in window object');
+          console.log('🔍 No Farcaster SDK found in component (double check)');
           return false;
         }
       } catch (error) {
-        console.error('❌ Error calling SDK ready:', error);
+        console.error('❌ Double check error:', error);
         return false;
       }
     };
 
-    // Ready mesajı gönder (SDK olsun ya da olmasın)
-    const sendReadyMessage = (sdkCalled) => {
+    // Ready mesajı gönder
+    const sendReadyMessage = () => {
       if (window.parent !== window) {
         window.parent.postMessage({ 
           type: 'ready', 
           version: '1.0.0',
           app: 'YoYo Guild Battle',
-          sdkReady: sdkCalled,
+          component: true,
           timestamp: Date.now()
         }, '*');
-        console.log('📨 Ready message sent, SDK called:', sdkCalled);
+        console.log('📨 Component ready message sent');
       }
     };
 
-    // Hemen dene
-    const sdkCalled = checkAndCallSDK();
-    sendReadyMessage(sdkCalled);
+    // Hemen double check yap
+    const sdkCalled = doubleCheckReady();
+    sendReadyMessage();
 
-    // Farcaster SDK'si yavaş yüklenebilir - tekrar dene
-    if (!sdkCalled) {
-      console.log('⏳ Retrying SDK detection...');
-      const retryIntervals = [500, 1000, 2000, 3000, 5000];
-      
-      retryIntervals.forEach(timeout => {
-        setTimeout(() => {
-          const retrySuccess = checkAndCallSDK();
-          if (retrySuccess) {
-            sendReadyMessage(true);
-          }
-        }, timeout);
-      });
+    // 2 saniye sonra tekrar dene (SDK yüklenmiş olabilir)
+    setTimeout(() => {
+      console.log('🔄 Component re-checking SDK...');
+      doubleCheckReady();
+    }, 2000);
 
-      // Final attempt
-      setTimeout(() => {
-        if (!window.farcaster) {
-          console.warn('⚠️ Farcaster SDK never loaded, app will work without SDK');
-          sendReadyMessage(false);
-        }
-      }, 10000);
-    }
+    // 5 saniye sonra final check
+    setTimeout(() => {
+      console.log('🔍 Component final SDK check...');
+      const finalCheck = doubleCheckReady();
+      if (!finalCheck) {
+        console.warn('⚠️ Component: Farcaster SDK never appeared');
+      }
+    }, 5000);
     
   }, []);
   
