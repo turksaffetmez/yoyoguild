@@ -192,7 +192,6 @@ const GameBoard = ({
           </div>
         );
 
-      // ... Diğer gamePhase caseleri aynı kalacak, sadece "idle" değişti
       case "selecting":
         return (
           <div className="text-center space-y-8">
@@ -323,14 +322,26 @@ const GameBoard = ({
               </div>
             </div>
 
-            <button
-              onClick={onStartNewGame}
-              disabled={remainingGames <= 0 || wrongNetwork}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {wrongNetwork ? 'Switch to Base Network' : 
-               remainingGames > 0 ? 'Battle Again!' : 'Daily Limit Reached'}
-            </button>
+            {/* YENİ "BATTLE AGAIN!" BUTONU - DAHA BELİRGİN */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <button
+                onClick={onStartNewGame}
+                disabled={remainingGames <= 0 || wrongNetwork}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg px-8 py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 min-w-[200px]"
+              >
+                {wrongNetwork ? 'Switch to Base Network' : 
+                 remainingGames > 0 ? '⚔️ Battle Again!' : 'Daily Limit Reached'}
+              </button>
+              
+              {remainingGames > 0 && !wrongNetwork && (
+                <button
+                  onClick={onResetGame}
+                  className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 border border-gray-500"
+                >
+                  Change Tevan
+                </button>
+              )}
+            </div>
           </div>
         );
 
@@ -346,7 +357,7 @@ const GameBoard = ({
         <p className="text-gray-300 mb-8">Connect your wallet to start battling!</p>
         <button
           onClick={onConnectWallet}
-          className="btn-primary"
+          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
         >
           Connect Wallet to Play
         </button>
@@ -362,7 +373,7 @@ const GameBoard = ({
         <p className="text-yellow-400 mb-6">Current network is not supported for this game.</p>
         <button
           onClick={() => window.location.reload()}
-          className="btn-primary"
+          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
         >
           Refresh After Switching Network
         </button>
@@ -375,7 +386,13 @@ const GameBoard = ({
       <div className="text-center py-12">
         <h2 className="text-3xl font-bold text-red-400 mb-4">Daily Limit Reached!</h2>
         <p className="text-gray-300 mb-4">You've played all {dailyLimit} games for today.</p>
-        <p className="text-yellow-400">Come back tomorrow for more battles!</p>
+        <p className="text-yellow-400 mb-6">Come back tomorrow for more battles!</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
+        >
+          Refresh Page
+        </button>
       </div>
     );
   }
