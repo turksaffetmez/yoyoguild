@@ -1,49 +1,40 @@
 import { ethers } from 'ethers';
 import { contractAddress, abi } from '../utils/contract';
 
-export const useContract = (provider, isClient) => {
-  const YOYO_TOKEN_ADDRESS = "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1";
-  const YOYO_TOKEN_ABI = [
-    "function balanceOf(address owner) view returns (uint256)",
-    "function decimals() view returns (uint8)",
-    "function symbol() view returns (string)"
-  ];
-
-  // Optimize edilmiş YOYO balance kontrolü
+export const useContract = () => {
+  
   const checkYoyoBalance = async (address) => {
     if (!address) return 0;
     try {
-      let providerInstance;
-      
-      if (window.ethereum) {
-        providerInstance = new ethers.BrowserProvider(window.ethereum);
-      } else {
-        providerInstance = new ethers.JsonRpcProvider('https://mainnet.base.org');
-      }
+      const YOYO_TOKEN_ADDRESS = "0x4bDF5F3Ab4F894cD05Df2C3c43e30e1C4F6AfBC1";
+      const YOYO_TOKEN_ABI = [
+        "function balanceOf(address owner) view returns (uint256)",
+        "function decimals() view returns (uint8)"
+      ];
 
-      const yoyoContract = new ethers.Contract(YOYO_TOKEN_ADDRESS, YOYO_TOKEN_ABI, providerInstance);
+      const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+      const contract = new ethers.Contract(YOYO_TOKEN_ADDRESS, YOYO_TOKEN_ABI, provider);
+      
       const [balance, decimals] = await Promise.all([
-        yoyoContract.balanceOf(address),
-        yoyoContract.decimals()
+        contract.balanceOf(address),
+        contract.decimals()
       ]);
       
-      const formattedBalance = Number(ethers.formatUnits(balance, decimals));
-      console.log(`💰 YOYO Balance: ${formattedBalance} for ${address}`);
-      return formattedBalance;
+      return Number(ethers.formatUnits(balance, decimals));
     } catch (error) {
-      console.error("YOYO balance check failed:", error);
+      console.error("YOYO balance error:", error);
       return 0;
     }
   };
 
-  // Point values getir - optimize edilmiş
   const getPointValues = async (contract) => {
     if (!contract) return { winNormal: 250, winYoyo: 500, lose: 10 };
     
     try {
+      // Contract'tan point değerlerini al
       const [winNormal, winYoyo, lose] = await Promise.all([
-        contract.WIN_POINTS(),
-        contract.WIN_YOYO_POINTS(),
+        contract.WIN_POINTS_NORMAL(),
+        contract.WIN_POINTS_YOYO(),
         contract.LOSE_POINTS()
       ]);
       
@@ -53,20 +44,17 @@ export const useContract = (provider, isClient) => {
         lose: Number(lose)
       };
     } catch (error) {
-      console.error("Failed to get point values, using defaults:", error);
+      console.error("Point values error, using defaults:", error);
       return { winNormal: 250, winYoyo: 500, lose: 10 };
     }
   };
 
-  // Optimize edilmiş player info güncelleme
   const updatePlayerInfo = async (contract, address, checkYoyoBalance, setPoints, setGamesPlayedToday, setDailyLimit, setPlayerStats, setYoyoBalanceAmount) => {
     if (!contract || !address) return;
     
     try {
-      const [playerInfo, yoyoBalance] = await Promise.all([
-        contract.getPlayerInfo(address),
-        checkYoyoBalance(address)
-      ]);
+      const playerInfo = await contract.getPlayerInfo(address);
+      const yoyoBalance = await checkYoyoBalance(address);
 
       const [
         totalPoints, 
@@ -81,7 +69,7 @@ export const useContract = (provider, isClient) => {
         winRate
       ] = playerInfo;
 
-      // Batch state updates
+      // State'leri güncelle
       if (setPoints) setPoints(Number(totalPoints));
       if (setGamesPlayedToday) setGamesPlayedToday(Number(gamesToday));
       if (setDailyLimit) setDailyLimit(Number(limit));
@@ -98,14 +86,13 @@ export const useContract = (provider, isClient) => {
         });
       }
       
-      console.log('✅ Player info updated successfully');
+      console.log('✅ Player info updated from contract');
       
     } catch (error) {
       console.error("❌ Failed to update player info:", error);
     }
   };
 
-  // Optimize edilmiş leaderboard güncelleme
   const updateLeaderboard = async (contract, setLeaderboard) => {
     if (!contract) return;
     
@@ -122,119 +109,57 @@ export const useContract = (provider, isClient) => {
         .slice(0, 100);
       
       if (setLeaderboard) setLeaderboard(leaderboardData);
-      console.log('🏆 Leaderboard updated:', leaderboardData.length, 'players');
+      console.log('🏆 Leaderboard updated from contract');
       
     } catch (error) {
-      console.error("Failed to update leaderboard:", error);
+      console.error("Leaderboard error:", error);
     }
   };
 
-  // Optimize edilmiş wallet bağlantısı
   const connectWallet = async (
-    walletType = 'standard', 
-    farcasterAddress = null,
-    isMobile,
-    setShowWalletOptions,
     setProvider,
     setContract,
-    setUserAddress,
+    setUserAddress, 
     setWalletConnected,
-    checkYoyoBalance,
-    setYoyoBalanceAmount,
-    getPointValues,
-    setPointValues,
-    updatePlayerInfo,
-    updateLeaderboard,
-    refreshPlayerData,
-    isFarcasterMiniApp,
-    points,
     setConnectionError,
     setIsLoading
   ) => {
     try {
-      console.log('🔗 Connecting wallet:', { walletType });
+      console.log('🔗 Connecting wallet to contract...');
       
-      let providerInstance;
-      let signer;
-      let address;
-
-      // FARCASTER veya BASE EMBEDDED WALLET
-      if ((walletType === 'farcaster' || walletType === 'embedded') && farcasterAddress) {
-        console.log('🎯 Using embedded wallet');
-        address = farcasterAddress;
-        
-        if (window.ethereum) {
-          providerInstance = new ethers.BrowserProvider(window.ethereum);
-          signer = await providerInstance.getSigner();
-        } else {
-          providerInstance = new ethers.JsonRpcProvider('https://mainnet.base.org');
-          signer = null;
-        }
-      }
-      // STANDARD WALLET
-      else {
-        if (!window.ethereum) {
-          throw new Error('No Ethereum wallet found. Please install MetaMask, Rabby, or use a wallet-enabled browser.');
-        }
-
-        const accounts = await window.ethereum.request({
-          method: 'eth_requestAccounts'
-        });
-
-        if (!accounts || accounts.length === 0) {
-          throw new Error('No accounts found. Please connect your wallet.');
-        }
-
-        address = accounts[0];
-        providerInstance = new ethers.BrowserProvider(window.ethereum);
-        signer = await providerInstance.getSigner();
+      if (!window.ethereum) {
+        throw new Error('No Ethereum wallet found. Please install MetaMask or use a wallet-enabled browser.');
       }
 
-      const contractInstance = signer 
-        ? new ethers.Contract(contractAddress, abi, signer)
-        : new ethers.Contract(contractAddress, abi, providerInstance);
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
 
-      // State'leri güncelle
-      if (setProvider) setProvider(providerInstance);
-      if (setContract) setContract(contractInstance);
-      if (setUserAddress) setUserAddress(address);
-      if (setWalletConnected) setWalletConnected(true);
-      if (setShowWalletOptions) setShowWalletOptions(false);
-      if (setConnectionError) setConnectionError('');
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found. Please connect your wallet.');
+      }
 
-      console.log('✅ Wallet connected successfully:', { address, walletType });
+      const address = accounts[0];
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      // Contract instance oluştur
+      const contractInstance = new ethers.Contract(contractAddress, abi, signer);
 
-      // Parallel data fetching
-      await Promise.all([
-        checkYoyoBalance && checkYoyoBalance(address).then(balance => {
-          if (setYoyoBalanceAmount) setYoyoBalanceAmount(balance);
-        }),
-        getPointValues && getPointValues(contractInstance).then(pointVals => {
-          if (setPointValues) setPointValues(pointVals);
-        }),
-        updatePlayerInfo && updatePlayerInfo(
-          contractInstance, address, checkYoyoBalance, 
-          null, null, null, null, null
-        ),
-        updateLeaderboard && updateLeaderboard(contractInstance, null)
-      ]);
+      setProvider(provider);
+      setContract(contractInstance);
+      setUserAddress(address);
+      setWalletConnected(true);
+      setConnectionError('');
+
+      console.log('✅ Wallet connected to contract:', address);
+
+      return { provider, contract: contractInstance, address };
 
     } catch (error) {
       console.error('❌ Wallet connection failed:', error);
       if (setConnectionError) {
-        let errorMessage = 'Connection failed: ';
-        
-        if (error.code === 4001) {
-          errorMessage += 'User rejected the connection';
-        } else if (error.code === -32002) {
-          errorMessage += 'Connection request already pending';
-        } else if (error.message.includes('No Ethereum wallet')) {
-          errorMessage += 'No wallet found. Please install a wallet.';
-        } else {
-          errorMessage += error.message || 'Unknown error occurred';
-        }
-        
-        setConnectionError(errorMessage);
+        setConnectionError(error.message || 'Connection failed');
       }
       throw error;
     } finally {
@@ -255,9 +180,9 @@ export const useContract = (provider, isClient) => {
   ) => {
     console.log('🔌 Disconnecting wallet...');
     
-    if (setWalletConnected) setWalletConnected(false);
-    if (setUserAddress) setUserAddress('');
-    if (setContract) setContract(null);
+    setWalletConnected(false);
+    setUserAddress('');
+    setContract(null);
     if (setPoints) setPoints(0);
     if (setYoyoBalanceAmount) setYoyoBalanceAmount(0);
     if (setGamesPlayedToday) setGamesPlayedToday(0);
