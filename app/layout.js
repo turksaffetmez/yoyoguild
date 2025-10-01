@@ -11,13 +11,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {/* MANUEL FARCASTER SDK YÜKLEME - EN KRİTİK KISIM */}
+        {/* MANUEL FARCASTER SDK YÜKLEME - MULTIPLE SOURCES */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // MANUEL FARCASTER SDK YÜKLEME
+              // MANUEL FARCASTER SDK YÜKLEME - MULTIPLE SOURCES
               (function() {
-                console.log('🚀 MANUEL: Loading Farcaster SDK...');
+                console.log('🚀 MANUEL: Loading Farcaster SDK from multiple sources...');
                 
                 // Eğer SDK zaten yüklüyse, hemen ready çağır
                 if (window.farcaster) {
@@ -26,30 +26,68 @@ export default function RootLayout({ children }) {
                   return;
                 }
                 
-                // Manuel olarak SDK yükle
-                const script = document.createElement('script');
-                script.src = 'https://unpkg.com/@farcaster/frame-sdk@0.1.4/dist.js';
-                script.async = true;
-                script.onload = function() {
-                  console.log('✅ Farcaster SDK manually loaded successfully');
-                  callFarcasterReady();
-                };
-                script.onerror = function() {
-                  console.error('❌ Failed to load Farcaster SDK');
-                  sendEmergencyReady();
-                };
-                document.head.appendChild(script);
+                // Farklı SDK URL'leri deneyelim
+                const sdkSources = [
+                  'https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@0.1.4/dist.js',
+                  'https://unpkg.com/@farcaster/frame-sdk@0.1.4/dist.js',
+                  'https://esm.sh/@farcaster/frame-sdk@0.1.4'
+                ];
+                
+                let currentSourceIndex = 0;
+                
+                function tryLoadSDK() {
+                  if (currentSourceIndex >= sdkSources.length) {
+                    console.error('❌ All SDK sources failed, using fallback');
+                    sendEmergencyReady();
+                    return;
+                  }
+                  
+                  const source = sdkSources[currentSourceIndex];
+                  console.log('📥 Trying SDK source:', source);
+                  
+                  const script = document.createElement('script');
+                  script.src = source;
+                  script.async = true;
+                  script.onload = function() {
+                    console.log('✅ Farcaster SDK loaded successfully from:', source);
+                    callFarcasterReady();
+                  };
+                  script.onerror = function() {
+                    console.error('❌ Failed to load from:', source);
+                    currentSourceIndex++;
+                    tryLoadSDK(); // Bir sonraki source'u dene
+                  };
+                  document.head.appendChild(script);
+                }
                 
                 // Ready çağırma fonksiyonu
                 function callFarcasterReady() {
                   try {
+                    // Tüm olası SDK formatlarını dene
+                    let called = false;
+                    
+                    // FORMAT 1: Yeni SDK - sdk.actions.ready()
                     if (window.farcaster?.actions?.ready) {
                       window.farcaster.actions.ready();
                       console.log('✅ sdk.actions.ready() called successfully');
-                    } else if (window.farcaster?.ready) {
+                      called = true;
+                    }
+                    
+                    // FORMAT 2: Eski SDK - farcaster.ready()
+                    if (!called && window.farcaster?.ready) {
                       window.farcaster.ready();
                       console.log('✅ farcaster.ready() called successfully');
-                    } else {
+                      called = true;
+                    }
+                    
+                    // FORMAT 3: Global farcaster
+                    if (!called && typeof farcaster !== 'undefined' && farcaster?.ready) {
+                      farcaster.ready();
+                      console.log('✅ farcaster.ready() (global) called successfully');
+                      called = true;
+                    }
+                    
+                    if (!called) {
                       console.warn('⚠️ SDK loaded but no ready method found');
                       sendEmergencyReady();
                     }
@@ -62,16 +100,20 @@ export default function RootLayout({ children }) {
                 // Acil ready mesajı (fallback)
                 function sendEmergencyReady() {
                   if (window.parent !== window) {
-                    window.parent.postMessage({ 
-                      type: 'ready', 
-                      version: '1.0.0',
-                      app: 'YoYo Guild Battle',
-                      manual: true,
-                      timestamp: Date.now()
-                    }, '*');
-                    console.log('📨 Emergency ready sent (manual fallback)');
+                    // Farcaster'ın beklediği formatı kullan
+                    const readyMsg = {
+                      type: 'ready',
+                      data: {
+                        version: '1.0.0'
+                      }
+                    };
+                    window.parent.postMessage(readyMsg, '*');
+                    console.log('📨 Emergency ready sent with Farcaster format');
                   }
                 }
+                
+                // SDK yüklemeyi başlat
+                tryLoadSDK();
               })();
             `
           }}

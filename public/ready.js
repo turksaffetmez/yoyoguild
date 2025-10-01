@@ -1,11 +1,12 @@
 (function() {
-  console.log('🚀 YoYo Mini App - Final ready check');
+  console.log('🚀 YoYo Mini App - Farcaster Format Ready');
   
-  const finalReadyCheck = function() {
+  const sendFarcasterReady = function() {
     try {
-      // 1. SDK ready çağır (eğer varsa)
+      // 1. Önce SDK'yı dene
       let sdkCalled = false;
       
+      // Tüm olası SDK formatları
       if (window.farcaster?.actions?.ready) {
         window.farcaster.actions.ready();
         console.log('✅ ready.js: sdk.actions.ready() called');
@@ -16,34 +17,39 @@
         console.log('✅ ready.js: farcaster.ready() called');
         sdkCalled = true;
       }
+      else if (typeof farcaster !== 'undefined' && farcaster?.ready) {
+        farcaster.ready();
+        console.log('✅ ready.js: farcaster.ready() (global) called');
+        sdkCalled = true;
+      }
       
-      // 2. Ready mesajı gönder (her zaman)
+      // 2. Farcaster formatında ready mesajı gönder
       if (window.parent !== window) {
-        window.parent.postMessage({
+        const readyMsg = {
           type: 'ready',
-          version: '1.0.0',
-          app: 'YoYo Guild Battle',
-          readyjs: true,
-          sdkCalled: sdkCalled,
-          timestamp: Date.now()
-        }, '*');
-        console.log('📨 ready.js message sent, SDK called:', sdkCalled);
+          data: {
+            version: '1.0.0',
+            sdk: sdkCalled
+          }
+        };
+        window.parent.postMessage(readyMsg, '*');
+        console.log('📨 Farcaster format ready sent, SDK:', sdkCalled);
       }
       
       // 3. SDK yoksa uyarı
       if (!sdkCalled) {
-        console.warn('⚠️ ready.js: No SDK found, using message only');
+        console.warn('⚠️ ready.js: No SDK found');
       }
     } catch(e) {
       console.error('ready.js error:', e);
     }
   };
 
-  // Hemen çağır
-  finalReadyCheck();
+  // Hemen gönder
+  sendFarcasterReady();
   
-  // Multiple attempts (Farcaster yavaşlığı için)
-  [100, 500, 1000, 2000, 3000].forEach(timeout => {
-    setTimeout(finalReadyCheck, timeout);
+  // Multiple attempts
+  [100, 500, 1000, 2000, 3000, 5000].forEach(timeout => {
+    setTimeout(sendFarcasterReady, timeout);
   });
 })();
